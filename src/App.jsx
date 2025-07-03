@@ -105,13 +105,15 @@ const higherOrderceptionSpec = `
     { "name": "D", "left": 600, "top": 400, "label": "D" }
   ],
   "arrows": [
-    { "name": "f1", "from": "A", "to": "B", "label": "f₁", "curve": -60 },
-    { "name": "f2", "from": "A", "to": "B", "label": "f₂", "curve": 60 },
+    { "name": "f1", "from": "A", "to": "B", "label": "f₁", "curve": -90 },
+    { "name": "f2", "from": "A", "to": "B", "label": "f₂", "curve": 90 },
     { "name": "g1", "from": "C", "to": "D", "label": "g₁", "curve": -60 },
     { "name": "g2", "from": "C", "to": "D", "label": "g₂", "curve": 60 },
-    { "name": "h1", "from": "f1", "to": "f2", "label": "h₁" },
-    { "name": "h2", "from": "g1", "to": "g2", "label": "h₂" },
-    { "name": "h3", "from": "h1", "to": "h2", "label": "h₃", "curve": -50, "style": { "head": { "name": "epi" } } }
+    { "name": "h1", "from": "f1", "to": "f2", "label": "h₁", "curve": -90,
+      "style": { "level": 2 }  },
+    { "name": "h2", "from": "g1", "to": "g2", "label": "h₂", "curve": 90  },
+    { "name": "h3", "from": "h1", "to": "h2", "label": "h₃", "curve": -50,
+      "style": { "level": 3 } }
   ]
 }
 `;
