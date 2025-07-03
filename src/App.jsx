@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { ArrowGram } from "./ArrowGram";
+import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
 
 const quiverSpec3_pullback = `
 {
@@ -118,10 +119,65 @@ const higherOrderceptionSpec = `
 }
 `;
 
+const allSpecs = {
+  pullback: quiverSpec3_pullback.trim(),
+  natural_transformation: naturalTransformationSpec.trim(),
+  higher_order_square: higherOrderSquareSpec.trim(),
+  higher_orderception: higherOrderceptionSpec.trim(),
+};
+
 export default function App() {
+  const [currentSpec, setCurrentSpec] = useState(allSpecs.pullback);
+  const [quiverUrl, setQuiverUrl] = useState("");
+
+  const handleDecode = useCallback(() => {
+    try {
+      const specObject = decodeQuiverUrl(quiverUrl);
+      setCurrentSpec(JSON.stringify(specObject, null, 2));
+    } catch (e) {
+      alert(e.message);
+    }
+  }, [quiverUrl]);
+
+  const handleEncode = useCallback(() => {
+    try {
+      const specObject = JSON.parse(currentSpec);
+      const dataString = encodeArrowgram(specObject);
+      const url = `https://q.uiver.app/#q=${dataString}`;
+      setQuiverUrl(url);
+      navigator.clipboard.writeText(url);
+      alert("Quiver URL copied to clipboard!");
+    } catch (e) {
+      alert(e.message);
+    }
+  }, [currentSpec]);
+
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem" }}>
       <h1>arrowgram - hotdocX template</h1>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2>Quiver Conversion</h2>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <input 
+            type="text"
+            value={quiverUrl}
+            onChange={(e) => setQuiverUrl(e.target.value)}
+            placeholder="Paste q.uiver.app URL here"
+            style={{ width: '400px', padding: '8px' }}
+          />
+          <button onClick={handleDecode}>Decode URL</button>
+          <button onClick={handleEncode}>Encode Current Diagram</button>
+        </div>
+      </div>
+      <h2>Current Diagram</h2>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+        Load Example:
+        {Object.keys(allSpecs).map(name => (
+          <button key={name} onClick={() => setCurrentSpec(allSpecs[name])}>{name}</button>
+        ))}
+      </div>
+      <ArrowGram spec={currentSpec} />
+      <hr style={{ margin: '2rem 0' }} />
       <h2>Pullback Diagram</h2>
       <ArrowGram spec={quiverSpec3_pullback.trim()} />
       <h2>Natural Transformation</h2>

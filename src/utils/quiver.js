@@ -1,0 +1,229 @@
+const GRID_SCALE = 150;
+
+const QUIVER_LABEL_ALIGNMENT = {
+	left: 0,
+	centre: 1, // Not directly supported by arrowgram, maps to 'over'
+	right: 2,
+	over: 3,
+};
+
+const ARROWGRAM_LABEL_ALIGNMENT = ["left", "over", "right", "over"];
+
+const QUIVER_HEAD_STYLE = {
+	normal: ["epi"],
+	epi: ["epi", "epi"],
+	none: [],
+};
+
+const QUIVER_TAIL_STYLE = {
+	mono: ["mono"],
+	none: [],
+};
+
+const QUIVER_DASH_STYLE = {
+	solid: "SOLID",
+	dashed: "DASHED",
+	dotted: "DOTTED",
+};
+
+function quiverStyleToArrowgram(options) {
+	const style = {};
+	if (options.style) {
+		const headStyle = JSON.stringify(options.style.heads);
+		if (headStyle === JSON.stringify(QUIVER_HEAD_STYLE.epi)) {
+			style.head = { name: "epi" };
+		} else if (headStyle === JSON.stringify(QUIVER_HEAD_STYLE.none)) {
+			style.head = { name: "none" };
+		}
+
+		const tailStyle = JSON.stringify(options.style.tails);
+		if (tailStyle === JSON.stringify(QUIVER_TAIL_STYLE.mono)) {
+			style.tail = { name: "mono" };
+		}
+
+		if (options.style.dash_style === QUIVER_DASH_STYLE.dashed) {
+			style.body = { name: "dashed" };
+		} else if (options.style.dash_style === QUIVER_DASH_STYLE.dotted) {
+			style.body = { name: "dotted" };
+		}
+	}
+	return style;
+}
+
+export function decodeQuiverUrl(url) {
+	try {
+		const fragment = new URL(url).hash;
+		const base64String = new URLSearchParams(fragment.substring(1)).get("q");
+
+		if (!base64String) {
+			throw new Error("No 'q' parameter found in URL fragment.");
+		}
+
+		const decodedString = atob(base64String);
+		const bytes = new Uint8Array(decodedString.length);
+		for (let i = 0; i < decodedString.length; i++) {
+			bytes[i] = decodedString.charCodeAt(i);
+		}
+		const jsonString = new TextDecoder().decode(bytes);
+		const quiverArray = JSON.parse(jsonString);
+
+		const [version, vertexCount, ...cells] = quiverArray;
+
+		const spec = {
+			nodes: [],
+			arrows: [],
+		};
+
+		const cellMap = [];
+
+		for (let i = 0; i < vertexCount; i++) {
+			const cell = cells[i];
+			const [x, y, label = ""] = cell;
+			const nodeName = `v${i}`;
+
+			spec.nodes.push({
+				name: nodeName,
+				left: x * GRID_SCALE,
+				top: y * GRID_SCALE,
+				label: label,
+			});
+			cellMap[i] = { name: nodeName, type: "node" };
+		}
+
+		for (let i = vertexCount; i < cells.length; i++) {
+			const cell = cells[i - vertexCount];
+			const [
+				sourceIdx,
+				targetIdx,
+				label = "",
+				alignment = 3,
+				options = {},
+			] = cell;
+
+			const sourceName = cellMap[sourceIdx]?.name;
+			const targetName = cellMap[targetIdx]?.name;
+
+			if (sourceName && targetName) {
+				const arrowName = `e${i - vertexCount}`;
+				const arrow = {
+					name: arrowName,
+					from: sourceName,
+					to: targetName,
+					label: label,
+					curve: options.curve || 0,
+					shift: options.offset || 0,
+					level: options.level || 1,
+					label_alignment: ARROWGRAM_LABEL_ALIGNMENT[alignment],
+				};
+
+				const agStyle = quiverStyleToArrowgram(options);
+				if (Object.keys(agStyle).length > 0) {
+					arrow.style = agStyle;
+				}
+
+				spec.arrows.push(arrow);
+				cellMap[vertexCount + i - vertexCount] = { name: arrowName, type: "arrow" };
+			}
+		}
+
+		return spec;
+	} catch (error) {
+		console.error("Failed to decode Quiver URL:", error);
+		throw new Error("Failed to decode URL. Please check the format.");
+	}
+}
+
+function arrowgramStyleToQuiver(arrow) {
+	const options = { style: {} };
+
+	const head = arrow.style?.head?.name || "normal";
+	if (head !== "normal") {
+		options.style.heads = QUIVER_HEAD_STYLE[head];
+	}
+
+	const tail = arrow.style?.tail?.name || "none";
+	if (tail !== "none") {
+		options.style.tails = QUIVER_TAIL_STYLE[tail];
+	}
+
+	const body = arrow.style?.body?.name || "solid";
+	if (body !== "solid") {
+		options.style.dash_style = QUIVER_DASH_STYLE[body];
+	}
+	
+	if (Object.keys(options.style).length === 0) {
+		delete options.style;
+	}
+
+	return options;
+}
+
+export function encodeArrowgram(spec) {
+	try {
+		const vertices = [];
+		const edges = [];
+		const nameMap = new Map();
+
+		spec.nodes.forEach((node, index) => {
+			const quiverVertex = [
+				Math.round(node.left / GRID_SCALE),
+				Math.round(node.top / GRID_SCALE),
+			];
+			if (node.label) {
+				quiverVertex.push(node.label);
+			}
+			vertices.push(quiverVertex);
+			nameMap.set(node.name, index);
+		});
+
+		spec.arrows.forEach((arrow, index) => {
+			if (arrow.name) {
+				nameMap.set(arrow.name, vertices.length + index);
+			}
+		});
+
+		spec.arrows.forEach((arrow) => {
+			const sourceIndex = nameMap.get(arrow.from);
+			const targetIndex = nameMap.get(arrow.to);
+
+			if (sourceIndex === undefined || targetIndex === undefined) {
+				console.warn("Skipping arrow with missing nodes:", arrow);
+				return;
+			}
+
+			const quiverEdge = [sourceIndex, targetIndex];
+			const options = arrowgramStyleToQuiver(arrow);
+
+			if (arrow.curve) options.curve = arrow.curve;
+			if (arrow.shift) options.offset = arrow.shift;
+			if (arrow.level && arrow.level > 1) options.level = arrow.level;
+			
+			const alignment = QUIVER_LABEL_ALIGNMENT[arrow.label_alignment || 'over'];
+			
+			const hasOptions = Object.keys(options).length > 0;
+			const hasAlignment = alignment !== QUIVER_LABEL_ALIGNMENT.over;
+
+			if (arrow.label || hasAlignment || hasOptions) {
+				quiverEdge.push(arrow.label || "");
+			}
+			if (hasAlignment || hasOptions) {
+				quiverEdge.push(alignment);
+			}
+			if (hasOptions) {
+				quiverEdge.push(options);
+			}
+			edges.push(quiverEdge);
+		});
+
+		const quiverArray = [0, vertices.length, ...vertices, ...edges];
+		const jsonString = JSON.stringify(quiverArray);
+		
+		const uint8Array = new TextEncoder().encode(jsonString);
+		const charString = String.fromCharCode.apply(null, uint8Array);
+		return btoa(charString);
+
+	} catch (error) {
+		console.error("Failed to encode Arrowgram spec:", error);
+		throw new Error("Failed to encode spec.");
+	}
+} 
