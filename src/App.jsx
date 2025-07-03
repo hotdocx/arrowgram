@@ -12,53 +12,13 @@ const quiverSpec3_pullback = `
     { "name": "C", "left": 600, "top": 600, "label": "C" }
   ],
   "arrows": [
-    {
-      "from": "P",
-      "to": "A",
-      "label": "p₁",
-      "style": { "tail": { "name": "mono" } }
-    },
-    {
-      "from": "P",
-      "to": "B",
-      "label": "p₂"
-    },
-    {
-      "from": "A",
-      "to": "C",
-      "label": "f",
-      "label_alignment": "left",
-      "style": { "head": { "name": "epi" } }
-    },
-    {
-      "from": "B",
-      "to": "C",
-      "label": "g",
-      "label_alignment": "right",
-      "style": { "tail": { "name": "mono" } }
-    },
-    {
-      "from": "T",
-      "to": "A",
-      "label": "t₁",
-      "curve": -80
-    },
-    {
-      "from": "T",
-      "to": "B",
-      "label": "t₂",
-      "curve": 80
-    },
-    {
-      "from": "T",
-      "to": "P",
-      "label": "∃! u",
-      "style": {
-        "body": {
-          "name": "dashed"
-        }
-      }
-    }
+    { "from": "P", "to": "A", "label": "p₁", "style": { "tail": { "name": "mono" } } },
+    { "from": "P", "to": "B", "label": "p₂" },
+    { "from": "A", "to": "C", "label": "f", "label_alignment": "left", "style": { "head": { "name": "epi" } } },
+    { "from": "B", "to": "C", "label": "g", "label_alignment": "right", "style": { "tail": { "name": "mono" } } },
+    { "from": "T", "to": "A", "label": "t₁", "curve": -80 },
+    { "from": "T", "to": "B", "label": "t₂", "curve": 80 },
+    { "from": "T", "to": "P", "label": "∃! u", "style": { "body": { "name": "dashed" } } }
   ]
 }
 `;
