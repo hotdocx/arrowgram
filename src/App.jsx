@@ -133,6 +133,7 @@ export default function App() {
   const handleDecode = useCallback(() => {
     try {
       const specObject = decodeQuiverUrl(quiverUrl);
+      console.log("[DEBUG] decoded quiver url ", {specObject});
       setCurrentSpec(JSON.stringify(specObject, null, 2));
     } catch (e) {
       alert(e.message);

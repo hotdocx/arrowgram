@@ -1,4 +1,5 @@
 const GRID_SCALE = 150;
+const CURVE_SCALE_FACTOR = -25;
 
 const QUIVER_LABEL_ALIGNMENT = {
 	left: 0,
@@ -52,12 +53,13 @@ function quiverStyleToArrowgram(options) {
 
 export function decodeQuiverUrl(url) {
 	try {
-		const fragment = new URL(url).hash;
-		const base64String = new URLSearchParams(fragment.substring(1)).get("q");
+		const fragment = new URL(url).hash.substring(1);
+		const qParam = fragment.split("&").find((p) => p.startsWith("q="));
 
-		if (!base64String) {
+		if (!qParam) {
 			throw new Error("No 'q' parameter found in URL fragment.");
 		}
+		const base64String = qParam.substring(2);
 
 		const decodedString = atob(base64String);
 		const bytes = new Uint8Array(decodedString.length);
@@ -91,7 +93,7 @@ export function decodeQuiverUrl(url) {
 		}
 
 		for (let i = vertexCount; i < cells.length; i++) {
-			const cell = cells[i - vertexCount];
+			const cell = cells[i];
 			const [
 				sourceIdx,
 				targetIdx,
@@ -110,7 +112,7 @@ export function decodeQuiverUrl(url) {
 					from: sourceName,
 					to: targetName,
 					label: label,
-					curve: options.curve || 0,
+					curve: (options.curve || 0) * CURVE_SCALE_FACTOR,
 					shift: options.offset || 0,
 					level: options.level || 1,
 					label_alignment: ARROWGRAM_LABEL_ALIGNMENT[alignment],
@@ -122,7 +124,7 @@ export function decodeQuiverUrl(url) {
 				}
 
 				spec.arrows.push(arrow);
-				cellMap[vertexCount + i - vertexCount] = { name: arrowName, type: "arrow" };
+				cellMap[i] = { name: arrowName, type: "arrow" };
 			}
 		}
 
@@ -194,7 +196,12 @@ export function encodeArrowgram(spec) {
 			const quiverEdge = [sourceIndex, targetIndex];
 			const options = arrowgramStyleToQuiver(arrow);
 
-			if (arrow.curve) options.curve = arrow.curve;
+			if (arrow.curve) {
+				const curveValue = Math.round(arrow.curve / CURVE_SCALE_FACTOR);
+				if (curveValue !== 0) {
+					options.curve = curveValue;
+				}
+			}
 			if (arrow.shift) options.offset = arrow.shift;
 			if (arrow.level && arrow.level > 1) options.level = arrow.level;
 			
