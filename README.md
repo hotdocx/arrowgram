@@ -13,6 +13,8 @@ The component is self-contained, performing all necessary geometric calculations
 -   **`q.uiver.app` Interoperability:** Seamlessly import diagrams from and export them to `q.uiver.app` share URLs.
 -   **Customizable Styling:** A range of styling options for arrows (solid, dashed, dotted), heads (normal, epi), and tails (mono).
 
+![arrowgram.png](./arrowgram.png)
+
 ## Integration in a Rendering Pipeline
 
 `arrowgram` is designed to be easily integrated into document-rendering pipelines that process extended markdown. By wrapping a valid `arrowgram` JSON specification in a `<div>`, you can process and embed diagrams alongside other content types like `vega-lite` charts or `mermaid` diagrams.
