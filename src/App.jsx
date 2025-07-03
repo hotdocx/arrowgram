@@ -116,6 +116,7 @@ export default function App() {
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem" }}>
       <h1>arrowgram - hotdocX template</h1>
+      <a href="/paged-template.html">arrowgram inside a hotdocX paged template</a>
       <div style={{ marginBottom: '2rem' }}>
         <h2>Quiver Conversion</h2>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

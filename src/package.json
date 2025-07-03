@@ -1,7 +1,7 @@
 {
-  "name": "arrowgram-hotdocx-template",
+  "name": "arrowgram",
   "version": "1.0.0",
-  "main": "/index.jsx",
+  "main": "/index.js",
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
