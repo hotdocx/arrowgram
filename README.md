@@ -4,6 +4,14 @@
 
 The component is self-contained, performing all necessary geometric calculations to translate the abstract specification into a visually clear SVG representation. It is intended for use in markdown rendering pipelines or interactive development environments like Sandpack.
 
+## Key Features
+
+-   **Declarative JSON:** Define complex diagrams with a simple and intuitive JSON structure.
+-   **SVG Rendering:** Automatically renders clean, auto-sizing SVG diagrams that fit any layout.
+-   **Higher-Order Arrows:** Create arrows between other arrows, essential for 2-category diagrams and natural transformations.
+-   **`q.uiver.app` Interoperability:** Seamlessly import diagrams from and export them to `q.uiver.app` share URLs.
+-   **Customizable Styling:** A range of styling options for arrows (solid, dashed, dotted), heads (normal, epi), and tails (mono).
+
 ## Architecture and Design
 
 The architecture of `arrowgram` is centered around a single, robust React component, `<ArrowGram />`.
@@ -12,65 +20,63 @@ The architecture of `arrowgram` is centered around a single, robust React compon
 -   **Declarative Specification:** The design separates the diagram's definition (the "what") from its rendering (the "how"). Users provide a simple JSON object describing the nodes and arrows, and the component handles the complex task of drawing it. This makes creating and modifying diagrams straightforward.
 -   **Stateless Rendering:** The component is designed to be stateless. It receives a JSON specification as a prop and renders the corresponding SVG. All calculations are derived from these props, using `useMemo` for performance optimization.
 
-## Implementation
+## Implementation Details
 
-The implementation handles the entire pipeline from parsing the JSON spec to rendering a dynamic, auto-sizing SVG.
+### The `<ArrowGram />` Component
 
-### Core Component: `<ArrowGram />`
-
-This is the main component that orchestrates the rendering process.
+The core logic resides within the `<ArrowGram />` component.
 
 1.  **Parsing:** It accepts a JSON string (`spec`) as a prop, which it parses into a JavaScript object.
-2.  **Model Creation:** It processes the `nodes` and `arrows` from the spec to create an internal, render-ready data structure. This involves creating models for standard arrows and for loops (arrows that start and end on the same node).
-3.  **ViewBox Calculation:** It dynamically calculates the SVG `viewBox` by determining the bounding box of all nodes and arrow control points. This ensures the entire diagram is always visible without being manually resized.
+2.  **Model Creation:** It processes the `nodes` and `arrows` from the spec to create an internal, render-ready data structure. This includes resolving dependencies for higher-order arrows.
+3.  **ViewBox Calculation:** It dynamically calculates the SVG `viewBox` by determining the bounding box of all nodes and control points, ensuring the entire diagram is always visible.
 4.  **SVG Rendering:** It maps over the internal models and renders them as a series of SVG `<g>`, `<path>`, and `<text>` elements.
 
-### Input: The JSON Specification
+### Higher-Order Arrows
+
+A key feature of `arrowgram` is its ability to render "higher-order arrows"—arrows that have other arrows as their source or target.
+
+This is achieved by treating every arrow as a potential "virtual node." When an arrow is defined, the component calculates its midpoint. If another arrow uses the first arrow's `name` as its `from` or `to` property, the component uses this calculated midpoint as the connection point.
+
+To prevent visual overlap, the component also calculates a "radius" for these virtual nodes, ensuring that the connecting arrow starts and ends with a clean gap, just as it would with a regular node. This allows for creating complex, multi-level diagrams like 2-cells in category theory.
+
+### The JSON Specification
 
 A diagram is defined by a JSON object with two main keys: `nodes` and `arrows`.
 
 #### Node Objects
 
-A node is an object that defines a point in the diagram.
-
 -   `name` (string): A unique identifier for the node.
--   `label` (string): The text to display for the node.
--   `left` (number): The x-coordinate of the node's center.
--   `top` (number): The y-coordinate of the node's center.
+-   `label` (string): The text to display.
+-   `left`, `top` (number): The x and y coordinates.
 
 #### Arrow Objects
 
-An arrow connects two nodes and can be extensively customized.
-
--   `name` (string, optional): A unique identifier for the arrow. Required if the arrow is to be used as a source or target for another arrow.
--   `from` (string): The `name` of the starting node or arrow.
--   `to` (string): The `name` of the ending node or arrow.
--   `label` (string, optional): Text to display alongside the arrow.
--   `curve` (number, optional): A value to control the curvature of the arrow. Positive values curve one way, negative values the other. Defaults to `0` (a straight line).
--   `shift` (number, optional): A value to shift the arrow perpendicular to its direction, useful for parallel arrows that might otherwise overlap. Defaults to `0`.
--   `label_alignment` (string, optional): Positions the label. Can be `"over"` (default), `"left"`, or `"right"`.
--   `style` (object, optional): An object to control the visual style of the arrow's parts.
+-   `name` (string, optional): A unique identifier, required if the arrow is a source/target for another arrow.
+-   `from`, `to` (string): The `name` of the starting and ending node *or arrow*.
+-   `label` (string, optional): Text displayed alongside the arrow.
+-   `curve` (number, optional): Controls curvature.
+-   `shift` (number, optional): Shifts the arrow perpendicular to its direction.
+-   `label_alignment` (string, optional): `"over"` (default), `"left"`, or `"right"`.
+-   `style` (object, optional): Controls visual style.
     -   `body`: `{ "name": "solid" | "dashed" | "dotted" }`
     -   `head`: `{ "name": "normal" | "epi" | "none" }`
     -   `tail`: `{ "name": "mono" | "none" }`
--   `level` (number, optional): Draws multiple parallel lines for the arrow body. Defaults to `1`.
+-   `level` (number, optional): Draws multiple parallel lines for the arrow body (e.g., for equality).
 
-### Supported Arrow Styles
+### `q.uiver.app` Interoperability
 
-The `style` property allows for various common diagramming conventions:
+The utilities in `src/utils/quiver.js` provide two-way compatibility with `q.uiver.app`.
 
--   **Body Styles:**
-    -   `solid`: A standard solid line.
-    -   `dashed`: A dashed line, often used for existential arrows.
-    -   `dotted`: A dotted line.
--   **Head/Tail Styles:** These are inspired by category theory notations.
-    -   `normal`: A standard arrowhead (`->`).
-    -   `epi`: A double arrowhead, representing an epimorphism (`->>`).
-    -   `mono`: An arrowhead rendered at the tail of the arrow, representing a monomorphism (`>->`).
+-   `decodeQuiverUrl(url)`: Parses a `q.uiver.app` share URL, decodes its Base64 data, and transforms the quiver-specific array format into an `arrowgram` JSON spec. It handles mapping of coordinates, styles, and diagram structure.
+-   `encodeArrowgram(spec)`: Takes an `arrowgram` JSON spec, converts it back into the quiver array format, encodes it, and generates a valid `q.uiver.app` share URL.
 
-## Example
+## Example Gallery
 
-The following JSON spec demonstrates how to create a pullback diagram:
+The `App.jsx` component includes several examples that demonstrate the capabilities of `arrowgram`.
+
+### Pullback Diagram
+
+A standard diagram in category theory, showcasing basic nodes, arrows, and styling (mono, epi, dashed).
 
 ```json
 {
@@ -93,8 +99,77 @@ The following JSON spec demonstrates how to create a pullback diagram:
 }
 ```
 
+### Natural Transformation
+
+This example demonstrates a higher-order arrow (`eta`) connecting two parallel arrows (`f` and `g`), representing a natural transformation.
+
+```json
+{
+  "nodes": [
+    { "name": "A", "left": 100, "top": 100, "label": "A" },
+    { "name": "B", "left": 400, "top": 100, "label": "B" }
+  ],
+  "arrows": [
+    { "name": "f", "from": "A", "to": "B", "label": "F(f)", "curve": -90 },
+    { "name": "g", "from": "A", "to": "B", "label": "G(f)", "curve": 90 },
+    { "name": "eta", "from": "f", "to": "g", "label": "η", "style": { "head": { "name": "epi" } } }
+  ]
+}
+```
+
+### Higher-Order Square
+
+A more complex diagram showing a commutative square where the commutation is expressed by higher-order arrows. It also showcases multi-line arrows (`level: 2`).
+
+```json
+{
+  "nodes": [
+    { "name": "A", "left": 100, "top": 100, "label": "A" },
+    { "name": "B", "left": 500, "top": 100, "label": "B" },
+    { "name": "C", "left": 100, "top": 400, "label": "C" },
+    { "name": "D", "left": 500, "top": 400, "label": "D" }
+  ],
+  "arrows": [
+    { "name": "top_arrow", "from": "A", "to": "B", "label": "f", "curve": 90 },
+    { "name": "bottom_arrow", "from": "C", "to": "D", "label": "g" },
+    { "name": "left_arrow", "from": "A", "to": "C", "label": "α" },
+    { "name": "right_arrow", "from": "B", "to": "D", "label": "β" },
+    { "name": "diag1", "from": "top_arrow", "to": "right_arrow", "label": "η", "curve": 40, "label_alignment": "left",
+      "style": { "level": 2,  "head": { "name": "epi" },  "tail": { "name": "mono" }  } },
+    { "name": "diag2", "from": "left_arrow", "to": "bottom_arrow", "label": "ε", "curve": -40, "label_alignment": "right" }
+  ]
+}
+```
+
+### Arrows Between Higher-Order Arrows ("Higher-Order-ception")
+
+This example pushes the concept further, drawing an arrow (`h3`) between two other higher-order arrows (`h1` and `h2`). This demonstrates the recursive capability of the rendering engine.
+
+```json
+{
+  "nodes": [
+    { "name": "A", "left": 100, "top": 100, "label": "A" },
+    { "name": "B", "left": 600, "top": 100, "label": "B" },
+    { "name": "C", "left": 100, "top": 400, "label": "C" },
+    { "name": "D", "left": 600, "top": 400, "label": "D" }
+  ],
+  "arrows": [
+    { "name": "f1", "from": "A", "to": "B", "label": "f₁", "curve": -90 },
+    { "name": "f2", "from": "A", "to": "B", "label": "f₂", "curve": 90 },
+    { "name": "g1", "from": "C", "to": "D", "label": "g₁", "curve": -60 },
+    { "name": "g2", "from": "C", "to": "D", "label": "g₂", "curve": 60 },
+    { "name": "h1", "from": "f1", "to": "f2", "label": "h₁", "curve": -90,
+      "style": { "level": 2 }  },
+    { "name": "h2", "from": "g1", "to": "g2", "label": "h₂", "curve": 90  },
+    { "name": "h3", "from": "h1", "to": "h2", "label": "h₃", "curve": -50,
+      "style": { "level": 3 } }
+  ]
+}
+```
+
 ## Future Work
 
--   [ ] Implement utilities to decode a `q.uiver.app` share URL into the JSON spec of an arrowgram.
--   [ ] Implement utilities to encode a JSON spec of an arrowgram into a `q.uiver.app` share URL.
--   [ ] Expand the range of available arrow and node styles.
+-   [ ] Expand the range of available arrow and node styles to match `q.uiver.app` more closely (e.g., different arrow bodies, node shapes).
+-   [ ] Support additional `q.uiver.app` features like cell coloring and grid snapping in the conversion utilities.
+-   [ ] Improve performance for extremely large and complex diagrams.
+-   [ ] Add interactive features, such as dragging nodes or editing labels directly on the SVG canvas.
