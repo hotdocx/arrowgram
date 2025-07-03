@@ -69,8 +69,8 @@ const naturalTransformationSpec = `
     { "name": "B", "left": 400, "top": 100, "label": "B" }
   ],
   "arrows": [
-    { "name": "f", "from": "A", "to": "B", "label": "F(f)", "curve": -40 },
-    { "name": "g", "from": "A", "to": "B", "label": "G(f)", "curve": 40 },
+    { "name": "f", "from": "A", "to": "B", "label": "F(f)", "curve": -90 },
+    { "name": "g", "from": "A", "to": "B", "label": "G(f)", "curve": 90 },
     { "name": "eta", "from": "f", "to": "g", "label": "η", "style": { "head": { "name": "epi" } } }
   ]
 }
@@ -85,12 +85,33 @@ const higherOrderSquareSpec = `
     { "name": "D", "left": 500, "top": 400, "label": "D" }
   ],
   "arrows": [
-    { "name": "top_arrow", "from": "A", "to": "B", "label": "f" },
+    { "name": "top_arrow", "from": "A", "to": "B", "label": "f", "curve": 90 },
     { "name": "bottom_arrow", "from": "C", "to": "D", "label": "g" },
     { "name": "left_arrow", "from": "A", "to": "C", "label": "α" },
     { "name": "right_arrow", "from": "B", "to": "D", "label": "β" },
-    { "name": "diag1", "from": "top_arrow", "to": "right_arrow", "label": "η", "curve": 40, "label_alignment": "left" },
+    { "name": "diag1", "from": "top_arrow", "to": "right_arrow", "label": "η", "curve": 40, "label_alignment": "left",
+      "style": { "level": 2,  "head": { "name": "epi" },  "tail": { "name": "mono" }  } },
     { "name": "diag2", "from": "left_arrow", "to": "bottom_arrow", "label": "ε", "curve": -40, "label_alignment": "right" }
+  ]
+}
+`;
+
+const higherOrderceptionSpec = `
+{
+  "nodes": [
+    { "name": "A", "left": 100, "top": 100, "label": "A" },
+    { "name": "B", "left": 600, "top": 100, "label": "B" },
+    { "name": "C", "left": 100, "top": 400, "label": "C" },
+    { "name": "D", "left": 600, "top": 400, "label": "D" }
+  ],
+  "arrows": [
+    { "name": "f1", "from": "A", "to": "B", "label": "f₁", "curve": -60 },
+    { "name": "f2", "from": "A", "to": "B", "label": "f₂", "curve": 60 },
+    { "name": "g1", "from": "C", "to": "D", "label": "g₁", "curve": -60 },
+    { "name": "g2", "from": "C", "to": "D", "label": "g₂", "curve": 60 },
+    { "name": "h1", "from": "f1", "to": "f2", "label": "h₁" },
+    { "name": "h2", "from": "g1", "to": "g2", "label": "h₂" },
+    { "name": "h3", "from": "h1", "to": "h2", "label": "h₃", "curve": -50, "style": { "head": { "name": "epi" } } }
   ]
 }
 `;
@@ -105,6 +126,8 @@ export default function App() {
       <ArrowGram spec={naturalTransformationSpec.trim()} />
       <h2>Commutative Square with Higher-Order Arrows</h2>
       <ArrowGram spec={higherOrderSquareSpec.trim()} />
+      <h2>Arrows Between Higher-Order Arrows</h2>
+      <ArrowGram spec={higherOrderceptionSpec.trim()} />
     </div>
   );
 }

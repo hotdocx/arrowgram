@@ -20,6 +20,18 @@ export function ArrowGram({ spec: specString }) {
         return { nodes: [], arrows: [], viewBox: "0 0 100 100" };
       }
 
+      const getEndpointRadius = (endpointInfo) => {
+        if (endpointInfo.isNode) {
+          return NODE_RADIUS;
+        }
+        if (!endpointInfo.spec) return 0;
+
+        const level = endpointInfo.spec.style?.level || 1;
+        const thickness = (level - 1) * LINE_SPACING + STROKE_WIDTH;
+        const PADDING_FOR_ARROW_ENDPOINT = 8;
+        return thickness / 2 + PADDING_FOR_ARROW_ENDPOINT;
+      };
+
       const endpointInfo = new Map(
         spec.nodes.map((node) => [
           node.name,
@@ -69,8 +81,8 @@ export function ArrowGram({ spec: specString }) {
             if (arrowSpec.from === arrowSpec.to) {
               model = createLoopArrowModel(arrowSpec, fromNodeLike, key);
             } else {
-              const fromRadius = fromInfo.isNode ? NODE_RADIUS : 0;
-              const toRadius = toInfo.isNode ? NODE_RADIUS : 0;
+              const fromRadius = getEndpointRadius(fromInfo);
+              const toRadius = getEndpointRadius(toInfo);
               model = createStandardArrowModel(
                 arrowSpec,
                 fromNodeLike,
