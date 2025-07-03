@@ -1,5 +1,5 @@
 /**
- * Decodes a Quiver share URL into a JSON spec compatible with QuiverDiagram.
+ * Decodes a Quiver share URL into a JSON spec compatible with ArrowGram.
  * @param {string} url - The full URL from q.uiver.app, e.g., "https://q.uiver.app/#q=..."
  * @returns {string} - A stringified JSON object of the diagram spec.
  */

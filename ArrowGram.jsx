@@ -12,7 +12,7 @@ const LABEL_LINE_GAP = 15;
 const EPI_AXIAL_SPACING = 6;
 
 // --- Main Component ---
-export function QuiverDiagram({ spec: specString }) {
+export function ArrowGram({ spec: specString }) {
   const diagram = useMemo(() => {
     try {
       const spec = JSON.parse(specString);
