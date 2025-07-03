@@ -37,9 +37,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 /* Styles for Pre-rendered Content */
 .katex-display { display: block; text-align: center; margin: 1em 0; break-inside: avoid; }
-.mermaid-container, .vega-container { page-break-inside: avoid; display: flex; justify-content: center; margin: 1em 0; }
-.mermaid-container svg, .vega-container svg { max-width: 100%; height: auto !important; }
-.mermaid-error, .vega-error { border: 1px solid red; padding: 1em; color: red; text-align: center; font-family: monospace; }
+.mermaid-container, .vega-container, .arrowgram-container { page-break-inside: avoid; display: flex; justify-content: center; margin: 1em 0; }
+.mermaid-container svg, .vega-container svg, .arrowgram-container svg { max-width: 100%; height: auto !important; }
+.mermaid-error, .vega-error, .arrowgram-error { border: 1px solid red; padding: 1em; color: red; text-align: center; font-family: monospace; }
 .paper-body h1, .paper-body h2, .paper-body h3 { break-after: avoid-column; }
 .title-block { text-align: center; margin-bottom: 2em; line-height: 1.3; }
 .title { font-size: 20pt; font-weight: bold; margin-bottom: 0.75em; }

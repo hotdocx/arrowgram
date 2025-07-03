@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import showdown from 'showdown';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import katex from 'katex';
 import * as vega from 'vega';
 import * as vegaLite from 'vega-lite';
 import { Previewer } from 'pagedjs';
+import { ArrowGram } from '../src/ArrowGram';
 import './styles.css';
 
 // --- CONFIGURATION ---
@@ -43,6 +45,23 @@ graph TD
     A["Input"] --> B{"Compile Vega/Mermaid to SVG"};
     B --> C["Convert Markdown (KaTeX-Safe)"];
     C --> D["Render Final Paged Document"];
+</div>
+
+## Arrowgram Diagram
+This example renders a natural transformation using \`arrowgram\`.
+
+<div class="arrowgram">
+{
+  "nodes": [
+    { "name": "A", "left": 100, "top": 100, "label": "A" },
+    { "name": "B", "left": 400, "top": 100, "label": "B" }
+  ],
+  "arrows": [
+    { "name": "f", "from": "A", "to": "B", "label": "F(f)", "curve": -90 },
+    { "name": "g", "from": "A", "to": "B", "label": "G(f)", "curve": 90 },
+    { "name": "eta", "from": "f", "to": "g", "label": "η", "style": { "head": { "name": "epi" } } }
+  ]
+}
 </div>`;
 
 const PreviewController = ({ markdown, isTwoColumn }) => {
@@ -85,7 +104,23 @@ const PreviewController = ({ markdown, isTwoColumn }) => {
       );
       for (const result of mermaidResults) { processedText = processedText.replace(result.original, result.replacement); }
       
-      // 3. Convert Markdown to HTML with KaTeX-safe options
+      // 3. Pre-process Arrowgram diagrams
+      const arrowgramRegex = /<div class="arrowgram"([^>]*)>([\s\S]*?)<\/div>/g;
+      const arrowgramMatches = Array.from(processedText.matchAll(arrowgramRegex));
+      const arrowgramResults = arrowgramMatches.map((match) => {
+        try {
+          const spec = match[2].trim();
+          JSON.parse(spec); // Validate JSON
+          const svgString = ReactDOMServer.renderToStaticMarkup(<ArrowGram spec={spec} />);
+          return { original: match[0], replacement: `<div class="arrowgram-container"${match[1]}>${svgString}</div>` };
+        } catch (e) {
+          console.error("Arrowgram Error:", e);
+          return { original: match[0], replacement: `<div class="arrowgram-error">Diagram Error: ${e.message}</div>` };
+        }
+      });
+      for (const result of arrowgramResults) { processedText = processedText.replace(result.original, result.replacement); }
+      
+      // 4. Convert Markdown to HTML with KaTeX-safe options
       const converter = new showdown.Converter({
         metadata: true,
         noHeaderId: true,
@@ -94,13 +129,13 @@ const PreviewController = ({ markdown, isTwoColumn }) => {
       let html = converter.makeHtml(processedText);
       const metadata = converter.getMetadata();
 
-      // 4. Process LaTeX math with KaTeX using robust regex
+      // 5. Process LaTeX math with KaTeX using robust regex
       // Display mode: $$...$$
       html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true }));
       // Inline mode: $...$ (non-greedy)
       html = html.replace(/\$([^$]+?)\$/g, (match, latex) => katex.renderToString(latex.trim(), { throwOnError: false, displayMode: false }));
       
-      // 5. Assemble final HTML for Paged.js
+      // 6. Assemble final HTML for Paged.js
       const titleBlockHtml = `<div class="title-block">${metadata.title ? `<div class="title">${metadata.title}</div>` : ''}${metadata.authors ? `<div class="authors">${metadata.authors}</div>` : ''}</div>`;
       const layoutClass = isTwoColumn ? 'layout-two-column' : 'layout-single-column';
       const finalHtml = `<div class="${layoutClass}">${titleBlockHtml}<div class="paper-body">${html}</div></div>`;
@@ -160,7 +195,7 @@ export default function App() {
   return (
     <div className="editor-container">
       <h1>Markdown to Paged Paper</h1>
-      <p>Use custom divs for charts (`&ltdiv class="vega-lite"&gt...`) and diagrams (`&ltdiv class="mermaid"&gt...`).</p>
+      <p>Use custom divs for charts (`&ltdiv class="vega-lite"&gt...`), diagrams (`&ltdiv class="mermaid"&gt...`), and arrowgrams (`&ltdiv class="arrowgram"&gt...`).</p>
       <textarea
         id="markdown-input"
         value={markdown}
