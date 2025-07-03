@@ -42,8 +42,9 @@ A node is an object that defines a point in the diagram.
 
 An arrow connects two nodes and can be extensively customized.
 
--   `from` (string): The `name` of the starting node.
--   `to` (string): The `name` of the ending node.
+-   `name` (string, optional): A unique identifier for the arrow. Required if the arrow is to be used as a source or target for another arrow.
+-   `from` (string): The `name` of the starting node or arrow.
+-   `to` (string): The `name` of the ending node or arrow.
 -   `label` (string, optional): Text to display alongside the arrow.
 -   `curve` (number, optional): A value to control the curvature of the arrow. Positive values curve one way, negative values the other. Defaults to `0` (a straight line).
 -   `shift` (number, optional): A value to shift the arrow perpendicular to its direction, useful for parallel arrows that might otherwise overlap. Defaults to `0`.

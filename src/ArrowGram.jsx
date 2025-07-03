@@ -20,36 +20,99 @@ export function ArrowGram({ spec: specString }) {
         return { nodes: [], arrows: [], viewBox: "0 0 100 100" };
       }
 
-      const nodeMap = new Map(spec.nodes.map((node) => [node.name, node]));
+      const endpointInfo = new Map(
+        spec.nodes.map((node) => [
+          node.name,
+          {
+            pos: { x: node.left, y: node.top },
+            level: 0,
+            isNode: true,
+            spec: node,
+          },
+        ])
+      );
+
+      const arrowSpecs = (spec.arrows || []).map((a, i) => ({
+        ...a,
+        uniqueId: a.name || `_arrow_${i}`,
+      }));
+
       const arrows = [];
+      const unresolvedArrowSpecs = new Set(arrowSpecs);
+      let changedInIteration = true;
+      const maxIterations = arrowSpecs.length + 1;
+      let currentIteration = 0;
 
-      for (const [index, arrowSpec] of (spec.arrows || []).entries()) {
-        const fromNode = nodeMap.get(arrowSpec.from);
-        const toNode = nodeMap.get(arrowSpec.to);
-        if (!fromNode || !toNode) continue;
-        const key = `${arrowSpec.from}-${arrowSpec.to}-${index}`;
+      while (unresolvedArrowSpecs.size > 0 && changedInIteration) {
+        if (currentIteration++ > maxIterations) {
+          const unresolvedNames = [...unresolvedArrowSpecs]
+            .map((spec) => spec.name || spec.uniqueId)
+            .join(", ");
+          throw new Error(
+            `Could not resolve dependencies for arrows: ${unresolvedNames}. Check for cycles or missing names.`
+          );
+        }
 
-        const model =
-          fromNode === toNode
-            ? createLoopArrowModel(arrowSpec, fromNode, key)
-            : createStandardArrowModel(arrowSpec, fromNode, toNode, key);
+        changedInIteration = false;
+        for (const arrowSpec of unresolvedArrowSpecs) {
+          const fromInfo = endpointInfo.get(arrowSpec.from);
+          const toInfo = endpointInfo.get(arrowSpec.to);
 
-        arrows.push(model);
+          if (fromInfo && toInfo) {
+            const level = Math.max(fromInfo.level, toInfo.level) + 1;
+
+            const fromNodeLike = { left: fromInfo.pos.x, top: fromInfo.pos.y };
+            const toNodeLike = { left: toInfo.pos.x, top: toInfo.pos.y };
+            const key = `${arrowSpec.from}-${arrowSpec.to}-${arrowSpec.uniqueId}`;
+
+            let model;
+            if (arrowSpec.from === arrowSpec.to) {
+              model = createLoopArrowModel(arrowSpec, fromNodeLike, key);
+            } else {
+              const fromRadius = fromInfo.isNode ? NODE_RADIUS : 0;
+              const toRadius = toInfo.isNode ? NODE_RADIUS : 0;
+              model = createStandardArrowModel(
+                arrowSpec,
+                fromNodeLike,
+                toNodeLike,
+                key,
+                fromRadius,
+                toRadius
+              );
+            }
+            arrows.push(model);
+
+            if (arrowSpec.name) {
+              endpointInfo.set(arrowSpec.name, {
+                pos: model.midpoint,
+                level: level,
+                isNode: false,
+                spec: arrowSpec,
+              });
+            }
+
+            unresolvedArrowSpecs.delete(arrowSpec);
+            changedInIteration = true;
+          }
+        }
       }
 
-      const allCoords = spec.nodes.flatMap((n) => [{ x: n.left, y: n.top }]);
+      const allCoords = [...endpointInfo.values()].map((info) => ({
+        x: info.pos.x,
+        y: info.pos.y,
+      }));
       spec.arrows?.forEach((a) => {
-        if (a.from === a.to && nodeMap.has(a.from)) {
-          const node = nodeMap.get(a.from);
+        if (a.from === a.to && endpointInfo.has(a.from)) {
+          const nodeInfo = endpointInfo.get(a.from);
           const radAngle = (a.angle || 45) * (Math.PI / 180);
           const radius = a.radius || 40;
           allCoords.push({
-            x: node.left + radius * Math.cos(radAngle),
-            y: node.top + radius * Math.sin(radAngle),
+            x: nodeInfo.pos.x + radius * Math.cos(radAngle),
+            y: nodeInfo.pos.y + radius * Math.sin(radAngle),
           });
           allCoords.push({
-            x: node.left - radius * Math.cos(radAngle),
-            y: node.top - radius * Math.sin(radAngle),
+            x: nodeInfo.pos.x - radius * Math.cos(radAngle),
+            y: nodeInfo.pos.y - radius * Math.sin(radAngle),
           });
         }
       });
@@ -184,10 +247,18 @@ function createLoopArrowModel(spec, node, key) {
     },
     heads,
     tail: [],
+    midpoint: loopCenter,
   };
 }
 
-function createStandardArrowModel(spec, fromNode, toNode, key) {
+function createStandardArrowModel(
+  spec,
+  fromNode,
+  toNode,
+  key,
+  fromRadius = NODE_RADIUS,
+  toRadius = NODE_RADIUS
+) {
   const defaultStyle = {
     head: { name: "normal" },
     tail: { name: "none" },
@@ -233,12 +304,12 @@ function createStandardArrowModel(spec, fromNode, toNode, key) {
   const lineEnd = { x: end.x + shiftVec.x, y: end.y + shiftVec.y };
 
   const finalTailPos = {
-    x: lineStart.x + NODE_RADIUS * Math.cos(angle),
-    y: lineStart.y + NODE_RADIUS * Math.sin(angle),
+    x: lineStart.x + fromRadius * Math.cos(angle),
+    y: lineStart.y + fromRadius * Math.sin(angle),
   };
   const finalHeadPos = {
-    x: lineEnd.x - NODE_RADIUS * Math.cos(angle),
-    y: lineEnd.y - NODE_RADIUS * Math.sin(angle),
+    x: lineEnd.x - toRadius * Math.cos(angle),
+    y: lineEnd.y - toRadius * Math.sin(angle),
   };
 
   let controlPoint = {
@@ -344,12 +415,12 @@ function createStandardArrowModel(spec, fromNode, toNode, key) {
   );
 
   // --- Finalize Label Position (New, Correct Logic) ---
-  const finalLabelCenter = {
+  const midpoint = {
     x: 0.25 * finalTailPos.x + 0.5 * controlPoint.x + 0.25 * finalHeadPos.x,
     y: 0.25 * finalTailPos.y + 0.5 * controlPoint.y + 0.25 * finalHeadPos.y,
   };
 
-  let labelPos = { ...finalLabelCenter };
+  let labelPos = { ...midpoint };
   if (label_alignment === "left" || label_alignment === "right") {
     const side = label_alignment === "left" ? -1 : 1;
     labelPos.x += side * LABEL_LINE_GAP * Math.cos(perpAngle);
@@ -371,6 +442,7 @@ function createStandardArrowModel(spec, fromNode, toNode, key) {
     },
     heads,
     tail,
+    midpoint,
   };
 }
 
