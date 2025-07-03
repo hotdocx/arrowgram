@@ -87,7 +87,7 @@ export function decodeQuiverUrl(url) {
 				name: nodeName,
 				left: x * GRID_SCALE,
 				top: y * GRID_SCALE,
-				label: label,
+				label: label ? `$${label}$` : "",
 			});
 			cellMap[i] = { name: nodeName, type: "node" };
 		}
@@ -111,7 +111,7 @@ export function decodeQuiverUrl(url) {
 					name: arrowName,
 					from: sourceName,
 					to: targetName,
-					label: label,
+					label: label ? `$${label}$` : "",
 					curve: (options.curve || 0) * CURVE_SCALE_FACTOR,
 					shift: options.offset || 0,
 					level: options.level || 1,
@@ -172,7 +172,7 @@ export function encodeArrowgram(spec) {
 				Math.round(node.top / GRID_SCALE),
 			];
 			if (node.label) {
-				quiverVertex.push(node.label);
+				quiverVertex.push(node.label.replace(/\$/g, ""));
 			}
 			vertices.push(quiverVertex);
 			nameMap.set(node.name, index);
@@ -211,7 +211,7 @@ export function encodeArrowgram(spec) {
 			const hasAlignment = alignment !== QUIVER_LABEL_ALIGNMENT.over;
 
 			if (arrow.label || hasAlignment || hasOptions) {
-				quiverEdge.push(arrow.label || "");
+				quiverEdge.push((arrow.label || "").replace(/\$/g, ""));
 			}
 			if (hasAlignment || hasOptions) {
 				quiverEdge.push(alignment);

@@ -14,8 +14,8 @@ const IS_TWO_COLUMN_DEFAULT = false;
 
 const DEFAULT_MARKDOWN_CONTENT = 
 `---
-title: Final Template with Correct Math Rendering
-authors: The HotDocx Team
+title: hotdocX paged template
+authors: by the docXponents
 ---
 
 ## Introduction
