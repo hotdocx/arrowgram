@@ -12,7 +12,8 @@ import './styles.css';
 // --- CONFIGURATION ---
 const IS_TWO_COLUMN_DEFAULT = false;
 
-const DEFAULT_MARKDOWN_CONTENT = `---
+const DEFAULT_MARKDOWN_CONTENT = 
+`---
 title: Final Template with Correct Math Rendering
 authors: The HotDocx Team
 ---
@@ -37,6 +38,30 @@ Charts remain robust and are generated directly into SVG strings.
 }
 </div>
 
+## Arrowgram Diagram
+This example renders a pullback diagram using \`arrowgram\`.
+
+<div class="arrowgram">
+{
+  "nodes": [
+    { "name": "T", "left": 100, "top": 100, "label": "T" },
+    { "name": "P", "left": 300, "top": 300, "label": "$A \\times_C B$" },
+    { "name": "A", "left": 300, "top": 600, "label": "A" },
+    { "name": "B", "left": 600, "top": 300, "label": "B" },
+    { "name": "C", "left": 600, "top": 600, "label": "C" }
+  ],
+  "arrows": [
+    { "from": "P", "to": "A", "label": "$p_1$", "label_alignment": "right", "style": { "tail": { "name": "mono" } } },
+    { "from": "P", "to": "B", "label": "p₂" },
+    { "from": "A", "to": "C", "label": "$f$", "label_alignment": "left", "style": { "head": { "name": "epi" } } },
+    { "from": "B", "to": "C", "label": "g", "label_alignment": "right", "style": { "tail": { "name": "mono" } } },
+    { "from": "T", "to": "A", "label": "t₁", "curve": -80 },
+    { "from": "T", "to": "B", "label": "t₂", "curve": 80 },
+    { "from": "T", "to": "P", "label": "∃! u", "style": { "body": { "name": "dashed" } } }
+  ]
+}
+</div>
+
 ## Mermaid Diagram
 Mermaid diagrams continue to use the same proven pre-processing method.
 
@@ -46,24 +71,7 @@ graph TD
     B --> C["Convert Markdown (KaTeX-Safe)"];
     C --> D["Render Final Paged Document"];
 </div>
-
-## Arrowgram Diagram
-This example renders a natural transformation using \`arrowgram\`.
-
-<div class="arrowgram">
-{
-  "nodes": [
-    { "name": "A", "left": 100, "top": 100, "label": "A" },
-    { "name": "B", "left": 400, "top": 100, "label": "$B \\to \\bot$" }
-  ],
-  "arrows": [
-    { "name": "f", "from": "A", "to": "B", "label": "F(f)", "curve": -90 },
-    { "name": "g", "from": "A", "to": "B", "label": "G(f)", "curve": 90 },
-    { "name": "eta", "from": "f", "to": "g", "label": "$η^4$", "label_alignment": "left",
-      "style": { "head": { "name": "epi" } } }
-  ]
-}
-</div>`;
+`;
 
 const PreviewController = ({ markdown, isTwoColumn }) => {
   const containerRef = useRef(null);
