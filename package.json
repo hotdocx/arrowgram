@@ -1,0 +1,16 @@
+{
+  "name": "arrowgram-hotdocx-template",
+  "version": "1.0.0",
+  "main": "/index.jsx",
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}
