@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import katex from 'katex';
 
 // --- Constants ---
 const NODE_RADIUS = 25;
@@ -10,6 +11,71 @@ const ARROW_HEAD_SIZE = 10;
 const PADDING = 60;
 const LABEL_LINE_GAP = 15;
 const EPI_AXIAL_SPACING = 6;
+
+// --- Label Rendering Sub-Component ---
+function LabelContent({ label, textProps, isNodeLabel = false }) {
+  if (typeof label !== 'string' || label.trim() === '') return null;
+  
+  const isMath = label.includes('$');
+
+  const finalProps = {
+    ...textProps,
+    fontWeight: isNodeLabel ? 'bold' : 'normal',
+    fontSize: FONT_SIZE
+  };
+
+  if (!isMath) {
+    // Non-math, render as plain SVG text
+    if (isNodeLabel) {
+       return <text {...finalProps}>{label}</text>;
+    }
+    // Render with a white stroke for "background" effect on arrows
+    return (
+      <>
+        <text {...finalProps} stroke="white" strokeWidth="6" strokeLinejoin="round">{label}</text>
+        <text {...finalProps}>{label}</text>
+      </>
+    );
+  }
+
+  // Math label: Render with KaTeX inside a <foreignObject>
+  // This allows embedding HTML (from KaTeX) inside the SVG.
+  const mathString = label.replace(/\$/g, '');
+  const html = katex.renderToString(mathString, {
+    throwOnError: false,
+    displayMode: false, // Use inline styling for labels
+  });
+
+  // Define dimensions for the foreignObject container.
+  const width = 150;
+  const height = 50;
+  // Center the foreignObject on the original text's coordinates.
+  const x = finalProps.x - width / 2;
+  const y = finalProps.y - height / 2;
+  
+  return (
+    <foreignObject x={x} y={y} width={width} height={height} style={{ overflow: 'visible' }}>
+      <div 
+        xmlns="http://www.w3.org/1999/xhtml"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+          fontSize: `${FONT_SIZE}px`,
+          fontWeight: isNodeLabel ? 'bold' : 'normal',
+          color: ARROW_COLOR,
+          textAlign: 'center'
+        }}
+      >
+        {/* Scoped style to ensure consistent line-height from KaTeX */}
+        <style>{`.katex{line-height:1.2;}`}</style> 
+        <div dangerouslySetInnerHTML={{ __html: html }}/>
+      </div>
+    </foreignObject>
+  );
+}
 
 // --- Main Component ---
 export function ArrowGram({ spec: specString }) {
@@ -165,17 +231,7 @@ export function ArrowGram({ spec: specString }) {
             <path key={i} {...path} />
           ))}
           {arrow.label.text && (
-            <>
-              <text
-                {...arrow.label.props}
-                stroke="white"
-                strokeWidth="6"
-                strokeLinejoin="round"
-              >
-                {arrow.label.text}
-              </text>
-              <text {...arrow.label.props}>{arrow.label.text}</text>
-            </>
+            <LabelContent label={arrow.label.text} textProps={arrow.label.props} />
           )}
           {arrow.heads.map((head, i) => (
             <path key={`h-${i}`} {...head.props} />
@@ -187,14 +243,16 @@ export function ArrowGram({ spec: specString }) {
       ))}
       {diagram.nodes.map((node) => (
         <g key={node.name} transform={`translate(${node.left}, ${node.top})`}>
-          <text
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={FONT_SIZE}
-            fontWeight="bold"
-          >
-            {node.label}
-          </text>
+          <LabelContent
+            label={node.label}
+            textProps={{
+              x: 0,
+              y: 0,
+              textAnchor: "middle",
+              dominantBaseline: "middle",
+            }}
+            isNodeLabel={true}
+          />
         </g>
       ))}
     </svg>

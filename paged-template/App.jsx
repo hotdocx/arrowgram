@@ -54,12 +54,13 @@ This example renders a natural transformation using \`arrowgram\`.
 {
   "nodes": [
     { "name": "A", "left": 100, "top": 100, "label": "A" },
-    { "name": "B", "left": 400, "top": 100, "label": "B" }
+    { "name": "B", "left": 400, "top": 100, "label": "$B \\to \\bot$" }
   ],
   "arrows": [
     { "name": "f", "from": "A", "to": "B", "label": "F(f)", "curve": -90 },
     { "name": "g", "from": "A", "to": "B", "label": "G(f)", "curve": 90 },
-    { "name": "eta", "from": "f", "to": "g", "label": "η", "style": { "head": { "name": "epi" } } }
+    { "name": "eta", "from": "f", "to": "g", "label": "$η^4$", "label_alignment": "left",
+      "style": { "head": { "name": "epi" } } }
   ]
 }
 </div>`;
