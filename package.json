@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "vite"
+    "start": "vite",
+    "template": "vite --open /paged-template.html"
   },
   "dependencies": {
     "katex": "^0.16.22",

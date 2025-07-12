@@ -138,12 +138,30 @@ const PreviewController = ({ markdown, isTwoColumn }) => {
       let html = converter.makeHtml(processedText);
       const metadata = converter.getMetadata();
 
-      // 5. Process LaTeX math with KaTeX using robust regex
+      // 5. Process LaTeX math with KaTeX, correctly ignoring code blocks.
+      const protectedBlocks = new Map();
+      let placeholderId = 0;
+      const protectBlock = (block) => {
+        const placeholder = `__AG_PROTECTED_BLOCK_${placeholderId++}__`;
+        protectedBlocks.set(placeholder, block);
+        return placeholder;
+      };
+
+      // Protect <pre> blocks first, then standalone <code> blocks.
+      html = html.replace(/<pre[^>]*>.*?<\/pre>/gs, protectBlock);
+      html = html.replace(/<code[^>]*>.*?<\/code>/gs, protectBlock);
+
+      // Process LaTeX math on the "unprotected" HTML.
       // Display mode: $$...$$
       html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true }));
       // Inline mode: $...$ (non-greedy)
       html = html.replace(/\$([^$]+?)\$/g, (match, latex) => katex.renderToString(latex.trim(), { throwOnError: false, displayMode: false }));
       
+      // Restore the protected code blocks.
+      for (const [placeholder, originalBlock] of protectedBlocks.entries()) {
+        html = html.replace(placeholder, originalBlock);
+      }
+
       // 6. Assemble final HTML for Paged.js
       const titleBlockHtml = `<div class="title-block">${metadata.title ? `<div class="title">${metadata.title}</div>` : ''}${metadata.authors ? `<div class="authors">${metadata.authors}</div>` : ''}</div>`;
       const layoutClass = isTwoColumn ? 'layout-two-column' : 'layout-single-column';

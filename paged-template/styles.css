@@ -34,6 +34,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .layout-two-column .title-block, .layout-two-column h1, .layout-two-column h2, .layout-two-column h3 { column-span: all; }
 /* optional */
 /* .layout-two-column .mermaid-container, .layout-two-column .katex-display, .layout-two-column .vega-container { column-span: all; } */
+.layout-two-column .abstract { break-inside: avoid; }
+.layout-two-column .abstract { column-span: all; }
+.layout-two-column .abstract {text-align: justify;}
+.layout-two-column .abstract h2 { font-size: 12pt; font-weight: bold; text-align: center; }
 
 /* Styles for Pre-rendered Content */
 .katex-display { display: block; text-align: center; margin: 1em 0; break-inside: avoid; }
