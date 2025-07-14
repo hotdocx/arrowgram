@@ -4,6 +4,22 @@
 
 The component is self-contained, performing all necessary geometric calculations to translate the abstract specification into a visually clear SVG representation. It is intended for use in markdown rendering pipelines or interactive development environments like Sandpack.
 
+### Quick links
+
+[1] *arrowgram AI Template in hotdocx Publisher Web App*. [https://hotdocx.github.io/#/hdx/25188CHRI26000](https://hotdocx.github.io/#/hdx/25188CHRI26000) 
+
+[2] *emdash functorial programming language for ω-categories and schemes*. [https://github.com/hotdocx/emdash](https://github.com/hotdocx/emdash) 
+
+### Other links
+
+[3] *emdash Experiment-able Testing Playground in hotdocx Publishers*. [https://hotdocx.github.io/#/hdx/25188CHRI27000](https://hotdocx.github.io/#/hdx/25188CHRI27000) 
+
+[4] *emdash Re-formattable Technical Report in hotdocx Publisher*. [https://hotdocx.github.io/#/hdx/25188CHRI25004](https://hotdocx.github.io/#/hdx/25188CHRI25004) 
+
+[5] *jsCoq AI Template for Coq in hotdocx Publisher*. [https://hotdocx.github.io/#/hdx/25191CHRI43000](https://hotdocx.github.io/#/hdx/25191CHRI43000)
+
+[6] *hotdocX GitHub Sponsored Profile*. [https://github.com/sponsors/hotdocx](https://github.com/sponsors/hotdocx)
+
 ## Key Features
 
 -   **Declarative JSON:** Define complex diagrams with a simple and intuitive JSON structure.
