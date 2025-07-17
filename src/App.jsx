@@ -148,19 +148,20 @@ export default function App() {
       <hr style={{ margin: '2rem 0' }} />
       <h2>Interactive Diagram Editor</h2>
       <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
+
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
         <div style={{flex: 1}}>
             <h3>Live JSON Specification</h3>
             <textarea 
-              readOnly 
-              value={editorSpec} 
+              value={editorSpec}
+              onChange={(e) => setEditorSpec(e.target.value)}
               rows={20} 
               style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }}
             />
         </div>
         <div style={{flex: 1}}>
             <h3>Live Preview</h3>
-            <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px'}}>
+            <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px', height: '100%', boxSizing: 'border-box'}}>
                 <ArrowGram spec={editorSpec} />
             </div>
         </div>

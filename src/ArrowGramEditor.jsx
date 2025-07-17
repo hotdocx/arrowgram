@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { ArrowGramDiagram } from './ArrowGramDiagram.jsx';
 import { computeDiagram } from './diagramModel.js';
+import { PropertyEditor } from './PropertyEditor.jsx';
 
-const GRID_SIZE = 25;
+const GRID_SIZE = 40;
 const NODE_RADIUS = 25; // From ArrowGram.jsx
 
 // A simple utility to generate unique names
@@ -45,8 +46,8 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
   }, []);
 
   const handleCanvasPointerDown = useCallback((e) => {
-    // Only trigger if the click is on the SVG background itself
-    if (e.target !== svgRef.current) return;
+    const targetIsHandle = e.target.closest('[data-node-name], [data-arrow-name]');
+    if (targetIsHandle) return;
 
     const point = getSVGPoint(e);
     const snappedX = Math.round(point.x / GRID_SIZE) * GRID_SIZE;
@@ -238,53 +239,70 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
     return nodes.find(n => n.name === interaction.source);
   }, [interaction, nodes]);
   
-  const [vb, setVb] = useState(diagram.viewBox);
+  const [vb, setVb] = useState('0 0 1000 600');
   useEffect(() => {
-    if (diagram.viewBox !== vb) {
+    if (diagram.viewBox && diagram.viewBox !== vb) {
         setVb(diagram.viewBox);
     }
   }, [diagram.viewBox, vb]);
 
+  const [vbParts, setVbParts] = useState([0, 0, 1000, 600]);
+  useEffect(() => {
+    const parts = vb.split(' ').map(Number);
+    if (parts.length === 4) {
+      setVbParts(parts);
+    }
+  }, [vb]);
+
   return (
-    <div style={{ border: '1px solid #ccc', borderRadius: '4px', position: 'relative' }}>
-      <svg 
-        ref={svgRef}
-        width="100%" 
-        height="600" 
-        viewBox={vb}
-        onPointerDown={handleCanvasPointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        style={{ backgroundColor: '#f9f9f9', cursor: 'crosshair' }}
-      >
-        <defs>
-          <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
-            <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="1"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" x={vb.split(' ')[0]} y={vb.split(' ')[1]}/>
-        
-        <ArrowGramDiagram diagram={diagram} />
+    <div style={{ display: 'flex', gap: '1rem', height: '600px' }}>
+      <div style={{ flex: 1, border: '1px solid #ccc', borderRadius: '4px', position: 'relative' }}>
+        <svg 
+          ref={svgRef}
+          width="100%" 
+          height="100%" 
+          viewBox={vb}
+          onPointerDown={handleCanvasPointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          style={{ backgroundColor: '#f9f9f9', cursor: 'crosshair' }}
+        >
+          <defs>
+            <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
+              <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width={vbParts[2]} height={vbParts[3]} fill="url(#grid)" x={vbParts[0]} y={vbParts[1]}/>
+          
+          <ArrowGramDiagram diagram={diagram} />
 
-        {nodeHandles}
-        {arrowHandles}
+          {nodeHandles}
+          {arrowHandles}
 
-        {interaction.mode === 'connecting' && sourceNodePos && (
-            <line
-                x1={sourceNodePos.left}
-                y1={sourceNodePos.top}
-                x2={interaction.phantomEnd.x}
-                y2={interaction.phantomEnd.y}
-                stroke="#007bff"
-                strokeWidth="2"
-                strokeDasharray="5 5"
-                pointerEvents="none"
-            />
-        )}
-      </svg>
-      <div style={{ position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255,255,255,0.8)', padding: '5px', borderRadius: '3px', fontSize: '12px', pointerEvents: 'none' }}>
-          Click to create a node. Ctrl/Cmd+Drag from a node to create an arrow.
+          {interaction.mode === 'connecting' && sourceNodePos && (
+              <line
+                  x1={sourceNodePos.left}
+                  y1={sourceNodePos.top}
+                  x2={interaction.phantomEnd.x}
+                  y2={interaction.phantomEnd.y}
+                  stroke="#007bff"
+                  strokeWidth="2"
+                  strokeDasharray="5 5"
+                  pointerEvents="none"
+              />
+          )}
+        </svg>
+        <div style={{ position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255,255,255,0.8)', padding: '5px', borderRadius: '3px', fontSize: '12px', pointerEvents: 'none' }}>
+            Click to create a node. Ctrl/Cmd+Drag from a node to create an arrow.
+        </div>
       </div>
+       <div style={{ width: '280px' }}>
+         <PropertyEditor 
+            selection={selection}
+            spec={specString}
+            onSpecChange={onSpecChange}
+          />
+       </div>
     </div>
   );
 }
