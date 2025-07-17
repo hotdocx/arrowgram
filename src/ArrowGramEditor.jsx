@@ -332,7 +332,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
   }, [interaction.mode]);
 
   return (
-    <div style={{ display: 'flex', gap: '1rem', height: '600px' }}>
+    <div style={{ display: 'flex', gap: '1rem', height: '80vh' }}>
       <div style={{ flex: 1, border: '1px solid #ccc', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
         <svg 
           ref={svgRef}

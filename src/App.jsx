@@ -113,7 +113,12 @@ export default function App() {
     const specParam = urlParams.get('spec');
     if (specParam) {
       try {
-        const decodedSpec = atob(specParam);
+        const decodedString = atob(specParam);
+        const bytes = new Uint8Array(decodedString.length);
+        for (let i = 0; i < decodedString.length; i++) {
+          bytes[i] = decodedString.charCodeAt(i);
+        }
+        const decodedSpec = new TextDecoder().decode(bytes);
         setEditorSpec(decodedSpec);
       } catch (e) {
         console.error("Failed to decode spec from URL", e);
@@ -125,10 +130,20 @@ export default function App() {
   }, []);
 
   const handleShare = useCallback(() => {
-    const encodedSpec = btoa(editorSpec);
-    const url = `${window.location.origin}${window.location.pathname}?spec=${encodedSpec}`;
-    navigator.clipboard.writeText(url);
-    alert("Shareable URL copied to clipboard!");
+    try {
+      // Handle Unicode characters by encoding to UTF-8 before base64
+      const uint8Array = new TextEncoder().encode(editorSpec);
+      // This is a common trick to convert a Uint8Array to a binary string
+      const charString = String.fromCharCode.apply(null, uint8Array);
+      const encodedSpec = btoa(charString);
+
+      const url = `${window.location.origin}${window.location.pathname}?spec=${encodedSpec}`;
+      navigator.clipboard.writeText(url);
+      alert("Shareable URL copied to clipboard!");
+    } catch (e) {
+      console.error("Failed to encode spec for sharing:", e);
+      alert("Failed to create shareable URL. See console for details.");
+    }
   }, [editorSpec]);
 
   const handleExport = useCallback(async (format) => {
