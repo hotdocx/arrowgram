@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { ArrowGram } from "./ArrowGram";
+import { ArrowGramEditor } from "./ArrowGramEditor";
 import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
 
 const quiverSpec3_pullback = `
@@ -86,9 +87,22 @@ const allSpecs = {
   higher_orderception: higherOrderceptionSpec.trim(),
 };
 
+const initialEditorSpec = `
+{
+  "nodes": [
+    { "name": "A", "left": 150, "top": 150, "label": "A" },
+    { "name": "B", "left": 450, "top": 150, "label": "B" }
+  ],
+  "arrows": [
+    { "from": "A", "to": "B", "label": "f" }
+  ]
+}
+`;
+
 export default function App() {
   const [currentSpec, setCurrentSpec] = useState(allSpecs.pullback);
   const [quiverUrl, setQuiverUrl] = useState("");
+  const [editorSpec, setEditorSpec] = useState(initialEditorSpec);
 
   const handleDecode = useCallback(() => {
     try {
@@ -107,16 +121,53 @@ export default function App() {
       const url = `https://q.uiver.app/#q=${dataString}`;
       setQuiverUrl(url);
       navigator.clipboard.writeText(url);
-      alert("Quiver URL copied to clipboard!");
+      alert("Quiver URL for static diagram copied to clipboard!");
     } catch (e) {
       alert(e.message);
     }
   }, [currentSpec]);
+  
+  const handleEncodeEditor = useCallback(() => {
+    try {
+      const specObject = JSON.parse(editorSpec);
+      const dataString = encodeArrowgram(specObject);
+      const url = `https://q.uiver.app/#q=${dataString}`;
+      setQuiverUrl(url);
+      navigator.clipboard.writeText(url);
+      alert("Quiver URL from editor copied to clipboard!");
+    } catch (e) {
+      alert(e.message);
+    }
+  }, [editorSpec]);
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem" }}>
       <h1>arrowgram - hotdocX template</h1>
       <a href="/paged-template.html">Example: arrowgram inside a hotdocX paged template</a>
+
+      <hr style={{ margin: '2rem 0' }} />
+      <h2>Interactive Diagram Editor</h2>
+      <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+        <div style={{flex: 1}}>
+            <h3>Live JSON Specification</h3>
+            <textarea 
+              readOnly 
+              value={editorSpec} 
+              rows={20} 
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }}
+            />
+        </div>
+        <div style={{flex: 1}}>
+            <h3>Live Preview</h3>
+            <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px'}}>
+                <ArrowGram spec={editorSpec} />
+            </div>
+        </div>
+      </div>
+       <button onClick={handleEncodeEditor} style={{marginTop: '0.5rem'}}>Encode Editor Diagram to Quiver URL</button>
+
+      <hr style={{ margin: '2rem 0' }} />
       <div style={{ marginBottom: '2rem' }}>
         <h2>Quiver Conversion</h2>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -127,11 +178,11 @@ export default function App() {
             placeholder="Paste q.uiver.app URL here"
             style={{ width: '400px', padding: '8px' }}
           />
-          <button onClick={handleDecode}>Decode URL</button>
-          <button onClick={handleEncode}>Encode Current Diagram</button>
+          <button onClick={handleDecode}>Decode URL to Static Diagram</button>
+          <button onClick={handleEncode}>Encode Static Diagram</button>
         </div>
       </div>
-      <h2>Current Diagram</h2>
+      <h2>Current Static Diagram (from Examples or Decode)</h2>
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         Load Example:
         {Object.keys(allSpecs).map(name => (
@@ -140,6 +191,7 @@ export default function App() {
       </div>
       <ArrowGram spec={currentSpec} />
       <hr style={{ margin: '2rem 0' }} />
+      <h2>Static Examples</h2>
       <h2>Pullback Diagram</h2>
       <ArrowGram spec={quiverSpec3_pullback.trim()} />
       <h2>Natural Transformation</h2>
