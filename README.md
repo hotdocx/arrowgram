@@ -20,22 +20,60 @@ The component is self-contained, performing all necessary geometric calculations
 
 [6] *hotdocX GitHub Sponsored Profile*. [https://github.com/sponsors/hotdocx](https://github.com/sponsors/hotdocx)
 
+![The arrowgram editor showing a complex diagram, with the property inspector on the right and live JSON spec below.](./arrowgram-editor.png)
+
 ## Key Features
 
 -   **Declarative JSON:** Define complex diagrams with a simple and intuitive JSON structure.
+-   **Interactive Editor:** A rich, grid-based editor to create and modify diagrams visually. Supports creating nodes, dragging to connect arrows, panning, zooming, and a property inspector for fine-tuning.
 -   **SVG Rendering:** Automatically renders clean, auto-sizing SVG diagrams that fit any layout.
 -   **KaTeX Math Support:** Render complex mathematical formulas in labels using familiar LaTeX syntax.
 -   **Higher-Order Arrows:** Create arrows between other arrows, essential for 2-category diagrams and natural transformations.
 -   **`q.uiver.app` Interoperability:** Seamlessly import diagrams from and export them to `q.uiver.app` share URLs.
 -   **Customizable Styling:** A range of styling options for arrows (solid, dashed, dotted), heads (normal, epi), and tails (mono).
 
-![arrowgram.png](./arrowgram.png)
+## Live Demo & Editor
+
+This repository includes a powerful demonstration app (`src/App.jsx`) that showcases all of `arrowgram`'s features, centered around the interactive editor.
+
+-   **Interactive Canvas:** A grid-based canvas where you can create nodes (double-click), move them (drag), and create arrows between nodes or other arrows (Ctrl/Cmd-drag).
+-   **Pan and Zoom:** Easily navigate large diagrams by dragging the canvas to pan and using the mouse wheel to zoom.
+-   **Property Inspector:** Select any node or arrow to edit its properties—such as labels, curvature, and styles—in a dedicated panel.
+-   **Live JSON and Preview:** See the underlying JSON specification update in real-time as you edit the diagram visually. A separate static preview shows the final rendered output.
+-   **Sharing and Exporting:**
+    -   Generate a shareable URL that encodes the entire diagram specification.
+    -   Export your finished diagram as a standalone SVG or high-resolution PNG file.
+    -   Convert diagrams to and from the `q.uiver.app` format.
+
+## Architecture and Design
+
+The architecture of `arrowgram` is modular, separating concerns to maximize flexibility and code reuse.
+
+-   **Diagram Engine (`diagramModel.js`):** This is the core of the library. It's a pure function that takes a JSON spec and performs all the complex geometric calculations required to render the diagram. It computes node positions, arrow paths, control points for curves, label positions, and the overall SVG `viewBox`. This stateless engine is used by both the static renderer and the interactive editor.
+
+-   **Diagram Renderer (`ArrowGramDiagram.jsx`):** A presentational React component that takes the computed model from the diagram engine and renders the corresponding SVG elements (`<path>`, `<g>`, `<foreignObject>`, etc.). It also handles the integration with KaTeX for rendering mathematical labels. Because it's a "dumb" component focused only on rendering, it can be used in any context.
+
+-   **Static Component (`ArrowGram.jsx`):** A simple, stateless wrapper designed for easily embedding diagrams. It accepts a JSON string as a prop, runs it through the engine, and passes the resulting model to the `ArrowGramDiagram` renderer.
+
+-   **Editor Component (`ArrowGramEditor.jsx`):** A full-featured interactive editor component. It manages its own state for user interactions (e.g., selection, interaction mode) and handles all user input events on the SVG canvas. It uses `ArrowGramDiagram` to render the base diagram and then layers the interactive elements (selection highlights, connection lines) on top. When the user makes a change, the editor updates the JSON spec and notifies the parent component via an `onSpecChange` callback.
+
+-   **Property Inspector (`PropertyEditor.jsx`):** A companion to the editor that displays a form for editing the properties (label, curve, style, etc.) of the currently selected node or arrow.
+
+## Core Concepts
+
+### Higher-Order Arrows
+
+A key feature of `arrowgram` is its ability to render "higher-order arrows"—arrows that have other arrows as their source or target.
+
+This is achieved by treating every arrow as a potential "virtual node." When an arrow is defined, the component calculates its midpoint. If another arrow uses the first arrow's `name` as its `from` or `to` property, the component uses this calculated midpoint as the connection point.
+
+To prevent visual overlap, the component also calculates a "radius" for these virtual nodes, ensuring that the connecting arrow starts and ends with a clean gap, just as it would with a regular node. This allows for creating complex, multi-level diagrams like 2-cells in category theory.
 
 ## Integration in a Rendering Pipeline
 
 `arrowgram` is designed to be easily integrated into document-rendering pipelines that process extended markdown. By wrapping a valid `arrowgram` JSON specification in a `<div>`, you can process and embed diagrams alongside other content types like `vega-lite` charts or `mermaid` diagrams.
 
-The processor should find blocks like the one below, parse the JSON content, render it to an SVG string using `arrowgram`, and replace the original `<div>` with the resulting SVG.
+The processor should find blocks like the one below, parse the JSON content, render it to an SVG string using the `<ArrowGram />` component, and replace the original `<div>` with the resulting SVG.
 
 **Example Markdown:**
 ```markdown
@@ -51,36 +89,9 @@ The processor should find blocks like the one below, parse the JSON content, ren
 }
 </div>
 ```
-This enables `arrowgram` to work seamlessly with libraries like `showdown`, `pagedjs`, and `katex`.
+The `paged-template` directory in this project contains a complete example of such a pipeline using `showdown`, `pagedjs`, and `katex`.
 
-## Architecture and Design
-
-The architecture of `arrowgram` is centered around a single, robust React component, `<ArrowGram />`.
-
--   **Component-Based:** The entire diagram rendering logic is encapsulated within the `ArrowGram.jsx` component. This makes it easy to integrate into any React application.
--   **Declarative Specification:** The design separates the diagram's definition (the "what") from its rendering (the "how"). Users provide a simple JSON object describing the nodes and arrows, and the component handles the complex task of drawing it. This makes creating and modifying diagrams straightforward.
--   **Stateless Rendering:** The component is designed to be stateless. It receives a JSON specification as a prop and renders the corresponding SVG. All calculations are derived from these props, using `useMemo` for performance optimization.
-
-## Implementation Details
-
-### The `<ArrowGram />` Component
-
-The core logic resides within the `<ArrowGram />` component.
-
-1.  **Parsing:** It accepts a JSON string (`spec`) as a prop, which it parses into a JavaScript object.
-2.  **Model Creation:** It processes the `nodes` and `arrows` from the spec to create an internal, render-ready data structure. This includes resolving dependencies for higher-order arrows.
-3.  **ViewBox Calculation:** It dynamically calculates the SVG `viewBox` by determining the bounding box of all nodes and control points, ensuring the entire diagram is always visible.
-4.  **SVG Rendering:** It maps over the internal models and renders them as a series of SVG `<g>`, `<path>`, and `<text>` elements.
-
-### Higher-Order Arrows
-
-A key feature of `arrowgram` is its ability to render "higher-order arrows"—arrows that have other arrows as their source or target.
-
-This is achieved by treating every arrow as a potential "virtual node." When an arrow is defined, the component calculates its midpoint. If another arrow uses the first arrow's `name` as its `from` or `to` property, the component uses this calculated midpoint as the connection point.
-
-To prevent visual overlap, the component also calculates a "radius" for these virtual nodes, ensuring that the connecting arrow starts and ends with a clean gap, just as it would with a regular node. This allows for creating complex, multi-level diagrams like 2-cells in category theory.
-
-### The JSON Specification
+## The JSON Specification
 
 A diagram is defined by a JSON object with two main keys: `nodes` and `arrows`.
 
@@ -111,9 +122,9 @@ The utilities in `src/utils/quiver.js` provide two-way compatibility with `q.uiv
 -   `decodeQuiverUrl(url)`: Parses a `q.uiver.app` share URL. During import, it automatically wraps all diagram labels with `$` delimiters to ensure they are rendered correctly by `arrowgram`'s internal KaTeX processor.
 -   `encodeArrowgram(spec)`: Takes an `arrowgram` JSON spec and generates a `q.uiver.app` share URL. During export, it automatically removes the `$` delimiters from labels, as `q.uiver.app` will render them as math by default.
 
-## Example Gallery
+## Example Specs
 
-The `App.jsx` component includes several examples that demonstrate the capabilities of `arrowgram`.
+The demo application allows you to load several examples that demonstrate the capabilities of `arrowgram`.
 
 ### Pullback Diagram
 
@@ -158,59 +169,14 @@ This example demonstrates a higher-order arrow (`eta`) connecting two parallel a
 }
 ```
 
-### Higher-Order Square
-
-A more complex diagram showing a commutative square where the commutation is expressed by higher-order arrows. It also showcases multi-line arrows (`level: 2`).
-
-```json
-{
-  "nodes": [
-    { "name": "A", "left": 100, "top": 100, "label": "A" },
-    { "name": "B", "left": 500, "top": 100, "label": "B" },
-    { "name": "C", "left": 100, "top": 400, "label": "C" },
-    { "name": "D", "left": 500, "top": 400, "label": "D" }
-  ],
-  "arrows": [
-    { "name": "top_arrow", "from": "A", "to": "B", "label": "f", "curve": 90 },
-    { "name": "bottom_arrow", "from": "C", "to": "D", "label": "g" },
-    { "name": "left_arrow", "from": "A", "to": "C", "label": "$\\alpha$" },
-    { "name": "right_arrow", "from": "B", "to": "D", "label": "$\\beta$" },
-    { "name": "diag1", "from": "top_arrow", "to": "right_arrow", "label": "$\\eta$", "curve": 40, "label_alignment": "left",
-      "style": { "level": 2,  "head": { "name": "epi" },  "tail": { "name": "mono" }  } },
-    { "name": "diag2", "from": "left_arrow", "to": "bottom_arrow", "label": "$\\epsilon$", "curve": -40, "label_alignment": "right" }
-  ]
-}
-```
-
-### Arrows Between Higher-Order Arrows ("Higher-Order-ception")
-
-This example pushes the concept further, drawing an arrow (`h3`) between two other higher-order arrows (`h1` and `h2`). This demonstrates the recursive capability of the rendering engine.
-
-```json
-{
-  "nodes": [
-    { "name": "A", "left": 100, "top": 100, "label": "A" },
-    { "name": "B", "left": 600, "top": 100, "label": "B" },
-    { "name": "C", "left": 100, "top": 400, "label": "C" },
-    { "name": "D", "left": 600, "top": 400, "label": "D" }
-  ],
-  "arrows": [
-    { "name": "f1", "from": "A", "to": "B", "label": "$f_1$", "curve": -90 },
-    { "name": "f2", "from": "A", "to": "B", "label": "$f_2$", "curve": 90 },
-    { "name": "g1", "from": "C", "to": "D", "label": "$g_1$", "curve": -60 },
-    { "name": "g2", "from": "C", "to": "D", "label": "$g_2$", "curve": 60 },
-    { "name": "h1", "from": "f1", "to": "f2", "label": "$h_1$", "curve": -90,
-      "style": { "level": 2 }  },
-    { "name": "h2", "from": "g1", "to": "g2", "label": "$h_2$", "curve": 90  },
-    { "name": "h3", "from": "h1", "to": "h2", "label": "$h_3$", "curve": -50,
-      "style": { "level": 3 } }
-  ]
-}
-```
-
 ## Future Work
 
--   [ ] Expand the range of available arrow and node styles to match `q.uiver.app` more closely (e.g., different arrow bodies, node shapes).
--   [ ] Support additional `q.uiver.app` features like cell coloring and grid snapping in the conversion utilities.
--   [ ] Improve performance for extremely large and complex diagrams.
--   [ ] Add interactive features, such as dragging nodes or editing labels directly on the SVG canvas.
+-   **Editor Enhancements**:
+    -   [ ] Add undo/redo functionality.
+    -   [ ] Implement multi-selection for moving and deleting multiple elements at once.
+    -   [ ] Allow direct text editing of labels on the canvas.
+-   **Styling and Features**:
+    -   [ ] Expand arrow/node styles to better match `q.uiver.app` (e.g., different node shapes).
+    -   [ ] Support more `q.uiver.app` features like cell coloring.
+-   **Performance**:
+    -   [ ] Optimize rendering for very large diagrams.
