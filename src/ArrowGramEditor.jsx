@@ -122,6 +122,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
 
   const handleArrowPointerDown = useCallback((e, arrowName) => {
     e.stopPropagation();
+    const point = getSVGPoint(e);
     
     let newSelection;
     if (e.shiftKey) {
@@ -136,7 +137,11 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
     }
     
     setSelection(newSelection);
-  }, [selection]);
+
+    if (e.ctrlKey || e.metaKey) {
+        setInteraction({ mode: 'connecting', source: arrowName, phantomEnd: point });
+    }
+  }, [getSVGPoint, selection]);
 
   const handlePointerMove = useCallback((e) => {
     if (interaction.mode === 'default') return;
@@ -169,9 +174,9 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
 
   const handlePointerUp = useCallback((e) => {
     if (interaction.mode === 'connecting') {
-        const targetElement = e.target.closest('[data-node-name]');
+        const targetElement = e.target.closest('[data-node-name], [data-arrow-name]');
         if (targetElement) {
-            const targetName = targetElement.getAttribute('data-node-name');
+            const targetName = targetElement.getAttribute('data-node-name') || targetElement.getAttribute('data-arrow-name');
             if (targetName && targetName !== interaction.source) {
                 const allNames = new Set([...nodes.map(n => n.name), ...arrows.map(a => a.name).filter(Boolean)]);
                 const newArrowName = generateUniqueName('arrow', allNames);
@@ -210,7 +215,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
 
   const arrowHandles = useMemo(() => (
     diagram.arrows.map(arrow => {
-        const arrowName = arrow.spec.name || arrow.key;
+        const arrowName = arrow.spec.name;
         if (!arrowName) return null;
         return (
             <g 
@@ -234,10 +239,22 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
     })
   ), [diagram.arrows, selection, handleArrowPointerDown]);
 
-  const sourceNodePos = useMemo(() => {
+  const sourcePos = useMemo(() => {
     if (interaction.mode !== 'connecting') return null;
-    return nodes.find(n => n.name === interaction.source);
-  }, [interaction, nodes]);
+    const sourceName = interaction.source;
+    
+    const node = nodes.find(n => n.name === sourceName);
+    if (node) {
+        return { left: node.left, top: node.top };
+    }
+
+    const arrow = diagram.arrows.find(a => a.spec.name === sourceName);
+    if (arrow) {
+        return { left: arrow.midpoint.x, top: arrow.midpoint.y };
+    }
+    
+    return null;
+  }, [interaction, nodes, diagram.arrows]);
   
   const [vb, setVb] = useState('0 0 1000 600');
   useEffect(() => {
@@ -279,10 +296,10 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
           {nodeHandles}
           {arrowHandles}
 
-          {interaction.mode === 'connecting' && sourceNodePos && (
+          {interaction.mode === 'connecting' && sourcePos && (
               <line
-                  x1={sourceNodePos.left}
-                  y1={sourceNodePos.top}
+                  x1={sourcePos.left}
+                  y1={sourcePos.top}
                   x2={interaction.phantomEnd.x}
                   y2={interaction.phantomEnd.y}
                   stroke="#007bff"

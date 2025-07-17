@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { ArrowGram } from "./ArrowGram";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
+import { Canvg } from 'canvg';
 
 const quiverSpec3_pullback = `
 {
@@ -104,6 +105,59 @@ export default function App() {
   const [quiverUrl, setQuiverUrl] = useState("");
   const [editorSpec, setEditorSpec] = useState(initialEditorSpec);
 
+  useEffect(() => {
+    // Load spec from URL on initial render
+    const urlParams = new URLSearchParams(window.location.search);
+    const specParam = urlParams.get('spec');
+    if (specParam) {
+      try {
+        const decodedSpec = atob(specParam);
+        setEditorSpec(decodedSpec);
+      } catch (e) {
+        console.error("Failed to decode spec from URL", e);
+      }
+    }
+  }, []);
+
+  const handleShare = useCallback(() => {
+    const encodedSpec = btoa(editorSpec);
+    const url = `${window.location.origin}${window.location.pathname}?spec=${encodedSpec}`;
+    navigator.clipboard.writeText(url);
+    alert("Shareable URL copied to clipboard!");
+  }, [editorSpec]);
+
+  const handleExport = useCallback(async (format) => {
+    const svgElement = document.getElementById('diagram-for-export');
+    if (!svgElement) {
+        alert("Could not find the diagram to export.");
+        return;
+    }
+
+    const svgString = new XMLSerializer().serializeToString(svgElement);
+
+    if (format === 'svg') {
+        const blob = new Blob([svgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'diagram.svg';
+        a.click();
+        URL.revokeObjectURL(url);
+    } else if (format === 'png') {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const v = await Canvg.from(ctx, svgString);
+        await v.render();
+        
+        const dataUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'diagram.png';
+        a.click();
+    }
+  }, []);
+
+
   const handleDecode = useCallback(() => {
     try {
       const specObject = decodeQuiverUrl(quiverUrl);
@@ -147,6 +201,11 @@ export default function App() {
 
       <hr style={{ margin: '2rem 0' }} />
       <h2>Interactive Diagram Editor</h2>
+       <div style={{ marginBottom: '1rem', display: 'flex', gap: '10px' }}>
+          <button onClick={handleShare}>Share</button>
+          <button onClick={() => handleExport('svg')}>Export SVG</button>
+          <button onClick={() => handleExport('png')}>Export PNG</button>
+      </div>
       <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
 
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -162,7 +221,7 @@ export default function App() {
         <div style={{flex: 1}}>
             <h3>Live Preview</h3>
             <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px', height: '100%', boxSizing: 'border-box'}}>
-                <ArrowGram spec={editorSpec} />
+                <ArrowGram spec={editorSpec} id="diagram-for-export" />
             </div>
         </div>
       </div>

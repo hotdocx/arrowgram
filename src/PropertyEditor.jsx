@@ -38,13 +38,13 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
     const handleStyleChange = (part, name, value) => {
         const newArrows = arrows.map(a => {
             if (a.name === arrow.name) {
-                return {
-                    ...a,
-                    style: {
-                        ...a.style,
-                        [part]: { ...a.style?.[part], [name]: value }
-                    }
-                };
+                const newStyle = { ...a.style };
+                if (value !== undefined) { // For nested properties like head, tail, body
+                    newStyle[part] = { ...(a.style?.[part] || {}), [name]: value };
+                } else { // For direct properties like level
+                    newStyle[part] = name; // here 'name' is the value
+                }
+                return { ...a, style: newStyle };
             }
             return a;
         });
@@ -56,6 +56,15 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
             <div style={editorStyles.section}>
                 <label style={editorStyles.label}>Label</label>
                 <input style={editorStyles.input} type="text" name="label" value={arrow.label || ''} onChange={handleChange} />
+            </div>
+            <div style={editorStyles.section}>
+                <h4 style={editorStyles.header}>Label Style</h4>
+                <label style={editorStyles.label}>Alignment</label>
+                <select style={editorStyles.select} name="label_alignment" value={arrow.label_alignment || 'over'} onChange={handleChange}>
+                    <option value="over">Over</option>
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                </select>
             </div>
             <div style={editorStyles.section}>
                 <h4 style={editorStyles.header}>Geometry</h4>
