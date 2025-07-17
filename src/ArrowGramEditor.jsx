@@ -215,13 +215,13 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
 
   const arrowHandles = useMemo(() => (
     diagram.arrows.map(arrow => {
-        const arrowName = arrow.spec.name;
-        if (!arrowName) return null;
+        const arrowKey = arrow.key; // Use the internal key for selection
+        if (!arrowKey) return null;
         return (
             <g 
-                key={`${arrowName}-handle`}
-                onPointerDown={(e) => handleArrowPointerDown(e, arrowName)}
-                data-arrow-name={arrowName}
+                key={`${arrowKey}-handle`}
+                onPointerDown={(e) => handleArrowPointerDown(e, arrowKey)}
+                data-arrow-name={arrowKey}
                 style={{ cursor: 'pointer' }}
             >
                 {arrow.paths.map((path, i) => (
@@ -229,7 +229,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
                         key={i}
                         d={path.d}
                         fill="none"
-                        stroke={selection.has(arrowName) ? "rgba(0, 100, 255, 0.3)" : "transparent"}
+                        stroke={selection.has(arrowKey) ? "rgba(0, 100, 255, 0.3)" : "transparent"}
                         strokeWidth="20"
                         strokeLinecap="round"
                     />
@@ -248,7 +248,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
         return { left: node.left, top: node.top };
     }
 
-    const arrow = diagram.arrows.find(a => a.spec.name === sourceName);
+    const arrow = diagram.arrows.find(a => a.key === sourceName);
     if (arrow) {
         return { left: arrow.midpoint.x, top: arrow.midpoint.y };
     }

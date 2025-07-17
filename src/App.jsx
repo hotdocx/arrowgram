@@ -2,7 +2,9 @@ import React, { useState, useCallback, useEffect } from "react";
 import { ArrowGram } from "./ArrowGram";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
-import { Canvg } from 'canvg';
+import { saveSvgAsPng } from 'save-svg-as-png';
+import { saveAs } from 'file-saver';
+
 
 const quiverSpec3_pullback = `
 {
@@ -132,28 +134,19 @@ export default function App() {
         alert("Could not find the diagram to export.");
         return;
     }
-
-    const svgString = new XMLSerializer().serializeToString(svgElement);
-
+    
     if (format === 'svg') {
+        const svgString = new XMLSerializer().serializeToString(svgElement);
         const blob = new Blob([svgString], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'diagram.svg';
-        a.click();
-        URL.revokeObjectURL(url);
+        saveAs(blob, 'diagram.svg');
     } else if (format === 'png') {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const v = await Canvg.from(ctx, svgString);
-        await v.render();
-        
-        const dataUrl = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = 'diagram.png';
-        a.click();
+        saveSvgAsPng(svgElement, 'diagram.png', {
+            backgroundColor: 'white',
+            scale: 2, // for higher resolution
+        }).catch(e => {
+            console.error("PNG Export failed:", e);
+            alert("Failed to export as PNG. See console for details.");
+        });
     }
   }, []);
 

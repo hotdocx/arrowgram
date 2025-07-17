@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 
 const editorStyles = {
     container: { padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px', height: '100%', overflowY: 'auto', fontSize: '14px' },
@@ -31,18 +31,22 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
     const handleChange = (e) => {
         const { name, value, type } = e.target;
         const val = type === 'number' ? Number(value) : value;
-        const newArrows = arrows.map(a => a.name === arrow.name ? { ...a, [name]: val } : a);
+        const newArrows = arrows.map(a => {
+            const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
+            return key === arrow.key ? { ...a, [name]: val } : a;
+        });
         onSpecChange(JSON.stringify({ nodes, arrows: newArrows }, null, 2));
     };
 
     const handleStyleChange = (part, name, value) => {
         const newArrows = arrows.map(a => {
-            if (a.name === arrow.name) {
+            const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
+            if (key === arrow.key) {
                 const newStyle = { ...a.style };
-                if (value !== undefined) { // For nested properties like head, tail, body
+                if (value !== undefined) { 
                     newStyle[part] = { ...(a.style?.[part] || {}), [name]: value };
-                } else { // For direct properties like level
-                    newStyle[part] = name; // here 'name' is the value
+                } else {
+                    newStyle[part] = name;
                 }
                 return { ...a, style: newStyle };
             }
@@ -112,19 +116,17 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }) {
 
     const selectedItem = useMemo(() => {
         if (selection.size !== 1) return null;
-        const selectedName = selection.values().next().value;
-        const node = nodes.find(n => n.name === selectedName);
+        const selectedKey = selection.values().next().value;
+        const node = nodes.find(n => n.name === selectedKey);
         if (node) return { type: 'node', data: node };
         
-        const arrow = arrows.find(a => a.name === selectedName || (a.name || `${a.from}-${a.to}-_arrow_`) === selectedName); // a bit fragile
-        if(arrow) return { type: 'arrow', data: arrow };
-        
-        const arrowByKey = arrows.find(a => {
-             const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
-             return key === selectedName;
+        const arrow = arrows.find(a => {
+            const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
+            return key === selectedKey;
         });
-        if(arrowByKey) return { type: 'arrow', data: arrowByKey };
-
+        if(arrow) {
+            return { type: 'arrow', data: {...arrow, key: selectedKey } };
+        }
 
         return null;
     }, [selection, nodes, arrows]);
@@ -142,7 +144,7 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }) {
     return (
         <div style={editorStyles.container}>
             <h3 style={editorStyles.header}>
-                Edit {selectedItem.type}: {selectedItem.data.name || selectedItem.data.label || '(unnamed)'}
+                Edit {selectedItem.type}: {selectedItem.data.name || selectedItem.data.label || selectedItem.data.key}
             </h3>
             {selectedItem.type === 'node' && (
                 <NodeEditor node={selectedItem.data} nodes={nodes} arrows={arrows} onSpecChange={onSpecChange} />
