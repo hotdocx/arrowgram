@@ -48,6 +48,10 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
                 } else {
                     newStyle[part] = name;
                 }
+                if (part === 'level') {
+                  newStyle.level = value;
+                  return { ...a, style: newStyle };
+                }
                 return { ...a, style: newStyle };
             }
             return a;
@@ -77,7 +81,7 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
                 <label style={editorStyles.label}>Shift</label>
                 <input style={editorStyles.input} type="number" name="shift" value={arrow.shift || 0} onChange={handleChange} />
                  <label style={editorStyles.label}>Level (for parallel lines)</label>
-                <input style={editorStyles.input} type="number" name="level" value={arrow.style?.level || 1} min="1" onChange={(e) => handleStyleChange('level', e.target.valueAsNumber)} />
+                <input style={editorStyles.input} type="number" name="level" value={arrow.style?.level || 1} min="1" onChange={(e) => handleStyleChange('level', 'level', e.target.valueAsNumber)} />
             </div>
             <div style={editorStyles.section}>
                 <h4 style={editorStyles.header}>Style</h4>
@@ -115,17 +119,23 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }) {
     }, [specString]);
 
     const selectedItem = useMemo(() => {
-        if (selection.size !== 1) return null;
-        const selectedKey = selection.values().next().value;
-        const node = nodes.find(n => n.name === selectedKey);
-        if (node) return { type: 'node', data: node };
+        if (!selection?.key || !selection?.item) return null;
         
-        const arrow = arrows.find(a => {
-            const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
-            return key === selectedKey;
-        });
-        if(arrow) {
-            return { type: 'arrow', data: {...arrow, key: selectedKey } };
+        const { key, item } = selection;
+
+        // The item passed in the selection object is from the spec, which is what we want to edit.
+        // We just need to determine if it's a node or an arrow.
+        if (nodes.some(n => n.name === key)) {
+            return { type: 'node', data: item };
+        }
+        
+        // For arrows, we now have the spec and the key, so no complex lookup is needed.
+        // We find the arrow in the spec list to ensure we're modifying the right one.
+        // Note: this assumes arrow names are unique if present. A more robust solution might
+        // need to rely on indices if names are not guaranteed unique by the editor.
+        const arrowSpec = arrows.find(a => (a.name && a.name === item.name) || JSON.stringify(a) === JSON.stringify(item));
+        if (arrowSpec) {
+             return { type: 'arrow', data: { ...arrowSpec, key } };
         }
 
         return null;
@@ -135,7 +145,7 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }) {
         return (
             <div style={editorStyles.container}>
                 <div style={editorStyles.info}>
-                    {selection.size > 1 ? 'Multiple items selected.' : 'Select a node or arrow to edit its properties.'}
+                    {!selection?.key ? 'Select a node or arrow to edit its properties.' : 'Multiple items selected.'}
                 </div>
             </div>
         );
