@@ -140,10 +140,21 @@ export default function App() {
         const blob = new Blob([svgString], { type: 'image/svg+xml' });
         saveAs(blob, 'diagram.svg');
     } else if (format === 'png') {
-        saveSvgAsPng(svgElement, 'diagram.png', {
+        const viewBox = svgElement.getAttribute('viewBox');
+        const options = {
             backgroundColor: 'white',
             scale: 2, // for higher resolution
-        }).catch(e => {
+        };
+
+        if (viewBox) {
+            const parts = viewBox.split(' ').map(parseFloat);
+            options.left = parts[0];
+            options.top = parts[1];
+            options.width = parts[2];
+            options.height = parts[3];
+        }
+        
+        saveSvgAsPng(svgElement, 'diagram.png', options).catch(e => {
             console.error("PNG Export failed:", e);
             alert("Failed to export as PNG. See console for details.");
         });
