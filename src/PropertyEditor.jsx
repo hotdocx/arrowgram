@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { formatSpec } from './utils/specFormatter.js';
 
 const editorStyles = {
     container: { padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px', height: '100%', overflowY: 'auto', fontSize: '14px' },
@@ -14,7 +15,7 @@ function NodeEditor({ node, nodes, arrows, onSpecChange }) {
     const handleChange = (e) => {
         const { name, value } = e.target;
         const newNodes = nodes.map(n => n.name === node.name ? { ...n, [name]: value } : n);
-        onSpecChange(JSON.stringify({ nodes: newNodes, arrows }, null, 2));
+        onSpecChange(formatSpec({ nodes: newNodes, arrows }));
     };
 
     return (
@@ -35,7 +36,7 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
             const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
             return key === arrow.key ? { ...a, [name]: val } : a;
         });
-        onSpecChange(JSON.stringify({ nodes, arrows: newArrows }, null, 2));
+        onSpecChange(formatSpec({ nodes, arrows: newArrows }));
     };
 
     const handleStyleChange = (part, name, value) => {
@@ -56,7 +57,7 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
             }
             return a;
         });
-        onSpecChange(JSON.stringify({ nodes, arrows: newArrows }, null, 2));
+        onSpecChange(formatSpec({ nodes, arrows: newArrows }));
     }
 
     return (

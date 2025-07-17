@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { ArrowGramDiagram } from './ArrowGramDiagram.jsx';
 import { computeDiagram } from './diagramModel.js';
 import { PropertyEditor } from './PropertyEditor.jsx';
+import { formatSpec } from './utils/specFormatter.js';
 
 const GRID_SIZE = 40;
 const NODE_RADIUS = 25; // From ArrowGram.jsx
@@ -85,7 +86,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
     };
     const newNodes = [...nodes, newNode];
     if (onSpecChange) {
-      onSpecChange(JSON.stringify({ nodes: newNodes, arrows }, null, 2));
+      onSpecChange(formatSpec({ nodes: newNodes, arrows }));
     }
     
     setSelection({ key: newNodeName, item: newNode });
@@ -180,7 +181,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
         });
         
         if (onSpecChange) {
-            onSpecChange(JSON.stringify({ nodes: newNodes, arrows }, null, 2));
+            onSpecChange(formatSpec({ nodes: newNodes, arrows }));
         }
     } else if (interaction.mode === 'connecting') {
         setInteraction(prev => ({ ...prev, phantomEnd: point }));
@@ -223,7 +224,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
                 };
                 const newArrows = [...arrows, newArrow];
                 if (onSpecChange) {
-                  onSpecChange(JSON.stringify({ nodes, arrows: newArrows }, null, 2));
+                  onSpecChange(formatSpec({ nodes, arrows: newArrows }));
                 }
             }
         }

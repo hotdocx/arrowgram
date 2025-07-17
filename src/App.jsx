@@ -97,7 +97,7 @@ const initialEditorSpec = `
     { "name": "B", "left": 450, "top": 150, "label": "B" }
   ],
   "arrows": [
-    { "from": "A", "to": "B", "label": "f" }
+    { "name": "f", "from": "A", "to": "B", "label": "f" }
   ]
 }
 `;
@@ -105,7 +105,7 @@ const initialEditorSpec = `
 export default function App() {
   const [currentSpec, setCurrentSpec] = useState(allSpecs.pullback);
   const [quiverUrl, setQuiverUrl] = useState("");
-  const [editorSpec, setEditorSpec] = useState(initialEditorSpec);
+  const [editorSpec, setEditorSpec] = useState(null);
 
   useEffect(() => {
     // Load spec from URL on initial render
@@ -117,7 +117,10 @@ export default function App() {
         setEditorSpec(decodedSpec);
       } catch (e) {
         console.error("Failed to decode spec from URL", e);
+        setEditorSpec(initialEditorSpec); // Fallback on error
       }
+    } else {
+        setEditorSpec(initialEditorSpec);
     }
   }, []);
 
@@ -205,31 +208,34 @@ export default function App() {
 
       <hr style={{ margin: '2rem 0' }} />
       <h2>Interactive Diagram Editor</h2>
-       <div style={{ marginBottom: '1rem', display: 'flex', gap: '10px' }}>
-          <button onClick={handleShare}>Share</button>
-          <button onClick={() => handleExport('svg')}>Export SVG</button>
-          <button onClick={() => handleExport('png')}>Export PNG</button>
-      </div>
-      <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
+       {editorSpec && <>
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '10px' }}>
+            <button onClick={handleShare}>Share</button>
+            <button onClick={() => handleExport('svg')}>Export SVG</button>
+            <button onClick={() => handleExport('png')}>Export PNG</button>
+        </div>
+        <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
 
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-        <div style={{flex: 1}}>
-            <h3>Live JSON Specification</h3>
-            <textarea 
-              value={editorSpec}
-              onChange={(e) => setEditorSpec(e.target.value)}
-              rows={20} 
-              style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }}
-            />
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <div style={{flex: 1}}>
+              <h3>Live JSON Specification</h3>
+              <textarea 
+                value={editorSpec}
+                onChange={(e) => setEditorSpec(e.target.value)}
+                rows={20} 
+                style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }}
+              />
+          </div>
+          <div style={{flex: 1}}>
+              <h3>Live Preview</h3>
+              <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px', height: '100%', boxSizing: 'border-box'}}>
+                  <ArrowGram spec={editorSpec} id="diagram-for-export" />
+              </div>
+          </div>
         </div>
-        <div style={{flex: 1}}>
-            <h3>Live Preview</h3>
-            <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px', height: '100%', boxSizing: 'border-box'}}>
-                <ArrowGram spec={editorSpec} id="diagram-for-export" />
-            </div>
-        </div>
-      </div>
-       <button onClick={handleEncodeEditor} style={{marginTop: '0.5rem'}}>Encode Editor Diagram to Quiver URL</button>
+        <button onClick={handleEncodeEditor} style={{marginTop: '0.5rem'}}>Encode Editor Diagram to Quiver URL</button>
+      </>}
+
 
       <hr style={{ margin: '2rem 0' }} />
       <div style={{ marginBottom: '2rem' }}>
