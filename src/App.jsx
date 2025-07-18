@@ -3,6 +3,7 @@ import { ArrowGram } from "./ArrowGram";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
 import { exportToTikz } from "./utils/tikz";
+import { TikzExportModal } from './TikzExportModal';
 import { saveSvgAsPng } from 'save-svg-as-png';
 import { saveAs } from 'file-saver';
 
@@ -107,6 +108,7 @@ export default function App() {
   const [currentSpec, setCurrentSpec] = useState(allSpecs.pullback);
   const [quiverUrl, setQuiverUrl] = useState("");
   const [editorSpec, setEditorSpec] = useState(null);
+  const [tikzExport, setTikzExport] = useState({ code: null });
 
   useEffect(() => {
     // Load spec from URL on initial render
@@ -150,8 +152,7 @@ export default function App() {
   const handleExport = useCallback(async (format) => {
     if (format === 'tikz') {
         const tikzString = exportToTikz(editorSpec);
-        const blob = new Blob([tikzString], { type: 'text/plain;charset=utf-8' });
-        saveAs(blob, 'diagram.tex');
+        setTikzExport({ code: tikzString });
         return;
     }
 
@@ -239,6 +240,10 @@ export default function App() {
             <button onClick={() => handleExport('tikz')}>Export TikZ</button>
         </div>
         <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
+        <TikzExportModal 
+            tikzCode={tikzExport.code} 
+            onClose={() => setTikzExport({ code: null })}
+        />
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
           <div style={{flex: 1}}>
