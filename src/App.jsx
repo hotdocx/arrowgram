@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { ArrowGram } from "./ArrowGram";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
+import { exportToTikz } from "./utils/tikz";
 import { saveSvgAsPng } from 'save-svg-as-png';
 import { saveAs } from 'file-saver';
 
@@ -147,6 +148,13 @@ export default function App() {
   }, [editorSpec]);
 
   const handleExport = useCallback(async (format) => {
+    if (format === 'tikz') {
+        const tikzString = exportToTikz(editorSpec);
+        const blob = new Blob([tikzString], { type: 'text/plain;charset=utf-8' });
+        saveAs(blob, 'diagram.tex');
+        return;
+    }
+
     const svgElement = document.getElementById('diagram-for-export');
     if (!svgElement) {
         alert("Could not find the diagram to export.");
@@ -177,7 +185,7 @@ export default function App() {
             alert("Failed to export as PNG. See console for details.");
         });
     }
-  }, []);
+  }, [editorSpec]);
 
 
   const handleDecode = useCallback(() => {
@@ -228,6 +236,7 @@ export default function App() {
             <button onClick={handleShare}>Share</button>
             <button onClick={() => handleExport('svg')}>Export SVG</button>
             <button onClick={() => handleExport('png')}>Export PNG</button>
+            <button onClick={() => handleExport('tikz')}>Export TikZ</button>
         </div>
         <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
 

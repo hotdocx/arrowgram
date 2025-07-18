@@ -43,6 +43,7 @@ This repository includes a powerful demonstration app (`src/App.jsx`) that showc
 -   **Sharing and Exporting:**
     -   Generate a shareable URL that encodes the entire diagram specification.
     -   Export your finished diagram as a standalone SVG or high-resolution PNG file.
+    -   Export diagrams to `tikz-cd` format for use in LaTeX documents.
     -   Convert diagrams to and from the `q.uiver.app` format.
 
 ## Architecture and Design
@@ -121,6 +122,23 @@ The utilities in `src/utils/quiver.js` provide two-way compatibility with `q.uiv
 
 -   `decodeQuiverUrl(url)`: Parses a `q.uiver.app` share URL. During import, it automatically wraps all diagram labels with `$` delimiters to ensure they are rendered correctly by `arrowgram`'s internal KaTeX processor.
 -   `encodeArrowgram(spec)`: Takes an `arrowgram` JSON spec and generates a `q.uiver.app` share URL. During export, it automatically removes the `$` delimiters from labels, as `q.uiver.app` will render them as math by default.
+
+### Exporting to `tikz-cd`
+
+The editor supports exporting diagrams to the `tikz-cd` format, widely used in LaTeX for creating commutative diagrams. The export utility converts the JSON specification into a `tikzcd` environment.
+
+For example, a simple diagram might be exported as:
+```latex
+% https://q.uiver.app/#q=WzAsNCxbMCwwLCJBIl0sWzEsMCwiQiJdLFsxLDEsIkQiXSxbMCwxLCJDIl0sWzAsMSwiZiJdLFszLDIsImgiXSxbMCwzLCJnIl0sWzEsMiwiaCJdXQ==
+\begin{tikzcd}
+	A & B \\
+	C & D
+	\arrow["f", from=1-1, to=1-2]
+	\arrow["h", from=2-1, to=2-2]
+	\arrow["g", from=1-1, to=2-1]
+	\arrow["h", from=1-2, to=2-2]
+\end{tikzcd}
+```
 
 ## Example Specs
 
