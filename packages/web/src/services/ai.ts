@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { useSettingsStore } from "../store/settingsStore";
 
 const SYSTEM_INSTRUCTION = `
@@ -79,15 +79,19 @@ export async function generateDiagram(prompt: string, currentSpec?: string): Pro
 
   try {
     if (apiProvider === 'gemini') {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash", // Using a stable model to fix the 'partially-broken' state
-          systemInstruction: SYSTEM_INSTRUCTION
+      const genAI = new GoogleGenAI({ apiKey });
+      const response = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: fullPrompt,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+        },
       });
 
-      const result = await model.generateContent(fullPrompt);
-      const response = await result.response;
-      let text = response.text();
+      let text = response.text;
+      if (!text) {
+        throw new Error("No response from Gemini.");
+      }
 
       // Cleanup Markdown if present
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
