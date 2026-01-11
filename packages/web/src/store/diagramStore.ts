@@ -88,15 +88,16 @@ export const useDiagramStore = create<DiagramState>()(
                 }
             },
 
-            reset: () => set({ spec: initialSpec, filename: 'Untitled Diagram' }),
+            reset: () => set({ 
+                spec: JSON.stringify({ version: 1, nodes: [], arrows: [] }, null, 2), 
+                filename: 'Untitled Diagram' 
+            }),
             
             createNew: () => {
                 set({
                     spec: JSON.stringify({
                         version: 1,
-                        nodes: [
-                            { name: "A", left: 300, top: 300, label: "A" }
-                        ],
+                        nodes: [],
                         arrows: []
                     }, null, 2),
                     filename: 'Untitled Diagram',
