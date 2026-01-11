@@ -6,11 +6,13 @@ import { exportToTikz } from "./utils/tikz";
 import { saveSvgAsPng } from 'save-svg-as-png';
 import { saveAs } from 'file-saver';
 import { useDiagramStore } from "./store/diagramStore";
+import { AIChatPanel } from './components/AIChatPanel';
 
 export default function App() {
   const spec = useDiagramStore(state => state.spec);
   const [showTikz, setShowTikz] = useState(false);
   const [tikzCode, setTikzCode] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
   const handleExport = async (format) => {
     if (format === 'tikz') {
@@ -70,11 +72,18 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-900">
-      <Toolbar onExport={handleExport} onShare={handleShare} />
+      <Toolbar
+        onExport={handleExport}
+        onShare={handleShare}
+        onToggleChat={() => setShowChat(!showChat)}
+      />
 
-      <main className="flex-1 p-4 overflow-hidden">
-        <ArrowGramEditor />
-      </main>
+      <div className="flex flex-1 overflow-hidden">
+        <main className="flex-1 p-4 overflow-hidden">
+          <ArrowGramEditor />
+        </main>
+        {showChat && <AIChatPanel />}
+      </div>
 
       <TikzExportModal
         tikzCode={tikzCode}

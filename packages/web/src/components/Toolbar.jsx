@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 import { useStore } from 'zustand';
 import {
-    Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode
+    Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode, Bot
 } from 'lucide-react';
 import { saveProject, listProjects, loadProject } from '../utils/storage';
 
-export function Toolbar({ onExport, onShare }) {
+export function Toolbar({ onExport, onShare, onToggleChat }) {
     const { spec, setSpec, filename, setFilename, reset } = useDiagramStore();
     const { undo, redo, pastStates, futureStates } = useStore(useDiagramStore.temporal);
 
@@ -70,6 +70,8 @@ export function Toolbar({ onExport, onShare }) {
             </div>
 
             <div className="flex items-center gap-2">
+                <button className={`${btnClass} text-purple-600 bg-purple-50`} onClick={onToggleChat} title="AI Assistant"><Bot size={20} /></button>
+                <div className="h-6 w-px bg-gray-300 mx-2"></div>
                 <span className="text-sm text-gray-600 mr-4 font-mono">{filename}</span>
                 <button className={btnClass} onClick={() => onExport('svg')} title="Export SVG"><Download size={20} /></button>
                 <button className={btnClass} onClick={() => onExport('tikz')} title="Export TikZ"><FileCode size={20} /></button>
