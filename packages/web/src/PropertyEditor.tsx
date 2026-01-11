@@ -3,9 +3,10 @@ import { formatSpec } from './utils/specFormatter';
 import { Input } from './components/ui/Input';
 import { Select } from './components/ui/Select';
 import { Label } from './components/ui/Label';
-import { MousePointer2 } from 'lucide-react';
+import { Button } from './components/ui/Button';
+import { MousePointer2, Trash2 } from 'lucide-react';
 import { DiagramSpec, NodeSpec, ArrowSpec } from 'arrowgram';
-import { SelectionState } from './store/diagramStore';
+import { SelectionState, useDiagramStore } from './store/diagramStore';
 
 interface NodeEditorProps {
     node: NodeSpec;
@@ -54,14 +55,13 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }: ArrowEditorProps) {
             const key = `${a.from}-${a.to}-${a.name || `_arrow_${index}`}`;
             if (key === arrow.key) {
                 const newStyle: any = { ...a.style };
-                if (value !== undefined) { 
-                    newStyle[part] = { ...(a.style?.[part as keyof typeof a.style] || {}), [name]: value };
+                if (part === 'level') {
+                    newStyle.level = value;
+                } else if (value !== undefined) {
+                    const subStyle = (newStyle[part] || {}) as Record<string, any>;
+                    newStyle[part] = { ...subStyle, [name]: value };
                 } else {
                     newStyle[part] = name;
-                }
-                if (part === 'level') {
-                  newStyle.level = value;
-                  return { ...a, style: newStyle };
                 }
                 return { ...a, style: newStyle };
             }
@@ -150,6 +150,8 @@ interface PropertyEditorProps {
 }
 
 export function PropertyEditor({ selection, spec: specString, onSpecChange }: PropertyEditorProps) {
+    const deleteSelection = useDiagramStore(state => state.deleteSelection);
+
     const { nodes, arrows } = useMemo(() => {
         try {
             const spec: DiagramSpec = JSON.parse(specString);
@@ -168,8 +170,6 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }: Pr
             return { type: 'node' as const, data: item as NodeSpec };
         }
         
-        // Match arrow by name or deep equality if needed, but we rely on key passing from store mostly
-        // Here we just ensure we have the fresh spec object corresponding to the selection
         const arrowSpec = arrows.find(a => (a.name && a.name === (item as ArrowSpec).name) || JSON.stringify(a) === JSON.stringify(item));
         if (arrowSpec) {
              return { type: 'arrow' as const, data: { ...arrowSpec, key } };
@@ -190,15 +190,21 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }: Pr
         );
     }
     
+    // @ts-ignore
+    const displayName = selectedItem.type === 'node' ? selectedItem.data.name : (selectedItem.data.name || selectedItem.data.key);
+
     return (
         <div>
-            <div className="mb-6">
+            <div className="mb-6 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <span className="capitalize">{selectedItem.type}</span>
-                    <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {selectedItem.data.name || selectedItem.data.key}
+                    <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full max-w-[150px] truncate">
+                        {displayName}
                     </span>
                 </h3>
+                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={deleteSelection} title="Delete">
+                    <Trash2 size={18} />
+                </Button>
             </div>
             
             {selectedItem.type === 'node' && (

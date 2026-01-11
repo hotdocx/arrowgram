@@ -27,6 +27,24 @@ function useEditorInteraction(
   const [interaction, setInteraction] = useState<EditorInteractionState>({ mode: 'idle' });
   const selection = useDiagramStore(state => state.selection);
   const setSelection = useDiagramStore(state => state.setSelection);
+  const deleteSelection = useDiagramStore(state => state.deleteSelection);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.key === 'Delete' || e.key === 'Backspace')) {
+            // Avoid deleting if user is typing in an input/textarea
+            const activeElement = document.activeElement as HTMLElement | null;
+            const activeTag = activeElement?.tagName.toLowerCase();
+            if (activeTag === 'input' || activeTag === 'textarea' || activeElement?.isContentEditable) {
+                return;
+            }
+            deleteSelection();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteSelection]);
 
   const getSVGPoint = useCallback((e: React.PointerEvent | React.MouseEvent) => {
     const svg = svgRef.current;

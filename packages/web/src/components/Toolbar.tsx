@@ -3,12 +3,13 @@ import { useDiagramStore } from '../store/diagramStore';
 // @ts-ignore
 import { useStore } from 'zustand';
 import {
-    Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode, Bot, X
+    Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode, Bot, X, Settings
 } from 'lucide-react';
 import { saveProject, listProjects, ProjectMeta } from '../utils/storage';
 import { useToast } from '../context/ToastContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { SettingsDialog } from './SettingsDialog';
 
 interface ToolbarProps {
     onExport: (format: 'tikz' | 'svg' | 'png') => void;
@@ -24,6 +25,7 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
     const { addToast } = useToast();
 
     const [isProjectsOpen, setIsProjectsOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [projects, setProjects] = useState<ProjectMeta[]>([]);
     const [showSaveName, setShowSaveName] = useState(false);
     const [newProjectName, setNewProjectName] = useState(filename);
@@ -93,6 +95,10 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
                 <Bot size={18} />
             </button>
 
+             <button className={btnClass} onClick={() => setIsSettingsOpen(true)} title="Settings">
+                <Settings size={18} />
+            </button>
+
             {divider}
 
             <button className={btnClass} onClick={() => onExport('svg')} title="Export SVG"><Download size={18} /></button>
@@ -104,6 +110,9 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
             <div className="px-3 py-1 font-medium text-sm text-gray-500 max-w-[150px] truncate select-none" title={filename}>
                 {filename}
             </div>
+
+            {/* Settings Modal */}
+            <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
             {/* Projects Modal */}
             {isProjectsOpen && (

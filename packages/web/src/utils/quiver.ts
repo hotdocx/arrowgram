@@ -5,7 +5,7 @@ const CURVE_SCALE_FACTOR = -25;
 
 const QUIVER_LABEL_ALIGNMENT: Record<string, number> = {
 	left: 0,
-	centre: 1, // Not directly supported by arrowgram, maps to 'over'
+	centre: 1, 
 	right: 2,
 	over: 3,
 };
@@ -71,8 +71,7 @@ export function decodeQuiverUrl(url: string): DiagramSpec {
 		const jsonString = new TextDecoder().decode(bytes);
 		const quiverArray = JSON.parse(jsonString);
 
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const [version, vertexCount, ...cells] = quiverArray;
+		const [_version, vertexCount, ...cells] = quiverArray;
 
 		const spec: DiagramSpec = {
             version: 1,
@@ -118,15 +117,15 @@ export function decodeQuiverUrl(url: string): DiagramSpec {
 					label: label ? `$${label}$` : "",
 					curve: (options.curve || 0) * CURVE_SCALE_FACTOR,
 					shift: options.offset || 0,
-					// @ts-ignore
-					level: options.level || 1,
-					// @ts-ignore
-					label_alignment: ARROWGRAM_LABEL_ALIGNMENT[alignment] || "over",
+					label_alignment: (ARROWGRAM_LABEL_ALIGNMENT[alignment] || "over") as any,
+                    style: {
+                        level: options.level || 1
+                    }
 				};
 
 				const agStyle = quiverStyleToArrowgram(options);
 				if (Object.keys(agStyle).length > 0) {
-					arrow.style = agStyle;
+					arrow.style = { ...arrow.style, ...agStyle };
 				}
 
 				if (spec.arrows) {
@@ -177,7 +176,7 @@ export function encodeArrowgram(spec: DiagramSpec) {
 		const nameMap = new Map();
 
 		spec.nodes.forEach((node: NodeSpec, index: number) => {
-			const quiverVertex = [
+			const quiverVertex: any[] = [
 				Math.round(node.left / GRID_SCALE),
 				Math.round(node.top / GRID_SCALE),
 			];
@@ -203,7 +202,7 @@ export function encodeArrowgram(spec: DiagramSpec) {
 				return;
 			}
 
-			const quiverEdge = [sourceIndex, targetIndex];
+			const quiverEdge: any[] = [sourceIndex, targetIndex];
 			const options = arrowgramStyleToQuiver(arrow);
 
 			if (arrow.curve) {
@@ -215,7 +214,6 @@ export function encodeArrowgram(spec: DiagramSpec) {
 			if (arrow.shift) options.offset = arrow.shift;
 			if (arrow.style?.level && arrow.style.level > 1) options.level = arrow.style.level;
 			
-            // @ts-ignore
 			const alignment = QUIVER_LABEL_ALIGNMENT[arrow.label_alignment || 'over'];
 			
 			const hasOptions = Object.keys(options).length > 0;
@@ -237,8 +235,7 @@ export function encodeArrowgram(spec: DiagramSpec) {
 		const jsonString = JSON.stringify(quiverArray);
 		
 		const uint8Array = new TextEncoder().encode(jsonString);
-		// @ts-ignore
-		const charString = String.fromCharCode.apply(null, uint8Array);
+		const charString = String.fromCharCode.apply(null, Array.from(uint8Array));
 		return btoa(charString);
 
 	} catch (error) {

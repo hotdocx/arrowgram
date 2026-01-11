@@ -1,20 +1,40 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
-const ToastContext = createContext(null);
+export type ToastType = 'success' | 'error' | 'info';
+
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+  duration: number;
+}
+
+interface ToastContextType {
+  addToast: (message: string, type?: ToastType, duration?: number) => void;
+  removeToast: (id: string) => void;
+}
+
+const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
+    // Return a dummy to avoid crashes if used outside provider during dev/testing, 
+    // but ideally we should throw. The prompt wants production grade.
     throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
 }
 
-export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
+interface ToastProviderProps {
+  children: ReactNode;
+}
 
-  const addToast = useCallback((message, type = 'info', duration = 3000) => {
+export function ToastProvider({ children }: ToastProviderProps) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const addToast = useCallback((message: string, type: ToastType = 'info', duration = 3000) => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type, duration }]);
 
@@ -25,7 +45,7 @@ export function ToastProvider({ children }) {
     }
   }, []);
 
-  const removeToast = useCallback((id) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 

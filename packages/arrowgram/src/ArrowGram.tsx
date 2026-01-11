@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { computeDiagram } from './core/diagramModel';
 import { ArrowGramDiagram } from './react/ArrowGramDiagram';
 

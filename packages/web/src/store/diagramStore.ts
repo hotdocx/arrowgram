@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import { NodeSpec, ArrowSpec } from 'arrowgram';
+import { NodeSpec, ArrowSpec, DiagramSpec } from 'arrowgram';
+import { formatSpec } from '../utils/specFormatter';
 
 export interface SelectionState {
   key: string | null;
@@ -14,6 +15,7 @@ interface DiagramState {
   setSpec: (newSpec: string) => void;
   setFilename: (name: string) => void;
   setSelection: (selection: SelectionState) => void;
+  deleteSelection: () => void;
   reset: () => void;
 }
 
@@ -30,7 +32,7 @@ const initialSpec = JSON.stringify({
 
 export const useDiagramStore = create<DiagramState>()(
     temporal(
-        (set) => ({
+        (set, get) => ({
             spec: initialSpec,
             filename: 'Untitled Diagram',
             selection: { key: null, item: null },
@@ -38,6 +40,52 @@ export const useDiagramStore = create<DiagramState>()(
             setSpec: (newSpec) => set({ spec: newSpec }),
             setFilename: (name) => set({ filename: name }),
             setSelection: (selection) => set({ selection }),
+            
+            deleteSelection: () => {
+                const { selection, spec: specString } = get();
+                if (!selection.key || !selection.item) return;
+
+                try {
+                    const spec: DiagramSpec = JSON.parse(specString);
+                    const { key, item } = selection;
+                    
+                    // Determine if it's a node or arrow based on properties
+                    const isNode = 'left' in item && 'top' in item;
+                    
+                    if (isNode) {
+                        const nodeName = (item as NodeSpec).name;
+                        // Filter out the node
+                        const newNodes = (spec.nodes || []).filter(n => n.name !== nodeName);
+                        // Filter out arrows connected to this node
+                        const newArrows = (spec.arrows || []).filter(a => a.from !== nodeName && a.to !== nodeName);
+                        
+                        set({ 
+                            spec: formatSpec({ nodes: newNodes, arrows: newArrows }),
+                            selection: { key: null, item: null }
+                        });
+                    } else {
+                        // It's an arrow
+                        // For arrows, key is composite, but we can match by object identity or name if unique.
+                        // Ideally we use the unique name if present, or filtering by matching properties if not.
+                        // In ArrowGramEditor, we treat keys as unique identifiers.
+                        // Let's rely on the fact that arrows usually have names generated.
+                        const arrowItem = item as ArrowSpec;
+                        const newArrows = (spec.arrows || []).filter(a => {
+                             // Match by name if available
+                             if (a.name && arrowItem.name) return a.name !== arrowItem.name;
+                             // Fallback: match by content (deep equality check would be better but this is a simple heuristic)
+                             return JSON.stringify(a) !== JSON.stringify(arrowItem);
+                        });
+                        
+                        set({ 
+                            spec: formatSpec({ nodes: spec.nodes, arrows: newArrows }),
+                            selection: { key: null, item: null }
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to delete item:", e);
+                }
+            },
 
             reset: () => set({ spec: initialSpec, filename: 'Untitled Diagram' }),
         }),

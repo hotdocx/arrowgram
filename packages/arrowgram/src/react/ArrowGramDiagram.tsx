@@ -39,15 +39,13 @@ function LabelContent({ label, textProps, isNodeLabel = false }: LabelContentPro
 
   const width = 150;
   const height = 50;
-  // @ts-ignore - props are compatible but TS might complain about optionality
-  const x = (finalProps.x as number) - width / 2;
-   // @ts-ignore
-  const y = (finalProps.y as number) - height / 2;
+  
+  const x = (typeof finalProps.x === 'number' ? finalProps.x : 0) - width / 2;
+  const y = (typeof finalProps.y === 'number' ? finalProps.y : 0) - height / 2;
 
   return (
     <foreignObject x={x} y={y} width={width} height={height} style={{ overflow: 'visible' }}>
       <div
-        xmlns="http://www.w3.org/1999/xhtml"
         style={{
           display: 'flex',
           alignItems: 'center',

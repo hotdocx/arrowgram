@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { Toolbar } from "./components/Toolbar";
 import { TikzExportModal } from './TikzExportModal';
@@ -79,7 +79,7 @@ export default function App() {
       {/* Top Navigation Bar */}
       <nav className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-10 shadow-sm relative">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
             A
           </div>
           <span className="font-semibold text-gray-800 text-lg tracking-tight">Arrowgram</span>
