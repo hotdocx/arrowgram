@@ -1,6 +1,20 @@
 {
     "name": "arrowgram",
     "version": "1.0.0",
+    "description": "A React library for creating commutative diagrams with a declarative JSON syntax.",
+    "author": "Antigravity",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/hotdocx/arrowgram.git"
+    },
+    "keywords": [
+        "commutative-diagrams",
+        "category-theory",
+        "react",
+        "svg",
+        "quiver"
+    ],
     "type": "module",
     "main": "./dist/arrowgram.umd.cjs",
     "module": "./dist/arrowgram.js",
