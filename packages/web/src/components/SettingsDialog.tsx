@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
@@ -16,7 +17,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
       <div className="bg-white p-6 rounded-2xl shadow-2xl w-96 ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
@@ -75,6 +76,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
           <Button onClick={onClose}>Done</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

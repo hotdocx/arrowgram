@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useDiagramStore } from '../store/diagramStore';
 import { Button } from './ui/Button';
 import { X, Copy, Check, BookOpen } from 'lucide-react';
@@ -55,7 +56,7 @@ export function SpecJsonEditor({ isOpen, onClose }: SpecJsonEditorProps) {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-2xl w-[800px] h-[80vh] flex flex-col ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center p-4 border-b border-gray-100 relative">
@@ -118,6 +119,7 @@ export function SpecJsonEditor({ isOpen, onClose }: SpecJsonEditorProps) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

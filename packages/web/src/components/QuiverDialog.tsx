@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDiagramStore } from '../store/diagramStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -51,7 +52,7 @@ export function QuiverDialog({ isOpen, onClose }: QuiverDialogProps) {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-2xl w-[500px] ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center p-4 border-b border-gray-100">
@@ -110,6 +111,7 @@ export function QuiverDialog({ isOpen, onClose }: QuiverDialogProps) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
