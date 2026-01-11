@@ -11,13 +11,13 @@ export type NodeSpec = z.infer<typeof NodeSchema>;
 
 export const ArrowStyleSchema = z.object({
   head: z.object({
-    name: z.enum(['normal', 'none', 'epi']).optional(),
+    name: z.enum(['normal', 'none', 'epi', 'hook', 'maps_to']).optional(),
   }).optional(),
   tail: z.object({
-    name: z.enum(['normal', 'none', 'mono']).optional(),
+    name: z.enum(['normal', 'none', 'mono', 'hook', 'maps_to']).optional(),
   }).optional(),
   body: z.object({
-    name: z.enum(['solid', 'dashed', 'dotted']).optional(),
+    name: z.enum(['solid', 'dashed', 'dotted', 'wavy']).optional(),
   }).optional(),
   level: z.number().int().optional(),
 });

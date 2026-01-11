@@ -1,86 +1,112 @@
-# Arrowgram for AI Agents
-
-This document describes how AI Coding Agents (like yourself) should generate Arrowgram specifications.
+# Arrowgram API Documentation for AI Agents
 
 ## Overview
+`@arrowgram/core` is a library for defining and rendering commutative diagrams. As an AI agent, you can generate diagrams by producing JSON objects that conform to the `DiagramSpec` interface.
 
-Arrowgram is a library for rendering commutative diagrams. It uses a JSON specification to define nodes and arrows.
-Your goal is to accept a user's natural language description (e.g., "Draw a pullback square" or "Create a triangle with f, g, h") and output a VALID JSON object adhering to the schema below.
+## Core Schema
 
-## JSON Schema
+The source of truth is the JSON specification. Do not invent properties.
 
-The full schema is available at `packages/arrowgram/arrowgram.schema.json`.
+### 1. `DiagramSpec` (Root)
+```typescript
+interface DiagramSpec {
+  version: 1;
+  nodes: NodeSpec[];
+  arrows: ArrowSpec[];
+}
+```
 
-### Key Properties
+### 2. `NodeSpec`
+Represents a mathematical object (Set, Category, Space).
 
--   **nodes**: Array of `{ name, label, left, top }`.
-    -   `left`, `top`: Coordinates in pixels. Assume a canvas of roughly 800x600. Standard spacing is ~200px.
--   **arrows**: Array of `{ from, to, label, curve, style }`.
-    -   `curve`: Number. `0` = straight. positive = curves left. negative = curves right.
-    -   `style`: `{ head: { name }, tail: { name }, body: { name }, level: number }`.
+```typescript
+interface NodeSpec {
+  name: string;      // UNIQUE identifier (e.g., "A", "node_1")
+  label: string;     // LaTeX content (e.g., "A", "X \times Y", "\\mathbb{R}")
+  left: number;      // X coordinate (0-1000 usually)
+  top: number;       // Y coordinate (0-1000 usually)
+}
+```
+*Note: Layout is Cartesian. (0,0) is Top-Left.*
 
-## Styles Reference
+### 3. `ArrowSpec`
+Represents a morphism or map between objects.
 
--   **Monomorphism** (Hook tail): `style: { tail: { name: "mono" } }`
--   **Epimorphism** (Two heads): `style: { head: { name: "epi" } }`
--   **Isomorphism** (Tilde): *Not fully supported via style yet, typically denoted by label `\\cong`.*
--   **Double Arrow** (Implication): `style: { level: 2 }`
--   **Dashed Arrow**: `style: { body: { name: "dashed" } }`
+```typescript
+interface ArrowSpec {
+  from: string;      // ID of the source Node
+  to: string;        // ID of the target Node
+  label?: string;    // LaTeX label (e.g., "f", "g \circ h")
+  
+  // Geometry
+  curve?: number;    // Curvature: -100 to 100. 0 = Straight. 
+                     // Positive = Curve Left/Up (CCW relative to vector).
+                     // Negative = Curve Right/Down.
+  shift?: number;    // Parallel shift in pixels. Useful for double arrows.
+  
+  // Positioning
+  label_alignment?: "over" | "left" | "right" | "center"; // Default: "left" (relative to arrow direction)
+  
+  // Styling
+  style?: {
+    head?: {
+      name?: "normal" | "none" | "epi" | "hook" | "maps_to"; // "epi" = ->>, "hook" = inclusion
+    };
+    tail?: {
+      name?: "normal" | "none" | "mono" | "maps_to"; // "mono" = >->
+    };
+    body?: {
+      name?: "solid" | "dashed" | "dotted" | "wavy";
+    };
+    level?: number;  // 1 = single (->), 2 = double (=>), 3 = triple
+  };
+}
+```
 
-## Chain of Thought Examples
+## Example: Pullback Square
 
-### Example 1: Pullback Square
+To generate a Pullback Square, output this JSON:
 
-**User**: "Draw a pullback square with nodes A, B, C, D."
-
-**Agent Thought Process**:
-1.  **Layout**: A square layout is needed. Let's put A top-left, B top-right, C bottom-left, D bottom-right.
-    -   A: (100, 100)
-    -   B: (300, 100)
-    -   C: (100, 300)
-    -   D: (300, 300)
-2.  **Arrows**: Standard pullback logic.
-    -   A -> B (Top horizontal)
-    -   A -> C (Left vertical)
-    -   B -> D (Right vertical)
-    -   C -> D (Bottom horizontal)
-3.  **Labels**: User didn't specify, so use generic or empty. Let's use standard $f, g, p_1, p_2$.
-
-**Output JSON**:
 ```json
 {
+  "version": 1,
   "nodes": [
-    { "name": "A", "left": 100, "top": 100, "label": "A" },
-    { "name": "B", "left": 300, "top": 100, "label": "B" },
-    { "name": "C", "left": 100, "top": 300, "label": "C" },
-    { "name": "D", "left": 300, "top": 300, "label": "D" }
+    { "name": "P", "left": 100, "top": 100, "label": "P" },
+    { "name": "X", "left": 300, "top": 100, "label": "X" },
+    { "name": "Y", "left": 100, "top": 300, "label": "Y" },
+    { "name": "Z", "left": 300, "top": 300, "label": "Z" }
   ],
   "arrows": [
-    { "from": "A", "to": "B", "label": "f" },
-    { "from": "A", "to": "C", "label": "g" },
-    { "from": "B", "to": "D", "label": "p_1" },
-    { "from": "C", "to": "D", "label": "p_2" }
+    { "from": "P", "to": "X", "label": "f'" },
+    { "from": "P", "to": "Y", "label": "g'" },
+    { "from": "X", "to": "Z", "label": "f" },
+    { "from": "Y", "to": "Z", "label": "g" }
   ]
 }
 ```
 
-### Example 2: Adjunction
+## Best Practices for Agents
 
-**User**: "Draw an adjunction between C and D with left adjoint F and right adjoint G."
+1.  **Layout Logic:** When asked for "Category A", arrange nodes logically.
+    *   **Triangles:** (100,100), (300,100), (200, 300).
+    *   **Squares:** (100,100), (300,100), (100,300), (300,300).
+    *   **Limits/Colimits:** Central object should be offset from the diagram it limits.
+2.  **Naming:** Use descriptive IDs if possible (`node_A`, `node_AxB`) but simple ones (`n1`, `n2`) are fine if internal.
+3.  **Labels:** Always use LaTeX. No plain text unless it's a variable name.
+4.  **Curvature:** If two arrows go between the same nodes (e.g., adjunction), use `curve: 20` and `curve: -20`.
 
-**Agent Thought Process**:
-1.  **Layout**: Two nodes, C and D, side-by-side.
-    -   C: (100, 200)
-    -   D: (400, 200)
-2.  **Arrows**:
-    -   F: C -> D (Top curve)
-    -   G: D -> C (Bottom curve)
-3.  **Curvature**:
-    -   F should curve "up" (left relative to C->D direction? No, C->D is Right. Left of Right is Up. So curve positive.)
-    -   G should curve "down" (left relative to D->C direction? Left of Left is Down. So curve positive.)
-    -   Wait, let's just use opposite curves. F curve +30, G curve +30 (both curve to their left).
+## Advanced Usage: Isomorphisms & Adjunctions
 
-**Output JSON**:
+**Isomorphism ($A \cong B$):**
+Use a double-headed arrow or two arrows.
+```json
+{ "from": "A", "to": "B", "label": "\\cong", "style": { "body": { "name": "solid" }, "head": { "name": "none" }, "tail": { "name": "none" } } }
+```
+*(Better native support coming soon)*
+
+**Adjunction ($F \dashv G$):**
+Two curved arrows + a symbol in the middle (requires 2-cell support, currently approximated by label placement).
+
 ```json
 {
   "nodes": [
@@ -89,7 +115,7 @@ The full schema is available at `packages/arrowgram/arrowgram.schema.json`.
   ],
   "arrows": [
     { "from": "C", "to": "D", "label": "F", "curve": 40 },
-    { "from": "D", "to": "C", "label": "G", "curve": 40 }
+    { "from": "D", "to": "C", "label": "G", "curve": -40 }
   ]
 }
 ```

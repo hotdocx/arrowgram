@@ -7,7 +7,8 @@ import {
   ComputedDiagram, 
   NodeSpec, 
   Vec2,
-  DiagramSpec
+  DiagramSpec,
+  DiagramSpecSchema
 } from '../types';
 
 const NODE_RADIUS = 25;
@@ -76,6 +77,31 @@ function renderArrowPart(
         ];
       }
       return [];
+    case "hook": {
+      // A small semi-circle or hook shape
+      // M 0 0 A 5 5 0 0 1 -5 -5 or similar
+      const d_hook = `M ${size/2} -${size/2} A ${size/2} ${size/2} 0 0 0 ${size/2} ${size/2}`;
+      // Adjust rotation: default hook is 'subset' style usually at tail
+      // If at tail, the open part faces the path.
+      return [{
+        props: {
+          ...commonProps,
+          d: d_hook,
+          transform: `translate(${pos.x} ${pos.y}) rotate(${angleDeg}) translate(-${size/2}, 0)`,
+        }
+      }];
+    }
+    case "maps_to": {
+      // A vertical bar
+      const d_bar = `M 0 -${size/2} L 0 ${size/2}`;
+      return [{
+        props: {
+          ...commonProps,
+          d: d_bar,
+          transform: `translate(${pos.x} ${pos.y}) rotate(${angleDeg})`,
+        }
+      }];
+    }
     default: // normal
       return [
         {
@@ -301,8 +327,8 @@ export function computeDiagram(specInput: string | DiagramSpec): ComputedDiagram
   try {
     const rawSpec: DiagramSpec = typeof specInput === 'string' ? JSON.parse(specInput) : specInput;
     
-    // Ensure version exists (default to 1)
-    const spec = { ...rawSpec, version: rawSpec.version || 1 };
+    // Validate with Zod
+    const spec = DiagramSpecSchema.parse({ ...rawSpec, version: rawSpec.version || 1 });
 
     if (!spec.nodes || spec.nodes.length === 0) {
       return { nodes: [], arrows: [], viewBox: "0 0 100 100", error: null };

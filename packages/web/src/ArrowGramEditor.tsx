@@ -31,14 +31,40 @@ function useEditorInteraction(
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+        const activeElement = document.activeElement as HTMLElement | null;
+        const activeTag = activeElement?.tagName.toLowerCase();
+        const isInputActive = activeTag === 'input' || activeTag === 'textarea' || activeElement?.isContentEditable;
+
         if ((e.key === 'Delete' || e.key === 'Backspace')) {
-            // Avoid deleting if user is typing in an input/textarea
-            const activeElement = document.activeElement as HTMLElement | null;
-            const activeTag = activeElement?.tagName.toLowerCase();
-            if (activeTag === 'input' || activeTag === 'textarea' || activeElement?.isContentEditable) {
-                return;
-            }
+            if (isInputActive) return;
             deleteSelection();
+        }
+
+        // Undo/Redo
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            if (isInputActive) return;
+            if (e.shiftKey) {
+                useDiagramStore.temporal.getState().redo();
+            } else {
+                useDiagramStore.temporal.getState().undo();
+            }
+            e.preventDefault();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+            if (isInputActive) return;
+            useDiagramStore.temporal.getState().redo();
+            e.preventDefault();
+        }
+        
+        // Save (Prevent browser save dialog)
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            // Trigger save action via a custom event or a shared handler if accessible.
+            // For now, let's just dispatch a custom event that App.tsx can listen to, or simpler:
+            // Since we don't have direct access to handleSave here, we can rely on the user clicking the button 
+            // OR move handleSave to the store (but saving to IDB is an effect).
+            // Let's dispatch a custom event 'arrowgram:save'
+            window.dispatchEvent(new CustomEvent('arrowgram:save'));
         }
     };
 
@@ -96,7 +122,7 @@ function useEditorInteraction(
       if (node) {
         setSelection({ key: id, item: node });
 
-        if (e.ctrlKey || e.metaKey) {
+        if (e.shiftKey) {
           // Connect Mode
           setInteraction({ mode: 'connecting', source: id, endPoint: point });
         } else {
@@ -282,7 +308,7 @@ export function ArrowGramEditor() {
         </svg>
 
         <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg border shadow-sm text-xs text-gray-500 pointer-events-none select-none">
-          Double-click: Add Node • Drag: Move • Ctrl+Drag: Connect • Scroll: Zoom
+          Double-click: Add Node • Drag: Move • Shift+Drag: Connect • Scroll: Zoom • Ctrl+Z: Undo • Ctrl+S: Save
         </div>
       </div>
     </div>

@@ -1,50 +1,100 @@
 # Arrowgram Product Requirements Document (PRD)
 
-## 1. Introduction
+## 1. Executive Summary
 
-**Product Name:** Arrowgram
-**Goal:** Create a production-grade NPM package and web editor for generating category-theory commutative diagrams.
+**Product Name:** Arrowgram  
+**Mission:** To be the premier tool for creating, editing, and sharing commutative diagrams for Category Theory and related mathematics.  
+**Vision:** A "production-grade" platform that serves both human researchers and AI agents. It must exceed the capabilities of existing tools like `q.uiver.app` in terms of usability, aesthetic quality, and integration with modern AI workflows.
+
 **Target Audience:**
--   Mathematicians and Students (Category Theory).
--   AI Coding Agents (generating diagrams for research papers).
--   Developers (integrating diagrams into docs/websites).
+1.  **Researchers & Students:** Who need beautiful diagrams for papers (LaTeX/TikZ export) and slides.
+2.  **AI Coding Agents:** Who need a programmatic way to generate and verify diagrams as part of a reasoning pipeline.
+3.  **Developers:** Who want to embed interactive diagrams in web applications.
 
-## 2. Value Proposition
+## 2. Competitive Analysis (vs q.uiver.app)
 
--   **Declarative:** JSON-based specification is easy for both humans and AI to read/write.
--   **Visual:** "What You See Is What You Get" (WYSIWYG) editor with automatic layout intelligence.
--   **Interoperable:** Compatible with `q.uiver.app` and LaTeX (`tikz-cd`).
--   **Embeddable:** Designed to run client-side in browsers or server-side (via Node.js/SSR).
+| Feature | Quiver (Current Standard) | Arrowgram (Goal) |
+| :--- | :--- | :--- |
+| **Interface** | Functional, tool-based | Modern, sleek, keyboard-centric (Vim-like speed) |
+| **AI Integration** | None | Native LLM chat for creation & *incremental* modification |
+| **Export** | LaTeX, Image | LaTeX, Image, PDF (Paged.js), JSON, React Component |
+| **Architecture** | Client-side only | Hybrid (Client-first + Optional Cloud features) |
+| **Programmatic API** | N/A | First-class NPM package for agents |
 
-## 3. Core Features
+## 3. Product Architecture
 
-### 3.1. Core Library (`packages/arrowgram`)
--   **Geometry Engine:** Pure function `computeDiagram(spec) -> model` handling calculating coordinates, arrow paths (curves, loops), and label placement.
--   **React Renderer:** `<ArrowGramDiagram />` component rendering the model to SVG.
--   **Math Support:** KaTeX integration for high-quality mathematical typesetting in labels.
--   **Higher-Order Arrows:** Support for arrows between arrows (2-cells).
+The project is a monorepo with two primary packages:
 
-### 3.2. Web Editor (`packages/web`)
--   **Interactive Canvas:** Drag-and-drop nodes, click-and-drag to connect.
--   **Property Inspector:** Fine-grained control over Arrow styles (epi, mono, dashed, specific curves) and node labels.
--   **Live Preview:** Real-time updates.
--   **Persistence:** Save/Load projects (Local Storage / IndexedDB).
--   **Export:** SVG, PNG, TikZ-CD, Quiver URL.
+### 3.1. `@arrowgram/core` (formerly `packages/arrowgram`)
+*   **Purpose:** The "brain" and "renderer". A standalone library for definitions and rendering.
+*   **Responsibilities:**
+    *   **Data Model:** Zod-validated JSON schema (`DiagramSpec`).
+    *   **Geometry Engine:** Pure functions calculating Bézier curves, intersection points, and label positioning.
+    *   **Rendering:** React components (`<ArrowGram />`) converting the model to SVG.
+    *   **Math:** KaTeX rendering for labels.
+*   **Key Requirement:** Must be usable *headless* (or nearly so) for server-side generation/validation contexts.
 
-## 4. Technical Requirements
+### 3.2. `@arrowgram/web` (formerly `packages/web`)
+*   **Purpose:** The "body". A full-featured Progressive Web App (PWA).
+*   **Responsibilities:**
+    *   **State Management:** Global store (Zustand) with robust Undo/Redo (`zundo`).
+    *   **Persistence:** `IndexedDB`-based local "filesystem" for managing multiple projects.
+    *   **Interaction:** Canvas manipulation (pan, zoom, drag nodes, drag connections).
+    *   **AI Service:** interface to Gemini (and potentially others) for natural language diagramming.
+    *   **Export Pipeline:** High-fidelity export tools.
 
--   **Monorepo:** Managed via NPM Workspaces.
--   **Build System:** Vite.
--   **Testing:** Vitest (Logic), Playwright (E2E).
--   **Formatting/Linting:** Prettier, ESLint.
+## 4. Functional Specifications
 
-## 5. AI Integration (AGENTS.md)
+### 4.1. The Editor Experience
+*   **Projects System:**
+    *   Dashboard to list, create, rename, and delete diagrams.
+    *   Thumbnails for recent diagrams.
+    *   "Auto-save" to local storage.
+*   **Canvas Interaction:**
+    *   **Nodes:** Double-click to create, Drag to move. LaTeX label editing in place or via panel.
+    *   **Arrows:** Click source -> Drag -> Release on target.
+    *   **Selection:** Box selection, Shift+Click multi-select.
+*   **Keyboard Shortcuts (Critical for "Exceeding Quiver"):**
+    *   `Enter`: Edit label of selected item.
+    *   `Delete`/`Backspace`: Remove selected.
+    *   `Ctrl+Z` / `Ctrl+Shift+Z`: Undo/Redo.
+    *   `Shift+Drag`: Create arrow.
+    *   `Alt+Drag`: Curve arrow.
+*   **Visual Polish:**
+    *   Modern UI components (Radix UI / Tailwind).
+    *   Dark/Light mode support (diagrams adapt or lock color mode).
 
--   The JSON spec must be stable and documented.
--   Documentation should include "few-shot" examples for LLMs to learn the syntax.
+### 4.2. Mathematical Capabilities
+*   **Arrow Types:**
+    *   Standard (monomorphism, epimorphism, isomorphism).
+    *   Decoration (dashed, dotted, wavy).
+    *   2-cells (arrows between arrows) for natural transformations and homotopies.
+    *   Loops (self-referential arrows).
+*   **Labels:**
+    *   Full LaTeX support via KaTeX.
+    *   Intelligent positioning (auto-avoid overlapping lines).
 
-## 6. Future Roadmap
+### 4.3. AI "Co-Pilot"
+*   **Chat Interface:** A side-panel for natural language interaction.
+*   **Incremental Updates:** "Add a pullback square to node A" should *add* to the existing diagram, not replace it.
+*   **Context Awareness:** The AI knows the current IDs and labels of nodes to connect them correctly.
 
--   **Auto-layout:** Force-directed or layer-based algorithms to position nodes automatically.
--   **Collaboration:** Real-time multi-user editing (Yjs).
--   **Backend:** Authenticated storage for user diagrams.
+### 4.4. Export & Integration
+*   **TikZ-CD:** Production of clean, idiomatic LaTeX code for paper inclusion.
+*   **Images:** High-res PNG (handling specific `foreignObject` constraints).
+*   **JSON:** The raw `ArrowgramSpec` for portability.
+
+## 5. Non-Functional Requirements
+
+*   **Performance:** 60fps rendering for diagrams with <100 nodes.
+*   **Accessibility:** Keyboard navigation for the graph structure.
+*   **Reliability:** 100% test coverage on the Geometry Engine.
+*   **Packaging:** `@arrowgram/core` must be tree-shakeable and typed.
+
+## 6. Implementation Roadmap
+
+1.  **Foundation:** Refactor `core` for strict typing and headless capabilities.
+2.  **UX Polish:** Implement the "Projects" dashboard and Keyboard Shortcuts.
+3.  **AI Refinement:** Implement "Merging" logic for incremental AI updates.
+4.  **DevOps:** CI/CD for NPM publishing and Docker containerization.
+5.  **Launch:** Deploy to GitHub Pages / Cloud Run.

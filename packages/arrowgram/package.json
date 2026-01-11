@@ -21,9 +21,9 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
+            "types": "./dist/index.d.ts",
             "import": "./dist/arrowgram.js",
-            "require": "./dist/arrowgram.umd.cjs",
-            "types": "./dist/index.d.ts"
+            "require": "./dist/arrowgram.umd.cjs"
         }
     },
     "files": [

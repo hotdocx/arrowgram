@@ -24,10 +24,10 @@ interface ArrowSpec {
   shift?: number; // Parallel shift
   label_alignment?: "over" | "left" | "right";
   style?: {
-    head?: { name?: "normal" | "none" | "epi" }; // epi is double headed arrow (->>)
-    tail?: { name?: "normal" | "none" | "mono" }; // mono is tailed arrow (>->)
-    body?: { name?: "solid" | "dashed" | "dotted" };
-    level?: number; // 1 for single, 2 for double (=)
+    head?: { name?: "normal" | "none" | "epi" | "hook" | "maps_to" }; // epi=->>, hook=subset, maps_to=|->
+    tail?: { name?: "normal" | "none" | "mono" | "hook" | "maps_to" }; // mono=>->, maps_to=|->
+    body?: { name?: "solid" | "dashed" | "dotted" | "wavy" };
+    level?: number; // 1 for single (->), 2 for double (=>)
   };
 }
 
@@ -40,8 +40,14 @@ interface DiagramSpec {
 Layout Guidelines:
 - Coordinate system: (0,0) is top-left.
 - Standard spacing: Nodes are usually 100-200 pixels apart.
-- Centered diagrams usually look best around (300, 300) or similar, but relative positions matter most.
+- Centered diagrams usually look best around (300, 300) or similar.
 - Use standard LaTeX for labels (e.g., "\\pi", "f \\circ g").
+
+CRITICAL RULES FOR UPDATES:
+1. When provided with an existing spec ("Current Diagram Spec"), you must return the FULL merged JSON.
+2. PRESERVE the coordinates (left, top) of existing nodes unless the user explicitly asks to move them or reorganize the layout.
+3. PRESERVE existing node IDs ("name") to maintain arrow connections.
+4. If adding a new node, place it intelligently relative to connected nodes (e.g., forming a square or triangle).
 
 Example (Pullback Square):
 {
@@ -59,8 +65,6 @@ Example (Pullback Square):
     { "from": "B", "to": "C", "label": "g" }
   ]
 }
-
-If the user asks to "modify" or "add" to the current diagram, you will be provided with the current spec. Merge intelligently.
 `;
 
 export async function generateDiagram(prompt: string, currentSpec?: string): Promise<string> {
