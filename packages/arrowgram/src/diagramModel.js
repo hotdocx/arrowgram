@@ -70,39 +70,69 @@ function renderArrowPart(type, pos, tangentAngle, placement, customSize) {
   }
 }
 
+
 function createLoopArrowModel(spec, node, key) {
   const { radius = 40, angle = 45, label } = spec;
-  const radAngle = angle * (Math.PI / 180);
+  const radAngle = (angle * Math.PI) / 180;
 
-  const loopCenter = {
-    x: node.left + radius * Math.cos(radAngle),
-    y: node.top + radius * Math.sin(radAngle),
-  };
+  const center = { x: node.left, y: node.top };
+  // The loop center is offset from the node center
+  const loopCenter = Vec2.add(center, {
+    x: radius * Math.cos(radAngle),
+    y: radius * Math.sin(radAngle),
+  });
 
-  const d = Math.sqrt(
-    (node.left - loopCenter.x) ** 2 + (node.top - loopCenter.y) ** 2
-  );
+  // Calculate intersection points with the node circle (NODE_RADIUS)
+  // Distance from loop center to node center
+  const d = Vec2.dist(center, loopCenter);
+
+  // Intersection of two circles: Loop circle (radius) and Node circle (NODE_RADIUS)
+  // We want the intersection points p3 (start) and p3' (end)
+  // The radical axis is perpendicular to the line connecting centers.
+
+  // 'a' is distance from loopCenter to the radical axis intersection
   const a = (radius ** 2 - NODE_RADIUS ** 2 + d ** 2) / (2 * d);
   const h = Math.sqrt(Math.max(0, radius ** 2 - a ** 2));
+
+  // Point P2 on the line connecting centers
   const p2 = {
-    x: loopCenter.x + (a * (node.left - loopCenter.x)) / d,
-    y: loopCenter.y + (a * (node.top - loopCenter.y)) / d,
+    x: loopCenter.x + a * (center.x - loopCenter.x) / d,
+    y: loopCenter.y + a * (center.y - loopCenter.y) / d
   };
 
   const startPoint = {
-    x: p2.x + (h * (node.top - loopCenter.y)) / d,
-    y: p2.y - (h * (node.left - loopCenter.x)) / d,
+    x: p2.x + h * (center.y - loopCenter.y) / d,
+    y: p2.y - h * (center.x - loopCenter.x) / d
   };
   const endPoint = {
-    x: p2.x - (h * (node.top - loopCenter.y)) / d,
-    y: p2.y + (h * (node.left - loopCenter.x)) / d,
+    x: p2.x - h * (center.y - loopCenter.y) / d,
+    y: p2.y + h * (center.x - loopCenter.x) / d
   };
 
+  // Improved Large Arc Flag logic
+  // For standard loops attached to a node, we usually want the "outer" arc (large arc)
+  // The SVG arc command: A rx ry x-axis-rotation large-arc-flag sweep-flag x y
   const pathData = `M ${startPoint.x} ${startPoint.y} A ${radius} ${radius} 0 1 0 ${endPoint.x} ${endPoint.y}`;
-  const headTangentAngle =
-    Math.atan2(endPoint.y - loopCenter.y, endPoint.x - loopCenter.x) -
-    Math.PI / 2;
-  const heads = renderArrowPart("normal", endPoint, headTangentAngle, "head");
+
+  // Tangent at endPoint for the arrowhead
+  // The tangent to a circle at a point is perpendicular to the radius at that point.
+  // Radius vector: endPoint - loopCenter
+  const radiusVec = Vec2.sub(endPoint, loopCenter);
+  const tangentAngle = Vec2.angle(radiusVec) - Math.PI / 2;
+
+  const heads = renderArrowPart("normal", endPoint, tangentAngle, "head");
+
+  // Label Position: On the far side of the loop
+  // Vector from node center to loop center, extended
+  const labelDist = radius + LABEL_LINE_GAP;
+  const labelPos = Vec2.add(center, {
+    x: (radius + labelDist) * Math.cos(radAngle), // Approx, actually dist is node_rad + ...
+    y: (radius + labelDist) * Math.sin(radAngle)
+  });
+  // More accurate label pos: loopCenter + (radius + gap) * direction(loopCenter - nodeCenter)
+  const dir = Vec2.norm(Vec2.sub(loopCenter, center));
+  const finalLabelPos = Vec2.add(loopCenter, Vec2.mul(dir, radius + LABEL_LINE_GAP));
+
 
   return {
     key,
@@ -118,8 +148,8 @@ function createLoopArrowModel(spec, node, key) {
     label: {
       text: label,
       props: {
-        x: node.left + (radius + LABEL_LINE_GAP) * Math.cos(radAngle),
-        y: node.top + (radius + LABEL_LINE_GAP) * Math.sin(radAngle),
+        x: finalLabelPos.x,
+        y: finalLabelPos.y,
         textAnchor: "middle",
         dominantBaseline: "middle",
         fontSize: FONT_SIZE,
