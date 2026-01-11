@@ -134,6 +134,15 @@ function useEditorInteraction(
       const arrow = diagram.arrows.find(a => a.key === id);
       if (arrow) {
           setSelection({ key: id, item: arrow.spec });
+          
+          if (e.shiftKey) {
+             const sourceName = arrow.spec.name;
+             if (!sourceName) {
+                 alert("Source arrow must have a 'name' property to be connected from.");
+                 return;
+             }
+             setInteraction({ mode: 'connecting', source: sourceName, endPoint: point });
+          }
       }
     }
   };
@@ -175,15 +184,30 @@ function useEditorInteraction(
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (interaction.mode === 'connecting' && interaction.source) {
-      const target = (e.target as HTMLElement).closest('[data-type="node"]');
+      const target = (e.target as HTMLElement).closest('[data-type]');
       if (target) {
+        const targetType = target.getAttribute('data-type');
         const targetId = target.getAttribute('data-id');
-        if (targetId && targetId !== interaction.source) {
+        let targetName: string | undefined;
+
+        if (targetType === 'node') {
+             targetName = targetId || undefined;
+        } else if (targetType === 'arrow') {
+             const targetArrow = diagram.arrows.find(a => a.key === targetId);
+             targetName = targetArrow?.spec.name;
+             if (!targetName) {
+                 alert("Target arrow must have a 'name' property to be connected to.");
+                 setInteraction({ mode: 'idle' });
+                 return;
+             }
+        }
+
+        if (targetName && targetName !== interaction.source) {
           const allNames = new Set([...nodes.map(n => n.name), ...arrows.map(a => a.spec.name).filter(Boolean) as string[]]);
           const newArrow: ArrowSpec = {
             name: generateName('arrow', allNames),
             from: interaction.source,
-            to: targetId,
+            to: targetName,
             label: ''
           };
           const arrowSpecs = arrows.map(a => a.spec);
@@ -242,6 +266,20 @@ export function ArrowGramEditor() {
 
   const cursor = interaction.mode === 'panning' ? 'grabbing' : interaction.mode === 'connecting' ? 'crosshair' : 'default';
 
+  const getSourcePos = () => {
+      if (interaction.mode !== 'connecting' || !interaction.source) return null;
+      
+      const node = nodes.find(n => n.name === interaction.source);
+      if (node) return { x: node.left, y: node.top };
+      
+      const arrow = diagram.arrows.find(a => a.spec.name === interaction.source);
+      if (arrow) return arrow.midpoint;
+      
+      return null;
+  };
+  
+  const sourcePos = getSourcePos();
+
   return (
     <div className="flex bg-gray-50 h-full w-full relative group" style={{ cursor: 'auto' }}>
       <div className="flex-1 relative overflow-hidden h-full">
@@ -291,12 +329,10 @@ export function ArrowGramEditor() {
             </g>
           ))}
 
-          {interaction.mode === 'connecting' && (
+          {interaction.mode === 'connecting' && sourcePos && (
              <line
-              // @ts-ignore
-              x1={nodes.find(n => n.name === interaction.source)?.left}
-              // @ts-ignore
-              y1={nodes.find(n => n.name === interaction.source)?.top}
+              x1={sourcePos.x}
+              y1={sourcePos.y}
               x2={interaction.endPoint?.x}
               y2={interaction.endPoint?.y}
               stroke="#9333ea"
