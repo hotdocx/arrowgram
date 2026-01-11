@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { ArrowGramDiagram, computeDiagram } from 'arrowgram';
 import { PropertyEditor } from './PropertyEditor.jsx';
 import { formatSpec } from './utils/specFormatter.js';
+import { useDiagramStore } from './store/diagramStore.js';
 
 const GRID_SIZE = 40;
 const NODE_RADIUS = 25; // From ArrowGram.jsx
@@ -15,7 +16,14 @@ const generateUniqueName = (prefix, existingNames) => {
   return `${prefix}${i}`;
 };
 
-export function ArrowGramEditor({ spec: specString, onSpecChange }) {
+export function ArrowGramEditor() {
+  const specString = useDiagramStore((state) => state.spec);
+  const setSpec = useDiagramStore((state) => state.setSpec);
+
+  const onSpecChange = useCallback((newSpec) => {
+    setSpec(newSpec);
+  }, [setSpec]);
+
   const { nodes, arrows } = useMemo(() => {
     try {
       const spec = JSON.parse(specString);
@@ -84,13 +92,9 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
       top: snappedY,
     };
     const newNodes = [...nodes, newNode];
-    if (onSpecChange) {
-      onSpecChange(formatSpec({ nodes: newNodes, arrows }));
-    }
+    onSpecChange(formatSpec({ nodes: newNodes, arrows }));
 
     setSelection({ key: newNodeName, item: newNode });
-
-    // No need to enter 'moving' mode after creation
   }, [getSVGPoint, nodes, arrows, onSpecChange]);
 
   const handleCanvasPointerDown = useCallback((e) => {
@@ -121,10 +125,9 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
       setInteraction({ mode: 'connecting', source: node.name, phantomEnd: point });
     } else {
       const startPositions = new Map();
-      // This logic might need adjustment if multi-select move is re-enabled
       if (selection.key === node.name) {
         nodes.forEach(n => {
-          if (selection.key === n.name) { // simplified for single selection
+          if (selection.key === n.name) {
             startPositions.set(n.name, { left: n.left, top: n.top });
           }
         });
@@ -134,7 +137,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
 
       setInteraction({
         mode: 'moving',
-        selection: new Set([node.name]), // simplified for single selection
+        selection: new Set([node.name]),
         dragStart: point,
         startPositions: startPositions
       });
@@ -179,9 +182,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
         return node;
       });
 
-      if (onSpecChange) {
-        onSpecChange(formatSpec({ nodes: newNodes, arrows }));
-      }
+      onSpecChange(formatSpec({ nodes: newNodes, arrows }));
     } else if (interaction.mode === 'connecting') {
       setInteraction(prev => ({ ...prev, phantomEnd: point }));
     } else if (interaction.mode === 'panning') {
@@ -222,9 +223,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
             label: ''
           };
           const newArrows = [...arrows, newArrow];
-          if (onSpecChange) {
-            onSpecChange(formatSpec({ nodes, arrows: newArrows }));
-          }
+          onSpecChange(formatSpec({ nodes, arrows: newArrows }));
         }
       }
     }
@@ -331,8 +330,8 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
   }, [interaction.mode]);
 
   return (
-    <div style={{ display: 'flex', gap: '1rem', height: '80vh' }}>
-      <div style={{ flex: 1, border: '1px solid #ccc', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
+    <div className="flex h-full gap-4">
+      <div className="flex-1 border border-gray-200 rounded-lg relative overflow-hidden bg-gray-50 shadow-inner">
         <svg
           ref={svgRef}
           width="100%"
@@ -343,7 +342,7 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
           onPointerUp={handlePointerUp}
           onDoubleClick={handleCanvasDoubleClick}
           onWheel={handleWheel}
-          style={{ backgroundColor: '#f9f9f9', cursor: cursor, userSelect: 'none' }}
+          style={{ cursor: cursor, userSelect: 'none' }}
         >
           <defs>
             <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
@@ -370,16 +369,16 @@ export function ArrowGramEditor({ spec: specString, onSpecChange }) {
             />
           )}
         </svg>
-        <div style={{ position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(255,255,255,0.8)', padding: '5px', borderRadius: '3px', fontSize: '12px', pointerEvents: 'none' }}>
-          Double-click to create a node. Drag canvas to pan. Use mouse wheel to zoom. Ctrl/Cmd+Drag from an element to create an arrow.
+        <div className="absolute top-2 left-2 bg-white/80 p-2 rounded text-xs pointer-events-none backdrop-blur-sm shadow-sm border">
+          Double-click: Node. Drag: Pan. Ctrl+Drag: Connect.
         </div>
-        <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: '5px' }}>
-          <button onClick={() => handleZoomButtons(0.9)} title="Zoom In" style={{ width: '25px', height: '25px', padding: 0 }}>+</button>
-          <button onClick={() => handleZoomButtons(1.1)} title="Zoom Out" style={{ width: '25px', height: '25px', padding: 0 }}>-</button>
-          <button onClick={fitView} title="Fit View" style={{ height: '25px', padding: '0 5px' }}>Fit</button>
+        <div className="absolute top-2 right-2 flex gap-1">
+          <button className="w-8 h-8 flex items-center justify-center bg-white border rounded shadow hover:bg-gray-50" onClick={() => handleZoomButtons(0.9)} title="Zoom In">+</button>
+          <button className="w-8 h-8 flex items-center justify-center bg-white border rounded shadow hover:bg-gray-50" onClick={() => handleZoomButtons(1.1)} title="Zoom Out">-</button>
+          <button className="px-2 h-8 bg-white border rounded shadow hover:bg-gray-50 text-sm" onClick={fitView} title="Fit View">Fit</button>
         </div>
       </div>
-      <div style={{ width: '280px' }}>
+      <div className="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto">
         <PropertyEditor
           selection={selection}
           spec={specString}
