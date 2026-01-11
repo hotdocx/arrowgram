@@ -97,9 +97,13 @@ export default function App() {
       const specParam = params.get('spec');
       if (specParam) {
           try {
-              const decoded = atob(specParam);
-              // text decoding might be needed if complex chars
-              setSpec(decoded);
+              const decodedString = atob(specParam);
+              const bytes = new Uint8Array(decodedString.length);
+              for (let i = 0; i < decodedString.length; i++) {
+                bytes[i] = decodedString.charCodeAt(i);
+              }
+              const decodedSpec = new TextDecoder().decode(bytes);
+              setSpec(decodedSpec);
               setView('editor');
           } catch(e) { console.error("Failed to load shared spec", e); }
       }

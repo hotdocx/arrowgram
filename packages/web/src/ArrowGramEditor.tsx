@@ -280,6 +280,57 @@ export function ArrowGramEditor() {
   
   const sourcePos = getSourcePos();
 
+  const handleZoom = useCallback((factor: number, center?: { x: number, y: number }) => {
+    const [x, y, width, height] = viewBox;
+    const newWidth = width * factor;
+    const newHeight = height * factor;
+
+    // Add reasonable zoom limits
+    if (newWidth < 10 || newWidth > 20000) return;
+
+    // Default center is the center of the current view
+    const c = center || { x: x + width / 2, y: y + height / 2 };
+
+    const newX = c.x - (c.x - x) * factor;
+    const newY = c.y - (c.y - y) * factor;
+
+    setViewBox([newX, newY, newWidth, newHeight]);
+  }, [viewBox]);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 1.1 : 0.9;
+        // @ts-ignore
+        const center = handlers.getSVGPoint ? handlers.getSVGPoint(e) : { x: viewBox[0] + viewBox[2]/2, y: viewBox[1] + viewBox[3]/2 }; 
+        // Note: getSVGPoint isn't exposed from useEditorInteraction directly in previous turn, need to check if we can access it or duplicate logic.
+        // Actually, let's just implement a simple pointer-based zoom or center-based if easier.
+        // For wheel, usually we want pointer.
+        // Let's modify useEditorInteraction to expose getSVGPoint or just implement a simple one here.
+        // Since we can't easily change the hook return type in this Replace block without replacing the whole hook, 
+        // let's just use center zoom for wheel or duplicate the simple math.
+        
+        // Simple logic:
+        const svg = svgRef.current;
+        if (!svg) return;
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const CTM = svg.getScreenCTM();
+        if (CTM) {
+             const svgPt = pt.matrixTransform(CTM.inverse());
+             handleZoom(factor, svgPt);
+        }
+    }
+  }, [handleZoom]);
+
+  const fitView = () => {
+      if (diagram.viewBox) {
+          const parts = diagram.viewBox.split(' ').map(Number);
+          if (parts.length === 4) setViewBox(parts);
+      }
+  };
+
   return (
     <div className="flex bg-gray-50 h-full w-full relative group" style={{ cursor: 'auto' }}>
       <div className="flex-1 relative overflow-hidden h-full">
@@ -289,6 +340,7 @@ export function ArrowGramEditor() {
           height="100%"
           viewBox={viewBox.join(' ')}
           style={{ cursor, touchAction: 'none' }}
+          onWheel={handleWheel}
           {...handlers}
         >
           <defs>
@@ -344,7 +396,14 @@ export function ArrowGramEditor() {
         </svg>
 
         <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg border shadow-sm text-xs text-gray-500 pointer-events-none select-none">
-          Double-click: Add Node • Drag: Move • Shift+Drag: Connect • Scroll: Zoom • Ctrl+Z: Undo • Ctrl+S: Save
+          Double-click: Add Node • Drag: Move • Shift+Drag: Connect • Ctrl+Scroll: Zoom • Ctrl+Z: Undo • Ctrl+S: Save
+        </div>
+
+        <div className="absolute top-4 right-4 flex flex-col gap-2 bg-white/90 backdrop-blur rounded-lg border shadow-sm p-1">
+             <button onClick={() => handleZoom(0.9)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600 font-bold w-8 h-8 flex items-center justify-center" title="Zoom In">+</button>
+             <button onClick={() => handleZoom(1.1)} className="p-1.5 hover:bg-gray-100 rounded text-gray-600 font-bold w-8 h-8 flex items-center justify-center" title="Zoom Out">-</button>
+             <div className="h-px bg-gray-200 mx-1"></div>
+             <button onClick={fitView} className="p-1.5 hover:bg-gray-100 rounded text-gray-600 text-xs font-medium w-8 h-8 flex items-center justify-center" title="Fit View">Fit</button>
         </div>
       </div>
     </div>
