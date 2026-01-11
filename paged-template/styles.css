@@ -19,12 +19,54 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .loading-indicator { font-size: 1.2em; text-align: center; padding: 4em; color: #666; }
 @media screen { 
   .preview-content-area .pagedjs_pages { padding-top: 0; }
-  .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 30px; background-color: #f0f2f5; } 
+  .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 30px; background-color: #f0f2f5; padding-bottom: 30px; } 
   .pagedjs_page { box-shadow: 0 5px 15px rgba(0,0,0,0.25); } 
 }
 
 /* Page size and margins */
-@page { size: 8.5in 11in; margin: 1in; }
+@page {
+  size: 8.5in 11in;
+  margin: 1in;
+
+  /* Styles for Page Headers & Footers */
+  @top-left {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
+    color: #555;
+    padding-bottom: 0.5em;
+  }
+  @top-center {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
+    color: #555;
+    padding-bottom: 0.5em;
+  }
+  @top-right {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
+    color: #555;
+    padding-bottom: 0.5em;
+  }
+  @bottom-left {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
+    color: #555;
+    padding-top: 0.5em;
+  }
+  @bottom-center {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
+    color: #555;
+    padding-top: 0.5em;
+  }
+  @bottom-right {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
+    color: #555;
+    padding-top: 0.5em;
+  }
+}
+
 
 /* Base typography for the paged output */
 .pagedjs_page_content { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; }

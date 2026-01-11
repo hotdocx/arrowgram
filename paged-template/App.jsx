@@ -16,6 +16,8 @@ const DEFAULT_MARKDOWN_CONTENT =
 `---
 title: hotdocX paged template
 authors: by the docXponents
+header-right: "[title]"
+footer-center: "Page [pageNumber] of [totalPages]"
 ---
 
 ## Introduction
@@ -45,7 +47,7 @@ This example renders a pullback diagram using \`arrowgram\`.
 {
   "nodes": [
     { "name": "T", "left": 100, "top": 100, "label": "T" },
-    { "name": "P", "left": 300, "top": 300, "label": "$A \\times_C B$" },
+    { "name": "P", "left": 300, "top": 300, "label": "$A \\\\times_C B$" },
     { "name": "A", "left": 300, "top": 600, "label": "A" },
     { "name": "B", "left": 600, "top": 300, "label": "B" },
     { "name": "C", "left": 600, "top": 600, "label": "C" }
@@ -73,15 +75,45 @@ graph TD
 </div>
 `;
 
+const generatePageStyles = (metadata) => {
+  const pageMargins = {
+    'header-left': '@top-left', 'header-center': '@top-center', 'header-right': '@top-right',
+    'footer-left': '@bottom-left', 'footer-center': '@bottom-center', 'footer-right': '@bottom-right',
+  };
+
+  const generateContentValue = (text) => {
+    const replacements = {
+      '[pageNumber]': 'counter(page)',
+      '[totalPages]': 'counter(pages)',
+      '[title]': `"${metadata.title || ''}"`,
+      '[authors]': `"${metadata.authors || ''}"`,
+    };
+    const parts = text.split(/(\[pageNumber\]|\[totalPages\]|\[title\]|\[authors\])/g).filter(p => p);
+    if (parts.length === 0) return '""';
+    return parts.map(part => replacements[part] || `"${part.replace(/"/g, '\\"')}"`).join(' ');
+  };
+
+  let pageContentCss = '';
+  for (const [key, selector] of Object.entries(pageMargins)) {
+    if (metadata[key]) {
+      const content = generateContentValue(metadata[key]);
+      pageContentCss += `${selector} { content: ${content}; } `;
+    }
+  }
+
+  return pageContentCss ? `@page { ${pageContentCss} }` : '';
+};
+
 const PreviewController = ({ markdown, isTwoColumn }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
-    const processAndRender = async () => {
-      let processedText = markdown;
 
-      // 1. Pre-process Vega-Lite charts directly to SVG strings
+    const processAndRender = async () => {
+      // All the pre-processing steps remain the same...
+      let processedText = markdown;
+      
       const vegaRegex = /<div class="vega-lite"([^>]*)>([\s\S]*?)<\/div>/g;
       const vegaMatches = Array.from(processedText.matchAll(vegaRegex));
       const vegaResults = await Promise.all(
@@ -99,7 +131,6 @@ const PreviewController = ({ markdown, isTwoColumn }) => {
       );
       for (const result of vegaResults) { processedText = processedText.replace(result.original, result.replacement); }
       
-      // 2. Pre-process Mermaid diagrams
       mermaid.initialize({ startOnLoad: false, theme: 'base' });
       const mermaidRegex = /<div class="mermaid"([^>]*)>([\s\S]*?)<\/div>/g;
       const mermaidMatches = Array.from(processedText.matchAll(mermaidRegex));
@@ -113,7 +144,6 @@ const PreviewController = ({ markdown, isTwoColumn }) => {
       );
       for (const result of mermaidResults) { processedText = processedText.replace(result.original, result.replacement); }
       
-      // 3. Pre-process Arrowgram diagrams
       const arrowgramRegex = /<div class="arrowgram"([^>]*)>([\s\S]*?)<\/div>/g;
       const arrowgramMatches = Array.from(processedText.matchAll(arrowgramRegex));
       const arrowgramResults = arrowgramMatches.map((match) => {
@@ -129,57 +159,70 @@ const PreviewController = ({ markdown, isTwoColumn }) => {
       });
       for (const result of arrowgramResults) { processedText = processedText.replace(result.original, result.replacement); }
       
-      // 4. Convert Markdown to HTML with KaTeX-safe options
       const converter = new showdown.Converter({
         metadata: true,
         noHeaderId: true,
-        literalMidWordUnderscores: true // *** The crucial fix for KaTeX ***
+        literalMidWordUnderscores: true
       });
       let html = converter.makeHtml(processedText);
       const metadata = converter.getMetadata();
-
-      // 5. Process LaTeX math with KaTeX, correctly ignoring code blocks.
-      const protectedBlocks = new Map();
-      let placeholderId = 0;
-      const protectBlock = (block) => {
-        const placeholder = `__AG_PROTECTED_BLOCK_${placeholderId++}__`;
-        protectedBlocks.set(placeholder, block);
-        return placeholder;
-      };
-
-      // Protect <pre> blocks first, then standalone <code> blocks.
-      html = html.replace(/<pre[^>]*>.*?<\/pre>/gs, protectBlock);
-      html = html.replace(/<code[^>]*>.*?<\/code>/gs, protectBlock);
-
-      // Process LaTeX math on the "unprotected" HTML.
-      // Display mode: $$...$$
-      html = html.replace(/\$\$([\s\S]+?)\$\$/g, (match, latex) => katex.renderToString(latex.trim(), { throwOnError: false, displayMode: true }));
-      // Inline mode: $...$ (non-greedy)
-      html = html.replace(/\$([^$]+?)\$/g, (match, latex) => katex.renderToString(latex.trim(), { throwOnError: false, displayMode: false }));
+      console.log("Extracted Metadata:", metadata);
       
-      // Restore the protected code blocks.
+      const pageStylesCss = generatePageStyles(metadata);
+      console.log("Generated Page Styles CSS:", pageStylesCss);
+
+      const protectedBlocks = new Map();
+      html = html.replace(/<(pre|code)[^>]*>[\s\S]*?<\/\1>/g, (match) => {
+        const placeholder = `%%PROTECTED_BLOCK_${protectedBlocks.size}%%`;
+        protectedBlocks.set(placeholder, match);
+        return placeholder;
+      });
+
+      html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, content) => {
+        try {
+          return `<span class="katex-display">${katex.renderToString(content, { displayMode: true, throwOnError: true })}</span>`;
+        } catch (e) { return `<span class="katex-error">${e.message}</span>`; }
+      });
+      html = html.replace(/\$([\s\S]*?)\$/g, (match, content) => {
+        try {
+          return katex.renderToString(content, { displayMode: false, throwOnError: true });
+        } catch (e) { return `<span class="katex-error">${e.message}</span>`; }
+      });
+
       for (const [placeholder, originalBlock] of protectedBlocks.entries()) {
         html = html.replace(placeholder, originalBlock);
       }
 
-      // 6. Assemble final HTML for Paged.js
       const titleBlockHtml = `<div class="title-block">${metadata.title ? `<div class="title">${metadata.title}</div>` : ''}${metadata.authors ? `<div class="authors">${metadata.authors}</div>` : ''}</div>`;
       const layoutClass = isTwoColumn ? 'layout-two-column' : 'layout-single-column';
       const finalHtml = `<div class="${layoutClass}">${titleBlockHtml}<div class="paper-body">${html}</div></div>`;
 
       if (isMounted && containerRef.current) {
         containerRef.current.innerHTML = '';
+        
+        const stylesheets = [];
+        if (pageStylesCss) {
+          const base64Css = btoa(unescape(encodeURIComponent(pageStylesCss)));
+          const dataUri = `data:text/css;base64,${base64Css}`;
+          stylesheets.push(dataUri);
+          console.log("Using stylesheet Data URI for paged.js");
+        }
+        
         const paged = new Previewer();
-        paged.preview(finalHtml, [], containerRef.current);
+        paged.preview(finalHtml, stylesheets, containerRef.current);
       }
     };
+
     processAndRender();
-    return () => { isMounted = false; };
+
+    return () => {
+      isMounted = false;
+    };
   }, [markdown, isTwoColumn]);
 
   return (
     <div ref={containerRef} className="preview-content-area">
-      <p className="loading-indicator">Processing Document...</p>
+      <div className="loading-indicator">Generating Preview...</div>
     </div>
   );
 };
@@ -222,7 +265,7 @@ export default function App() {
   return (
     <div className="editor-container">
       <h1>Markdown to Paged Paper</h1>
-      <p>Use custom divs for charts (`&ltdiv class="vega-lite"&gt...`), diagrams (`&ltdiv class="mermaid"&gt...`), and arrowgrams (`&ltdiv class="arrowgram"&gt...`).</p>
+      <p>Use custom divs for charts (`&lt;div class="vega-lite"&gt;...`), diagrams (`&lt;div class="mermaid"&gt;...`), and arrowgrams (`&lt;div class="arrowgram"&gt;...`).</p>
       <textarea
         id="markdown-input"
         value={markdown}

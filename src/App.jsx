@@ -228,7 +228,7 @@ export default function App() {
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem" }}>
       <h1>arrowgram - hotdocX template</h1>
-      <a href="/paged-template.html">Example: arrowgram inside a hotdocX paged template</a>
+      <a href="./paged-template.html">Example: arrowgram inside a hotdocX paged template</a>
 
       <hr style={{ margin: '2rem 0' }} />
       <h2>Interactive Diagram Editor</h2>
