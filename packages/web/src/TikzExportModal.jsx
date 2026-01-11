@@ -1,33 +1,44 @@
 import React from 'react';
+import { Button } from './components/ui/Button';
+import { useToast } from './context/ToastContext';
+import { Copy, X } from 'lucide-react';
 
 export function TikzExportModal({ tikzCode, onClose, isOpen }) {
+    const { addToast } = useToast();
+
     if (!isOpen) return null;
 
+    const handleCopy = () => {
+        navigator.clipboard.writeText(tikzCode);
+        addToast("TikZ code copied to clipboard", "success");
+    };
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-3/4 max-w-2xl bg-white">
-                <h3 className="text-xl font-bold mb-4">Export to TikZ-CD</h3>
-                <textarea
-                    readOnly
-                    value={tikzCode || ''}
-                    className="w-full h-64 p-2 font-mono text-sm border rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <div className="mt-4 flex justify-end gap-2">
-                    <button
-                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
-                        onClick={() => {
-                            navigator.clipboard.writeText(tikzCode);
-                            alert("Copied!");
-                        }}
-                    >
-                        Copy to Clipboard
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+            <div className="bg-white p-6 rounded-2xl shadow-2xl w-3/4 max-w-2xl ring-1 ring-black/5 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-gray-800">Export to TikZ-CD</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X size={24} />
                     </button>
-                    <button
-                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                        onClick={onClose}
-                    >
-                        Close
-                    </button>
+                </div>
+                
+                <div className="relative mb-6">
+                    <textarea
+                        readOnly
+                        value={tikzCode || ''}
+                        className="w-full h-64 p-4 font-mono text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                    />
+                    <div className="absolute top-2 right-2">
+                         <Button size="sm" variant="secondary" onClick={handleCopy} title="Copy">
+                            <Copy size={14} className="mr-1.5"/> Copy
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={onClose}>Close</Button>
+                    <Button onClick={handleCopy}>Copy to Clipboard</Button>
                 </div>
             </div>
         </div>

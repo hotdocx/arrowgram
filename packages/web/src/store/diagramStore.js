@@ -16,9 +16,11 @@ export const useDiagramStore = create(
         (set) => ({
             spec: initialSpec,
             filename: 'Untitled Diagram',
+            selection: { key: null, item: null }, // Added selection state
 
             setSpec: (newSpec) => set({ spec: newSpec }),
             setFilename: (name) => set({ filename: name }),
+            setSelection: (key, item) => set({ selection: { key, item } }), // Added setSelection action
 
             reset: () => set({ spec: initialSpec, filename: 'Untitled Diagram' }),
         }),
