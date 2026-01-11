@@ -1,25 +1,14 @@
 {
-  "name": "hotdocx-templates",
-  "version": "1.0.0",
+  "name": "arrowgram-monorepo",
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "start": "vite",
-    "template": "vite --open /paged-template.html"
-  },
-  "dependencies": {
-    "canvg": "^4.0.3",
-    "file-saver": "^2.0.5",
-    "katex": "^0.16.22",
-    "mermaid": "^11.8.0",
-    "pagedjs": "^0.4.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "save-svg-as-png": "^1.4.17",
-    "showdown": "^2.1.0",
-    "vega": "^6.1.2",
-    "vega-lite": "^6.2.0"
-  },
-  "devDependencies": {
-    "vite": "^7.0.0"
+    "dev": "npm run dev -w packages/web",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces"
   }
 }

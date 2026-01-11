@@ -1,0 +1,30 @@
+{
+    "name": "arrowgram",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "./dist/arrowgram.umd.cjs",
+    "module": "./dist/arrowgram.js",
+    "exports": {
+        ".": {
+            "import": "./dist/arrowgram.js",
+            "require": "./dist/arrowgram.umd.cjs"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "dev": "vite build --watch",
+        "build": "vite build"
+    },
+    "peerDependencies": {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
+    },
+    "dependencies": {
+        "katex": "^0.16.22"
+    },
+    "devDependencies": {
+        "vite": "^6.0.0"
+    }
+}

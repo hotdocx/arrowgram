@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { ArrowGram } from "./ArrowGram";
+import { ArrowGram } from "arrowgram";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { decodeQuiverUrl, encodeArrowgram } from "./utils/quiver";
 import { exportToTikz } from "./utils/tikz";
@@ -128,7 +128,7 @@ export default function App() {
         setEditorSpec(initialEditorSpec); // Fallback on error
       }
     } else {
-        setEditorSpec(initialEditorSpec);
+      setEditorSpec(initialEditorSpec);
     }
   }, []);
 
@@ -151,40 +151,40 @@ export default function App() {
 
   const handleExport = useCallback(async (format) => {
     if (format === 'tikz') {
-        const tikzString = exportToTikz(editorSpec);
-        setTikzExport({ code: tikzString });
-        return;
+      const tikzString = exportToTikz(editorSpec);
+      setTikzExport({ code: tikzString });
+      return;
     }
 
     const svgElement = document.getElementById('diagram-for-export');
     if (!svgElement) {
-        alert("Could not find the diagram to export.");
-        return;
+      alert("Could not find the diagram to export.");
+      return;
     }
-    
-    if (format === 'svg') {
-        const svgString = new XMLSerializer().serializeToString(svgElement);
-        const blob = new Blob([svgString], { type: 'image/svg+xml' });
-        saveAs(blob, 'diagram.svg');
-    } else if (format === 'png') {
-        const viewBox = svgElement.getAttribute('viewBox');
-        const options = {
-            backgroundColor: 'white',
-            scale: 2, // for higher resolution
-        };
 
-        if (viewBox) {
-            const parts = viewBox.split(' ').map(parseFloat);
-            options.left = parts[0];
-            options.top = parts[1];
-            options.width = parts[2];
-            options.height = parts[3];
-        }
-        
-        saveSvgAsPng(svgElement, 'diagram.png', options).catch(e => {
-            console.error("PNG Export failed:", e);
-            alert("Failed to export as PNG. See console for details.");
-        });
+    if (format === 'svg') {
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      saveAs(blob, 'diagram.svg');
+    } else if (format === 'png') {
+      const viewBox = svgElement.getAttribute('viewBox');
+      const options = {
+        backgroundColor: 'white',
+        scale: 2, // for higher resolution
+      };
+
+      if (viewBox) {
+        const parts = viewBox.split(' ').map(parseFloat);
+        options.left = parts[0];
+        options.top = parts[1];
+        options.width = parts[2];
+        options.height = parts[3];
+      }
+
+      saveSvgAsPng(svgElement, 'diagram.png', options).catch(e => {
+        console.error("PNG Export failed:", e);
+        alert("Failed to export as PNG. See console for details.");
+      });
     }
   }, [editorSpec]);
 
@@ -192,7 +192,7 @@ export default function App() {
   const handleDecode = useCallback(() => {
     try {
       const specObject = decodeQuiverUrl(quiverUrl);
-      console.log("[DEBUG] decoded quiver url ", {specObject});
+      console.log("[DEBUG] decoded quiver url ", { specObject });
       setCurrentSpec(JSON.stringify(specObject, null, 2));
     } catch (e) {
       alert(e.message);
@@ -211,7 +211,7 @@ export default function App() {
       alert(e.message);
     }
   }, [currentSpec]);
-  
+
   const handleEncodeEditor = useCallback(() => {
     try {
       const specObject = JSON.parse(editorSpec);
@@ -232,37 +232,37 @@ export default function App() {
 
       <hr style={{ margin: '2rem 0' }} />
       <h2>Interactive Diagram Editor</h2>
-       {editorSpec && <>
+      {editorSpec && <>
         <div style={{ marginBottom: '1rem', display: 'flex', gap: '10px' }}>
-            <button onClick={handleShare}>Share</button>
-            <button onClick={() => handleExport('svg')}>Export SVG</button>
-            <button onClick={() => handleExport('png')}>Export PNG</button>
-            <button onClick={() => handleExport('tikz')}>Export TikZ</button>
+          <button onClick={handleShare}>Share</button>
+          <button onClick={() => handleExport('svg')}>Export SVG</button>
+          <button onClick={() => handleExport('png')}>Export PNG</button>
+          <button onClick={() => handleExport('tikz')}>Export TikZ</button>
         </div>
         <ArrowGramEditor spec={editorSpec} onSpecChange={setEditorSpec} />
-        <TikzExportModal 
-            tikzCode={tikzExport.code} 
-            onClose={() => setTikzExport({ code: null })}
+        <TikzExportModal
+          tikzCode={tikzExport.code}
+          onClose={() => setTikzExport({ code: null })}
         />
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-          <div style={{flex: 1}}>
-              <h3>Live JSON Specification</h3>
-              <textarea 
-                value={editorSpec}
-                onChange={(e) => setEditorSpec(e.target.value)}
-                rows={20} 
-                style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }}
-              />
+          <div style={{ flex: 1 }}>
+            <h3>Live JSON Specification</h3>
+            <textarea
+              value={editorSpec}
+              onChange={(e) => setEditorSpec(e.target.value)}
+              rows={20}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }}
+            />
           </div>
-          <div style={{flex: 1}}>
-              <h3>Live Preview</h3>
-              <div style={{border: '1px solid #eee', padding: '1rem', minHeight: '300px', height: '100%', boxSizing: 'border-box'}}>
-                  <ArrowGram spec={editorSpec} id="diagram-for-export" />
-              </div>
+          <div style={{ flex: 1 }}>
+            <h3>Live Preview</h3>
+            <div style={{ border: '1px solid #eee', padding: '1rem', minHeight: '300px', height: '100%', boxSizing: 'border-box' }}>
+              <ArrowGram spec={editorSpec} id="diagram-for-export" />
+            </div>
           </div>
         </div>
-        <button onClick={handleEncodeEditor} style={{marginTop: '0.5rem'}}>Encode Editor Diagram to Quiver URL</button>
+        <button onClick={handleEncodeEditor} style={{ marginTop: '0.5rem' }}>Encode Editor Diagram to Quiver URL</button>
       </>}
 
 
@@ -270,7 +270,7 @@ export default function App() {
       <div style={{ marginBottom: '2rem' }}>
         <h2>Quiver Conversion</h2>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <input 
+          <input
             type="text"
             value={quiverUrl}
             onChange={(e) => setQuiverUrl(e.target.value)}
