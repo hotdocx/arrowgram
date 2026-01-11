@@ -1,8 +1,13 @@
 import React, { useMemo } from "react";
-import { computeDiagram } from './diagramModel.js';
-import { ArrowGramDiagram } from './ArrowGramDiagram.jsx';
+import { computeDiagram } from './core/diagramModel';
+import { ArrowGramDiagram } from './react/ArrowGramDiagram';
 
-export function ArrowGram({ spec: specString, id }) {
+export interface ArrowGramProps {
+  spec: string;
+  id?: string;
+}
+
+export function ArrowGram({ spec: specString, id }: ArrowGramProps) {
   const diagram = useMemo(() => computeDiagram(specString), [specString]);
 
   if (diagram.error) {

@@ -3,7 +3,13 @@ import { Button } from './components/ui/Button';
 import { useToast } from './context/ToastContext';
 import { Copy, X } from 'lucide-react';
 
-export function TikzExportModal({ tikzCode, onClose, isOpen }) {
+interface TikzExportModalProps {
+    tikzCode: string;
+    onClose: () => void;
+    isOpen: boolean;
+}
+
+export function TikzExportModal({ tikzCode, onClose, isOpen }: TikzExportModalProps) {
     const { addToast } = useToast();
 
     if (!isOpen) return null;

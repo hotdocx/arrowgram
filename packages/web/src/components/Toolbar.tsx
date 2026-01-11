@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
+// @ts-ignore
 import { useStore } from 'zustand';
 import {
-    Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode, Bot, MoreHorizontal, Settings, X
+    Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode, Bot, X
 } from 'lucide-react';
-import { saveProject, listProjects, loadProject } from '../utils/storage';
+import { saveProject, listProjects, ProjectMeta } from '../utils/storage';
 import { useToast } from '../context/ToastContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 
-export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }) {
+interface ToolbarProps {
+    onExport: (format: 'tikz' | 'svg' | 'png') => void;
+    onShare: () => void;
+    onToggleChat: () => void;
+    isChatOpen: boolean;
+}
+
+export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: ToolbarProps) {
     const { spec, setSpec, filename, setFilename, reset } = useDiagramStore();
+    // @ts-ignore
     const { undo, redo, pastStates, futureStates } = useStore(useDiagramStore.temporal);
     const { addToast } = useToast();
 
     const [isProjectsOpen, setIsProjectsOpen] = useState(false);
-    const [projects, setProjects] = useState([]);
+    const [projects, setProjects] = useState<ProjectMeta[]>([]);
     const [showSaveName, setShowSaveName] = useState(false);
     const [newProjectName, setNewProjectName] = useState(filename);
 
@@ -39,7 +48,7 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }) {
         }
     };
 
-    const handleLoad = (p) => {
+    const handleLoad = (p: ProjectMeta) => {
         setSpec(p.spec);
         setFilename(p.name);
         setIsProjectsOpen(false);
@@ -125,7 +134,7 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }) {
                         <Input
                             className="mb-4"
                             value={newProjectName}
-                            onChange={e => setNewProjectName(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProjectName(e.target.value)}
                             placeholder="Project Name"
                             autoFocus
                         />

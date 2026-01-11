@@ -3,13 +3,13 @@ import { ArrowGramEditor } from "./ArrowGramEditor";
 import { Toolbar } from "./components/Toolbar";
 import { TikzExportModal } from './TikzExportModal';
 import { exportToTikz } from "./utils/tikz";
-import { saveSvgAsPng } from 'save-svg-as-png';
+import { saveSvgAsPng, SaveSVGOptions } from 'save-svg-as-png';
 import { saveAs } from 'file-saver';
 import { useDiagramStore } from "./store/diagramStore";
 import { AIChatPanel } from './components/AIChatPanel';
 import { PropertyEditor } from "./PropertyEditor";
 import { useToast } from "./context/ToastContext";
-import { PanelRight, Menu } from "lucide-react";
+import { PanelRight } from "lucide-react";
 
 export default function App() {
   const spec = useDiagramStore(state => state.spec);
@@ -21,7 +21,7 @@ export default function App() {
   const [showProperties, setShowProperties] = useState(true);
   const { addToast } = useToast();
 
-  const handleExport = async (format) => {
+  const handleExport = async (format: 'tikz' | 'svg' | 'png') => {
     if (format === 'tikz') {
       const code = exportToTikz(spec);
       setTikzCode(code);
@@ -42,15 +42,17 @@ export default function App() {
       addToast("Diagram exported as SVG", "success");
     } else if (format === 'png') {
       const viewBox = svgElement.getAttribute('viewBox');
-      const options = { backgroundColor: 'white', scale: 2 };
+      const options: SaveSVGOptions = { backgroundColor: 'white', scale: 2 };
       if (viewBox) {
         const parts = viewBox.split(' ').map(parseFloat);
-        options.left = parts[0]; options.top = parts[1];
-        options.width = parts[2]; options.height = parts[3];
+        options.left = parts[0]; 
+        options.top = parts[1];
+        options.width = parts[2]; 
+        options.height = parts[3];
       }
       saveSvgAsPng(svgElement, 'diagram.png', options)
         .then(() => addToast("Diagram exported as PNG", "success"))
-        .catch(e => {
+        .catch((e: any) => {
           console.error("PNG Export failed:", e);
           addToast("Failed to export as PNG.", "error");
         });
@@ -60,6 +62,7 @@ export default function App() {
   const handleShare = () => {
     try {
       const uint8Array = new TextEncoder().encode(spec);
+      // @ts-ignore
       const charString = String.fromCharCode.apply(null, uint8Array);
       const encodedSpec = btoa(charString);
       const url = `${window.location.origin}${window.location.pathname}?spec=${encodedSpec}`;

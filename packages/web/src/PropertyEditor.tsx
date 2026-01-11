@@ -1,12 +1,21 @@
 import React, { useMemo } from 'react';
-import { formatSpec } from './utils/specFormatter.js';
+import { formatSpec } from './utils/specFormatter';
 import { Input } from './components/ui/Input';
 import { Select } from './components/ui/Select';
 import { Label } from './components/ui/Label';
 import { MousePointer2 } from 'lucide-react';
+import { DiagramSpec, NodeSpec, ArrowSpec } from 'arrowgram';
+import { SelectionState } from './store/diagramStore';
 
-function NodeEditor({ node, nodes, arrows, onSpecChange }) {
-    const handleChange = (e) => {
+interface NodeEditorProps {
+    node: NodeSpec;
+    nodes: NodeSpec[];
+    arrows: ArrowSpec[];
+    onSpecChange: (spec: string) => void;
+}
+
+function NodeEditor({ node, nodes, arrows, onSpecChange }: NodeEditorProps) {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const newNodes = nodes.map(n => n.name === node.name ? { ...n, [name]: value } : n);
         onSpecChange(formatSpec({ nodes: newNodes, arrows }));
@@ -18,29 +27,35 @@ function NodeEditor({ node, nodes, arrows, onSpecChange }) {
                 <Label>Label</Label>
                 <Input type="text" name="label" value={node.label || ''} onChange={handleChange} />
             </div>
-            {/* Future: Add position inputs or styling here */}
         </div>
     );
 }
 
-function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
-    const handleChange = (e) => {
+interface ArrowEditorProps {
+    arrow: ArrowSpec & { key?: string };
+    nodes: NodeSpec[];
+    arrows: ArrowSpec[];
+    onSpecChange: (spec: string) => void;
+}
+
+function ArrowEditor({ arrow, nodes, arrows, onSpecChange }: ArrowEditorProps) {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const val = type === 'number' ? Number(value) : value;
-        const newArrows = arrows.map(a => {
-            const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
+        const newArrows = arrows.map((a, index) => {
+            const key = `${a.from}-${a.to}-${a.name || `_arrow_${index}`}`;
             return key === arrow.key ? { ...a, [name]: val } : a;
         });
         onSpecChange(formatSpec({ nodes, arrows: newArrows }));
     };
 
-    const handleStyleChange = (part, name, value) => {
-        const newArrows = arrows.map(a => {
-            const key = `${a.from}-${a.to}-${a.name || `_arrow_${arrows.indexOf(a)}`}`;
+    const handleStyleChange = (part: string, name: string, value: any) => {
+        const newArrows = arrows.map((a, index) => {
+            const key = `${a.from}-${a.to}-${a.name || `_arrow_${index}`}`;
             if (key === arrow.key) {
-                const newStyle = { ...a.style };
+                const newStyle: any = { ...a.style };
                 if (value !== undefined) { 
-                    newStyle[part] = { ...(a.style?.[part] || {}), [name]: value };
+                    newStyle[part] = { ...(a.style?.[part as keyof typeof a.style] || {}), [name]: value };
                 } else {
                     newStyle[part] = name;
                 }
@@ -89,7 +104,7 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
                     </div>
                     <div className="col-span-2">
                         <Label>Level (Parallel)</Label>
-                        <Input type="number" name="level" value={arrow.style?.level || 1} min="1" onChange={(e) => handleStyleChange('level', 'level', e.target.valueAsNumber)} />
+                        <Input type="number" name="level" value={arrow.style?.level || 1} min={1} onChange={(e) => handleStyleChange('level', 'level', e.target.valueAsNumber)} />
                     </div>
                 </div>
             </div>
@@ -128,11 +143,16 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }) {
     );
 }
 
+interface PropertyEditorProps {
+    selection: SelectionState;
+    spec: string;
+    onSpecChange: (spec: string) => void;
+}
 
-export function PropertyEditor({ selection, spec: specString, onSpecChange }) {
+export function PropertyEditor({ selection, spec: specString, onSpecChange }: PropertyEditorProps) {
     const { nodes, arrows } = useMemo(() => {
         try {
-            const spec = JSON.parse(specString);
+            const spec: DiagramSpec = JSON.parse(specString);
             return { nodes: spec.nodes || [], arrows: spec.arrows || [] };
         } catch (e) {
             return { nodes: [], arrows: [] };
@@ -145,12 +165,14 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }) {
         const { key, item } = selection;
 
         if (nodes.some(n => n.name === key)) {
-            return { type: 'node', data: item };
+            return { type: 'node' as const, data: item as NodeSpec };
         }
         
-        const arrowSpec = arrows.find(a => (a.name && a.name === item.name) || JSON.stringify(a) === JSON.stringify(item));
+        // Match arrow by name or deep equality if needed, but we rely on key passing from store mostly
+        // Here we just ensure we have the fresh spec object corresponding to the selection
+        const arrowSpec = arrows.find(a => (a.name && a.name === (item as ArrowSpec).name) || JSON.stringify(a) === JSON.stringify(item));
         if (arrowSpec) {
-             return { type: 'arrow', data: { ...arrowSpec, key } };
+             return { type: 'arrow' as const, data: { ...arrowSpec, key } };
         }
 
         return null;

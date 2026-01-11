@@ -1,5 +1,21 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
+import { NodeSpec, ArrowSpec } from 'arrowgram';
+
+export interface SelectionState {
+  key: string | null;
+  item: NodeSpec | ArrowSpec | null;
+}
+
+interface DiagramState {
+  spec: string;
+  filename: string;
+  selection: SelectionState;
+  setSpec: (newSpec: string) => void;
+  setFilename: (name: string) => void;
+  setSelection: (selection: SelectionState) => void;
+  reset: () => void;
+}
 
 const initialSpec = JSON.stringify({
     nodes: [
@@ -11,21 +27,21 @@ const initialSpec = JSON.stringify({
     ]
 }, null, 2);
 
-export const useDiagramStore = create(
+export const useDiagramStore = create<DiagramState>()(
     temporal(
         (set) => ({
             spec: initialSpec,
             filename: 'Untitled Diagram',
-            selection: { key: null, item: null }, // Added selection state
+            selection: { key: null, item: null },
 
             setSpec: (newSpec) => set({ spec: newSpec }),
             setFilename: (name) => set({ filename: name }),
-            setSelection: (key, item) => set({ selection: { key, item } }), // Added setSelection action
+            setSelection: (selection) => set({ selection }),
 
             reset: () => set({ spec: initialSpec, filename: 'Untitled Diagram' }),
         }),
         {
-            limit: 100, // Undo history limit
+            limit: 100,
         }
     )
 );

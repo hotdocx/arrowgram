@@ -2,14 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { useDiagramStore } from '../store/diagramStore';
 
+interface Message {
+    role: 'user' | 'assistant';
+    text: string;
+}
+
 export function AIChatPanel() {
-    const [messages, setMessages] = useState([
+    const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', text: 'Hello! I am the Arrowgram AI. Describe a commutative diagram, and I will try to generate it for you.' }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const setSpec = useDiagramStore(state => state.setSpec);
-    const messagesEndRef = useRef(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,7 +25,7 @@ export function AIChatPanel() {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        const userMsg = { role: 'user', text: input };
+        const userMsg: Message = { role: 'user', text: input };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsTyping(true);
@@ -29,7 +34,6 @@ export function AIChatPanel() {
         setTimeout(() => {
             let responseText = "I created a diagram based on your request.";
 
-            // Simple heuristic for demo purposes
             if (input.toLowerCase().includes('pushout')) {
                 const pushoutSpec = {
                     nodes: [
