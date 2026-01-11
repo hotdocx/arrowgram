@@ -10,6 +10,8 @@ import { useToast } from '../context/ToastContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { SettingsDialog } from './SettingsDialog';
+import { SpecJsonEditor } from './SpecJsonEditor';
+import { QuiverDialog } from './QuiverDialog';
 
 interface ToolbarProps {
     onExport: (format: 'tikz' | 'svg' | 'png') => void;
@@ -26,6 +28,8 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
 
     const [isProjectsOpen, setIsProjectsOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isSpecOpen, setIsSpecOpen] = useState(false);
+    const [isQuiverOpen, setIsQuiverOpen] = useState(false);
     const [projects, setProjects] = useState<ProjectMeta[]>([]);
     const [showSaveName, setShowSaveName] = useState(false);
     const [newProjectName, setNewProjectName] = useState(filename);
@@ -99,10 +103,18 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
                 <Settings size={18} />
             </button>
 
+            <button className={btnClass} onClick={() => setIsSpecOpen(true)} title="Edit JSON Spec">
+                <FileCode size={18} />
+            </button>
+            
+            <button className={btnClass} onClick={() => setIsQuiverOpen(true)} title="Quiver Integration">
+                <Share2 size={18} className="rotate-90" /> {/* Using Share2 rotated as a placeholder for exchange/quiver */}
+            </button>
+
             {divider}
 
             <button className={btnClass} onClick={() => onExport('svg')} title="Export SVG"><Download size={18} /></button>
-            <button className={btnClass} onClick={() => onExport('tikz')} title="Export TikZ"><FileCode size={18} /></button>
+            <button className={btnClass} onClick={() => onExport('tikz')} title="Export TikZ"><span className="font-mono font-bold text-xs">TeX</span></button>
             <button className={btnClass} onClick={onShare} title="Share Link"><Share2 size={18} /></button>
 
             {divider}
@@ -111,8 +123,10 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
                 {filename}
             </div>
 
-            {/* Settings Modal */}
+            {/* Dialogs */}
             <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+            <SpecJsonEditor isOpen={isSpecOpen} onClose={() => setIsSpecOpen(false)} />
+            <QuiverDialog isOpen={isQuiverOpen} onClose={() => setIsQuiverOpen(false)} />
 
             {/* Projects Modal */}
             {isProjectsOpen && (
