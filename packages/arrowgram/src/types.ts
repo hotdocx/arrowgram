@@ -38,6 +38,7 @@ export const ArrowSchema = z.object({
 export type ArrowSpec = z.infer<typeof ArrowSchema>;
 
 export const DiagramSpecSchema = z.object({
+  version: z.number().int().optional(),
   nodes: z.array(NodeSchema),
   arrows: z.array(ArrowSchema).optional(),
 });

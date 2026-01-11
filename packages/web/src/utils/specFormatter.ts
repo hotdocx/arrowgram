@@ -28,9 +28,12 @@ export function formatSpec(specObject: Partial<DiagramSpec>): string {
     return '{}';
   }
 
+  // Ensure version is present, default to 1
+  const version = specObject.version || 1;
+
   if ((!specObject.nodes || specObject.nodes.length === 0) &&
       (!specObject.arrows || specObject.arrows.length === 0)) {
-    return JSON.stringify(specObject, null, 2);
+    return JSON.stringify({ ...specObject, version }, null, 2);
   }
 
   const nodesString = (specObject.nodes || [])
@@ -42,6 +45,7 @@ export function formatSpec(specObject: Partial<DiagramSpec>): string {
     .join(',\n');
 
   const parts = [];
+  parts.push(`  "version": ${version}`);
   if (specObject.nodes && specObject.nodes.length > 0) {
     parts.push(`  "nodes": [\n${nodesString}\n  ]`);
   }

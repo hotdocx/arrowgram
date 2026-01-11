@@ -75,6 +75,7 @@ export function decodeQuiverUrl(url: string): DiagramSpec {
 		const [version, vertexCount, ...cells] = quiverArray;
 
 		const spec: DiagramSpec = {
+            version: 1,
 			nodes: [],
 			arrows: [],
 		};

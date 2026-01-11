@@ -299,7 +299,11 @@ interface EndpointInfo {
 
 export function computeDiagram(specInput: string | DiagramSpec): ComputedDiagram {
   try {
-    const spec: DiagramSpec = typeof specInput === 'string' ? JSON.parse(specInput) : specInput;
+    const rawSpec: DiagramSpec = typeof specInput === 'string' ? JSON.parse(specInput) : specInput;
+    
+    // Ensure version exists (default to 1)
+    const spec = { ...rawSpec, version: rawSpec.version || 1 };
+
     if (!spec.nodes || spec.nodes.length === 0) {
       return { nodes: [], arrows: [], viewBox: "0 0 100 100", error: null };
     }

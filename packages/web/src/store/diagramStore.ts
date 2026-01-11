@@ -18,6 +18,7 @@ interface DiagramState {
 }
 
 const initialSpec = JSON.stringify({
+    version: 1,
     nodes: [
         { name: "A", left: 150, top: 150, label: "A" },
         { name: "B", left: 450, top: 150, label: "B" }
