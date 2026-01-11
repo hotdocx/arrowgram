@@ -17,6 +17,7 @@ interface DiagramState {
   setSelection: (selection: SelectionState) => void;
   deleteSelection: () => void;
   reset: () => void;
+  createNew: () => void;
 }
 
 const initialSpec = JSON.stringify({
@@ -88,6 +89,21 @@ export const useDiagramStore = create<DiagramState>()(
             },
 
             reset: () => set({ spec: initialSpec, filename: 'Untitled Diagram' }),
+            
+            createNew: () => {
+                set({
+                    spec: JSON.stringify({
+                        version: 1,
+                        nodes: [
+                            { name: "A", left: 300, top: 300, label: "A" }
+                        ],
+                        arrows: []
+                    }, null, 2),
+                    filename: 'Untitled Diagram',
+                    selection: { key: null, item: null }
+                });
+                useDiagramStore.temporal.getState().clear();
+            }
         }),
         {
             limit: 100,

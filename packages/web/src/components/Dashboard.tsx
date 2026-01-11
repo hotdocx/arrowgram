@@ -10,7 +10,7 @@ interface DashboardProps {
 
 export function Dashboard({ onOpenProject }: DashboardProps) {
     const [projects, setProjects] = useState<ProjectMeta[]>([]);
-    const { setSpec, setFilename } = useDiagramStore();
+    const { setSpec, setFilename, createNew } = useDiagramStore();
 
     useEffect(() => {
         loadProjects();
@@ -22,14 +22,7 @@ export function Dashboard({ onOpenProject }: DashboardProps) {
     };
 
     const handleCreateNew = () => {
-        setSpec(JSON.stringify({
-            version: 1,
-            nodes: [
-                { name: "A", left: 300, top: 300, label: "A" }
-            ],
-            arrows: []
-        }, null, 2));
-        setFilename("Untitled Diagram");
+        createNew();
         onOpenProject();
     };
 
