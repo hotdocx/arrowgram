@@ -171,13 +171,33 @@ export default function App() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const requested = (params.get('paper') || '').trim();
+        const isLocalStorageRef = /^ls:/i.test(requested);
         const isAbsoluteUrl = /^https?:\/\//i.test(requested);
+        // Treat "/index.md" as relative to the app base (useful on GitHub Pages subpaths).
+        const requestedPath = isAbsoluteUrl ? requested : requested.replace(/^\/+/, '');
         const normalized =
-            requested === '' || requested === 'index' || requested === 'index.md'
+            requestedPath === '' || requestedPath === 'index' || requestedPath === 'index.md'
                 ? 'index.md'
-                : requested === '0' || requested === 'index_0' || requested === 'index_0.md'
+                : requestedPath === '0' || requestedPath === 'index_0' || requestedPath === 'index_0.md'
                     ? 'index_0.md'
-                    : requested;
+                    : requestedPath;
+
+        if (isLocalStorageRef) {
+            const key = requested.replace(/^ls:/i, '').trim();
+            if (!key) {
+                setMarkdown(`# Error: Could not load localStorage paper\n\nPass a key as \`?paper=ls:some_key\`.`);
+                return;
+            }
+
+            const stored = localStorage.getItem(key);
+            if (stored == null) {
+                setMarkdown(`# Error: Could not load localStorage key \`${key}\`\n\nNo value found. Create it in localStorage first (same origin), or use \`?paper=index.md\`.\n\nTip: you can also pass an absolute URL via \`?paper=https://example.com/index.md\`.`);
+                return;
+            }
+
+            setMarkdown(stored);
+            return;
+        }
 
         const safe = isAbsoluteUrl
             ? normalized
@@ -188,9 +208,7 @@ export default function App() {
         const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
         const paperUrl = isAbsoluteUrl
             ? safe
-            : safe.startsWith("/")
-              ? new URL(safe, window.location.origin).toString()
-              : new URL(safe, baseUrl).toString();
+            : new URL(safe, baseUrl).toString();
 
         // Fetch the selected paper from public folder (default: index.md relative to BASE_URL).
         // Also supports absolute URLs via ?paper=https://example.com/index.md
@@ -202,7 +220,7 @@ export default function App() {
             .then(text => setMarkdown(text))
             .catch(err => {
                 console.error(err);
-                setMarkdown(`# Error: Could not load ${paperUrl}\n\nPlease ensure \`print/public/${isAbsoluteUrl ? 'index.md' : safe}\` exists, or open with \`?paper=index.md\` / \`?paper=index_0.md\`.\n\nTip: you can also pass an absolute URL via \`?paper=https://example.com/index.md\`.`);
+                setMarkdown(`# Error: Could not load ${paperUrl}\n\nPlease ensure \`print/public/${isAbsoluteUrl ? 'index.md' : safe}\` exists, or open with \`?paper=index.md\` / \`?paper=index_0.md\`.\n\nTip: you can also load from localStorage via \`?paper=ls:some_key\`, or pass an absolute URL via \`?paper=https://example.com/index.md\`.`);
             });
     }, []);
 
