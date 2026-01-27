@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { listProjects, ProjectMeta, deleteProject, saveProject } from '../utils/storage';
+import type { ProjectMeta } from '../utils/storage';
 import { useDiagramStore } from '../store/diagramStore';
 import { Plus, Trash2, FileText, ArrowRight } from 'lucide-react';
 import { Button } from './ui/Button';
+import { useProjectStorage } from '../context/ProjectStorageContext';
 
 interface DashboardProps {
     onOpenProject: (type?: 'diagram' | 'paper', project?: ProjectMeta) => void;
@@ -11,13 +12,14 @@ interface DashboardProps {
 export function Dashboard({ onOpenProject }: DashboardProps) {
     const [projects, setProjects] = useState<ProjectMeta[]>([]);
     const { setSpec, setFilename, createNew } = useDiagramStore();
+    const storage = useProjectStorage();
 
     useEffect(() => {
         loadProjects();
     }, []);
 
     const loadProjects = async () => {
-        const list = await listProjects();
+        const list = await storage.listProjects();
         setProjects(list);
     };
 
@@ -62,7 +64,7 @@ Start writing here...
     const handleDelete = async (e: React.MouseEvent, name: string) => {
         e.stopPropagation();
         if (confirm(`Are you sure you want to delete "${name}"?`)) {
-            await deleteProject(name);
+            await storage.deleteProject(name);
             loadProjects();
         }
     };

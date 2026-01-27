@@ -23,9 +23,29 @@ jobs:
     - name: Install Dependencies
       run: npm ci
 
+    - name: Detect LastRevision workspace
+      id: has_lastrevision
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ ! -f packages/lastrevision/package.json ]; then
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        present="$(node --input-type=module -e '
+          import fs from "node:fs";
+          const root = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const ws = Array.isArray(root.workspaces) ? root.workspaces : (root.workspaces?.packages ?? []);
+          const inWs = ws.includes("packages/*") || ws.includes("packages/lastrevision");
+          process.stdout.write(inWs ? "true" : "false");
+        ')"
+
+        echo "present=${present}" >> "$GITHUB_OUTPUT"
+
     - name: Ensure No Nested Git Repos
       run: |
-        if npm -w packages/lastrevision pkg get name >/dev/null 2>&1; then
+        if [ "${{ steps.has_lastrevision.outputs.present }}" = "true" ]; then
           test ! -d packages/lastrevision/.git
         fi
 
@@ -42,6 +62,7 @@ jobs:
       run: npm run build --workspace=packages/paged
 
     - name: Build LastRevision (SPA mode)
+      if: steps.has_lastrevision.outputs.present == 'true'
       env:
         DATABASE_URL: postgresql://postgres:example@localhost:5432/postgres
         BETTER_AUTH_SECRET: dev-ci-secret
@@ -55,17 +76,8 @@ jobs:
         VITE_STRIPE_BASIC_PRICE_ID: price_dev
         VITE_STRIPE_PRO_PRICE_ID: price_dev
         VITE_STRIPE_PUBLISHABLE_KEY: pk_test_dev
-      run: |
-        if npm -w packages/lastrevision pkg get name >/dev/null 2>&1; then
-          npm run build --workspace=packages/lastrevision
-        else
-          echo "Skipping LastRevision build (workspace not present in this repo)."
-        fi
+      run: npm run build --workspace=packages/lastrevision
 
     - name: Verify LastRevision SPA Artifact
-      run: |
-        if npm -w packages/lastrevision pkg get name >/dev/null 2>&1; then
-          npm run verify:spa --workspace=packages/lastrevision
-        else
-          echo "Skipping LastRevision SPA verification (workspace not present in this repo)."
-        fi
+      if: steps.has_lastrevision.outputs.present == 'true'
+      run: npm run verify:spa --workspace=packages/lastrevision

@@ -5,13 +5,14 @@ import { useStore } from 'zustand';
 import {
     Undo, Redo, Save, FolderOpen, Plus, Download, Share2, FileCode, Bot, X, Settings, ChevronDown, Check
 } from 'lucide-react';
-import { saveProject, listProjects, ProjectMeta } from '../utils/storage';
+import type { ProjectMeta } from '../utils/storage';
 import { useToast } from '../context/ToastContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { SettingsDialog } from './SettingsDialog';
 import { SpecJsonEditor } from './SpecJsonEditor';
 import { QuiverDialog } from './QuiverDialog';
+import { useProjectStorage } from '../context/ProjectStorageContext';
 
 interface ToolbarProps {
     onExport: (format: 'tikz' | 'svg' | 'png', options?: { fitView?: boolean; showGrid?: boolean }) => void;
@@ -25,6 +26,7 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
     // @ts-ignore
     const { undo, redo, pastStates, futureStates } = useStore(useDiagramStore.temporal);
     const { addToast } = useToast();
+    const storage = useProjectStorage();
 
     const [isProjectsOpen, setIsProjectsOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -41,13 +43,13 @@ export function Toolbar({ onExport, onShare, onToggleChat, isChatOpen }: Toolbar
     const canRedo = futureStates.length > 0;
 
     const refreshProjects = async () => {
-        const list = await listProjects();
+        const list = await storage.listProjects();
         setProjects(list);
     };
 
     const handleSave = async () => {
         try {
-            await saveProject(newProjectName, spec);
+            await storage.saveProject(newProjectName, spec, 'diagram');
             setFilename(newProjectName);
             setShowSaveName(false);
             addToast(`Project "${newProjectName}" saved successfully`, 'success');

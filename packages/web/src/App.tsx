@@ -12,17 +12,22 @@ import { PropertyEditor } from "./PropertyEditor";
 import { useToast } from "./context/ToastContext";
 import { PanelRight, ChevronLeft, Save } from "lucide-react";
 import { Dashboard } from "./components/Dashboard";
-import { saveProject, ProjectMeta } from "./utils/storage";
+import { ProjectMeta } from "./utils/storage";
 import PrintPreview from "./PrintPreview";
 import { computeDiagram } from "@hotdocx/arrowgram";
 // @ts-ignore
 import katexCss from 'katex/dist/katex.min.css?inline';
+import { useProjectStorage } from "./context/ProjectStorageContext";
+import { useEditorHostConfig } from "./context/EditorHostContext";
 
 type ViewState = 'dashboard' | 'editor';
 
 export default function App() {
+  const storage = useProjectStorage();
+  const hostConfig = useEditorHostConfig();
+
   // Simple routing for Print Preview
-  if (window.location.pathname === '/print-preview') {
+  if (hostConfig.enablePrintPreview && window.location.pathname === '/print-preview') {
     return <PrintPreview />;
   }
 
@@ -125,7 +130,7 @@ export default function App() {
 
   const handleSave = async () => {
     try {
-      await saveProject(filename, spec, 'diagram');
+      await storage.saveProject(filename, spec, 'diagram');
       addToast("Project saved successfully!", "success");
     } catch (e) {
       console.error(e);
@@ -230,12 +235,13 @@ export default function App() {
               initialMarkdown={activeProject.spec}
               filename={activeProject.name}
               onPersist={async (content) => {
-                await saveProject(activeProject.name, content, 'paper');
+                await storage.saveProject(activeProject.name, content, 'paper');
                 setActiveProject(prev => prev ? ({ ...prev, spec: content }) : null);
               }}
               onChange={(content) => {
                 setActiveProject(prev => prev ? ({ ...prev, spec: content }) : null);
               }}
+              showPrintButton={hostConfig.enablePrintPreview}
             />
           </div>
         </div>
