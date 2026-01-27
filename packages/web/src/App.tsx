@@ -26,8 +26,19 @@ export default function App() {
   const storage = useProjectStorage();
   const hostConfig = useEditorHostConfig();
 
-  // Simple routing for Print Preview
-  if (hostConfig.enablePrintPreview && window.location.pathname === '/print-preview') {
+  // Simple routing for Print Preview (supports GitHub Pages subpaths, e.g. /arrowgram/print-preview)
+  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname.replace(
+    /\/$/,
+    ''
+  );
+  const relativePath = window.location.pathname.startsWith(basePath + '/')
+    ? window.location.pathname.slice(basePath.length)
+    : window.location.pathname;
+
+  if (
+    hostConfig.enablePrintPreview &&
+    (relativePath === '/print-preview' || relativePath === '/print-preview/')
+  ) {
     return <PrintPreview />;
   }
 
