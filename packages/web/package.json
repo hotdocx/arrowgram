@@ -5,7 +5,8 @@
     "exports": {
         ".": "./src/index.ts",
         "./preview": "./src/preview/index.ts",
-        "./adapters": "./src/adapters/index.ts"
+        "./adapters": "./src/adapters/index.ts",
+        "./embed": "./src/embed/index.ts"
     },
     "scripts": {
         "dev": "vite",

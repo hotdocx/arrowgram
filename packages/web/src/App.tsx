@@ -229,7 +229,11 @@ export default function App() {
             <PaperEditor
               initialMarkdown={activeProject.spec}
               filename={activeProject.name}
-              onSave={(content) => {
+              onPersist={async (content) => {
+                await saveProject(activeProject.name, content, 'paper');
+                setActiveProject(prev => prev ? ({ ...prev, spec: content }) : null);
+              }}
+              onChange={(content) => {
                 setActiveProject(prev => prev ? ({ ...prev, spec: content }) : null);
               }}
             />

@@ -3,15 +3,26 @@ import { PreviewController } from './PreviewController';
 import { PanelLeft, PanelRight, Printer, Save, Image as ImageIcon, X } from 'lucide-react';
 import { ArrowGramEditor } from '../../ArrowGramEditor';
 import { useToast } from '../../context/ToastContext';
-import { saveProject } from '../../utils/storage';
 
 interface PaperEditorProps {
     initialMarkdown: string;
     filename: string;
-    onSave?: (content: string) => void;
+    onPersist?: (content: string) => Promise<void> | void;
+    onChange?: (content: string) => void;
+    onPrint?: (content: string, opts: { isTwoColumn: boolean }) => void;
+    showSaveButton?: boolean;
+    showPrintButton?: boolean;
 }
 
-export function PaperEditor({ initialMarkdown, filename, onSave }: PaperEditorProps) {
+export function PaperEditor({
+    initialMarkdown,
+    filename,
+    onPersist,
+    onChange,
+    onPrint,
+    showSaveButton = true,
+    showPrintButton = true,
+}: PaperEditorProps) {
     const [markdown, setMarkdown] = useState(initialMarkdown);
     const [isTwoColumn, setIsTwoColumn] = useState(false);
     const [filesView, setFilesView] = useState('split'); // 'split', 'code', 'preview'
@@ -25,10 +36,14 @@ export function PaperEditor({ initialMarkdown, filename, onSave }: PaperEditorPr
 
     // -- File Operations --
     const handleSave = async () => {
+        if (!onPersist) {
+            addToast("Save is not configured in this host app.", "error");
+            return;
+        }
+
         try {
-            await saveProject(filename, markdown, 'paper');
+            await onPersist(markdown);
             addToast("Paper saved successfully!", "success");
-            onSave?.(markdown);
         } catch (e) {
             console.error(e);
             addToast("Failed to save paper.", "error");
@@ -36,9 +51,16 @@ export function PaperEditor({ initialMarkdown, filename, onSave }: PaperEditorPr
     };
 
     const handlePrint = () => {
+        if (onPrint) {
+            onPrint(markdown, { isTwoColumn });
+            return;
+        }
+
         localStorage.setItem('print_content', markdown);
         localStorage.setItem('print_layout', String(isTwoColumn));
-        window.open('/print-preview', '_blank');
+        const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
+        const href = new URL('print-preview', baseUrl).toString();
+        window.open(href, '_blank');
     };
 
     // -- Diagram Editing --
@@ -107,6 +129,7 @@ export function PaperEditor({ initialMarkdown, filename, onSave }: PaperEditorPr
                     <button
                         onClick={handlePrint}
                         className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md text-sm font-medium transition-colors"
+                        style={{ display: showPrintButton ? undefined : 'none' }}
                     >
                         <Printer size={16} />
                         Print PDF
@@ -115,6 +138,7 @@ export function PaperEditor({ initialMarkdown, filename, onSave }: PaperEditorPr
                     <button
                         onClick={handleSave}
                         className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"
+                        style={{ display: showSaveButton ? undefined : 'none' }}
                     >
                         <Save size={16} />
                         Save
@@ -132,7 +156,11 @@ export function PaperEditor({ initialMarkdown, filename, onSave }: PaperEditorPr
                     <textarea
                         className="flex-1 w-full h-full p-6 resize-none outline-none font-mono text-sm bg-white text-gray-800 leading-relaxed"
                         value={markdown}
-                        onChange={(e) => setMarkdown(e.target.value)}
+                        onChange={(e) => {
+                            const next = e.target.value;
+                            setMarkdown(next);
+                            onChange?.(next);
+                        }}
                         placeholder="# Start writing your paper..."
                         spellCheck={false}
                     />

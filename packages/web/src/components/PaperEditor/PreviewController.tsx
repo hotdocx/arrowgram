@@ -1,14 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import ReactDOMServer from 'react-dom/server';
-import showdown from 'showdown';
-import mermaid from 'mermaid';
-import katex from 'katex';
-// @ts-ignore
-import * as vega from 'vega';
-// @ts-ignore
-import * as vegaLite from 'vega-lite';
-import { Previewer } from 'pagedjs';
 import { ArrowGramStatic } from '../ArrowGramStatic';
 import './styles.css';
 
@@ -55,6 +46,8 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
     const pagedInstance = useRef<any>(null);
 
     useEffect(() => {
+        if (import.meta.env.SSR) return;
+
         let isMounted = true;
         // Use a simple ID to track the latest render request
         const renderId = Date.now();
@@ -66,6 +59,32 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
         const processAndRender = async () => {
             if (!containerRef.current) return;
 
+            const [
+                ReactDOMServer,
+                showdownMod,
+                mermaidMod,
+                katexMod,
+                vega,
+                vegaLite,
+                pagedjs,
+            ] = await Promise.all([
+                import('react-dom/server.browser'),
+                import('showdown'),
+                import('mermaid'),
+                import('katex'),
+                // These modules are browser-safe. Keeping them dynamic avoids SSR bundling issues (e.g. node-canvas).
+                // @ts-ignore
+                import('vega'),
+                // @ts-ignore
+                import('vega-lite'),
+                import('pagedjs'),
+            ]);
+
+            const showdown = (showdownMod as any).default ?? showdownMod;
+            const mermaid = (mermaidMod as any).default ?? mermaidMod;
+            const katex = (katexMod as any).default ?? katexMod;
+            const Previewer = (pagedjs as any).Previewer ?? (pagedjs as any).default?.Previewer;
+
             // 1. Pre-process Vega Lite
             let processedText = markdown;
             const vegaRegex = /<div class="vega-lite"([^>]*)>([\s\S]*?)<\/div>/g;
@@ -76,8 +95,8 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
                     if (!isMounted) return { original: '', replacement: '' };
                     try {
                         const spec = JSON.parse(match[2].trim());
-                        const vegaSpec = vegaLite.compile(spec).spec;
-                        const view = new vega.View(vega.parse(vegaSpec), { renderer: 'svg' });
+                        const vegaSpec = (vegaLite as any).compile(spec).spec;
+                        const view = new (vega as any).View((vega as any).parse(vegaSpec), { renderer: 'svg' });
                         const svg = await view.toSVG();
                         return { original: match[0], replacement: `<div class="vega-container"${match[1]}>${svg}</div>` };
                     } catch (e: any) {
@@ -95,14 +114,14 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
             }
 
             // 2. Pre-process Mermaid
-            mermaid.initialize({ startOnLoad: false, theme: 'base' });
+            (mermaid as any).initialize({ startOnLoad: false, theme: 'base' });
             const mermaidRegex = /<div class="mermaid"([^>]*)>([\s\S]*?)<\/div>/g;
             const mermaidMatches = Array.from(processedText.matchAll(mermaidRegex));
             const mermaidResults = await Promise.all(
                 mermaidMatches.map(async (match, i) => {
                     if (!isMounted) return { original: '', replacement: '' };
                     try {
-                        const { svg } = await mermaid.render(`mermaid-svg-${Date.now()}-${i}`, match[2].trim());
+                        const { svg } = await (mermaid as any).render(`mermaid-svg-${Date.now()}-${i}`, match[2].trim());
                         return { original: match[0], replacement: `<div class="mermaid-container"${match[1]}>${svg}</div>` };
                     } catch (e) { return { original: match[0], replacement: `<div class="mermaid-error">Diagram Error</div>` }; }
                 })
@@ -129,7 +148,7 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
                 try {
                     // Render the static SVG markup to ensure Paged.js sees the correct dimensions.
                     // onEdit is undefined here, so no button, but sizing is correct.
-                    const staticHtml = ReactDOMServer.renderToStaticMarkup(
+                    const staticHtml = (ReactDOMServer as any).renderToStaticMarkup(
                         <ArrowGramStatic spec={spec} />
                     );
                     return `<div id="${id}" class="arrowgram-hydrate-target">${staticHtml}</div>`;
@@ -158,7 +177,7 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
             processedText = processedText.replace(/\$(?!\$)(?:\\.|[^$\\\n])+\$/g, protectMath);
 
             // 5. Markdown -> HTML
-            const converter = new showdown.Converter({
+            const converter = new (showdown as any).Converter({
                 metadata: true,
                 noHeaderId: true,
                 literalMidWordUnderscores: true
@@ -189,7 +208,7 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
                     .replace(/\\\\([A-Za-z_])/g, '\\$1')
                     .replace(/\\\\([,;:.!])/g, '\\$1');
                 try {
-                    return `<span class="katex-display">${katex.renderToString(cleaned, { displayMode: true, throwOnError: false })}</span>`;
+                    return `<span class="katex-display">${(katex as any).renderToString(cleaned, { displayMode: true, throwOnError: false })}</span>`;
                 } catch (e: any) { return `<span class="katex-error">${e.message}</span>`; }
             });
             // Inline mode: $...$ (non-greedy)
@@ -199,7 +218,7 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
                     .replace(/\\\\([A-Za-z_])/g, '\\$1')
                     .replace(/\\\\([,;:.!])/g, '\\$1');
                 try {
-                    return katex.renderToString(cleaned, { displayMode: false, throwOnError: false });
+                    return (katex as any).renderToString(cleaned, { displayMode: false, throwOnError: false });
                 } catch (e: any) { return `<span class="katex-error">${e.message}</span>`; }
             });
 
@@ -229,7 +248,7 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
                 const katexCss = document.querySelector('link[href*="katex"]')?.getAttribute('href') || "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
                 stylesheets.push(katexCss);
 
-                const paged = new Previewer();
+                const paged = new (Previewer as any)();
                 pagedInstance.current = paged;
 
                 paged.preview(finalHtml, stylesheets, containerRef.current).then(() => {
