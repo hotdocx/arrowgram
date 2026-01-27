@@ -1,0 +1,125 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Arrowgram Specification",
+    "description": "Schema for describing commutative diagrams in Arrowgram.",
+    "type": "object",
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Unique identifier for the node."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "LaTeX label for the node (e.g. 'A', '\\mathcal{C}')."
+                    },
+                    "left": {
+                        "type": "number",
+                        "description": "X coordinate in pixels."
+                    },
+                    "top": {
+                        "type": "number",
+                        "description": "Y coordinate in pixels."
+                    }
+                },
+                "required": [
+                    "name",
+                    "left",
+                    "top"
+                ]
+            }
+        },
+        "arrows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "from": {
+                        "type": "string",
+                        "description": "Name of the source node."
+                    },
+                    "to": {
+                        "type": "string",
+                        "description": "Name of the target node."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "LaTeX label for the arrow."
+                    },
+                    "curve": {
+                        "type": "number",
+                        "description": "Curvature amount (0 is straight, positive curves 'left' relative to direction).",
+                        "default": 0
+                    },
+                    "shift": {
+                        "type": "number",
+                        "description": "Parallel shift amount.",
+                        "default": 0
+                    },
+                    "style": {
+                        "type": "object",
+                        "properties": {
+                            "head": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "enum": [
+                                            "normal",
+                                            "none",
+                                            "epi"
+                                        ]
+                                    }
+                                }
+                            },
+                            "tail": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "enum": [
+                                            "normal",
+                                            "none",
+                                            "mono"
+                                        ]
+                                    }
+                                }
+                            },
+                            "body": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "enum": [
+                                            "solid",
+                                            "dashed",
+                                            "dotted",
+                                            "none"
+                                        ]
+                                    }
+                                }
+                            },
+                            "level": {
+                                "type": "integer",
+                                "description": "1 for single arrow, 2 for double arrow (implication), etc.",
+                                "default": 1
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "from",
+                    "to"
+                ]
+            }
+        }
+    },
+    "required": [
+        "nodes",
+        "arrows"
+    ]
+}

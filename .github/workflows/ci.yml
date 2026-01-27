@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        # `packages/lastrevision` requires Node >= 22.x
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Ensure No Nested Git Repos
+      run: |
+        if [ -d packages/lastrevision ]; then
+          test ! -d packages/lastrevision/.git
+        fi
+
+    - name: Build Core Library
+      run: npm run build --workspace=packages/arrowgram
+
+    - name: Run Core Tests
+      run: npm test --workspace=packages/arrowgram -- --run
+
+    - name: Build Web App
+      run: npm run build --workspace=packages/web
+
+    - name: Build Paged Viewer
+      run: npm run build --workspace=packages/paged
+
+    - name: Build LastRevision (SPA mode)
+      env:
+        DATABASE_URL: postgresql://postgres:example@localhost:5432/postgres
+        BETTER_AUTH_SECRET: dev-ci-secret
+        STRIPE_SECRET_KEY: sk_test_dev
+        STRIPE_WEBHOOK_SECRET: whsec_dev
+        GOOGLE_CLIENT_ID: dev
+        GOOGLE_CLIENT_SECRET: dev
+        GCS_BUCKET: dev-bucket
+        VITE_API_BASE_URL: http://localhost:3000
+        VITE_BETTER_AUTH_URL: http://localhost:3000
+        VITE_STRIPE_BASIC_PRICE_ID: price_dev
+        VITE_STRIPE_PRO_PRICE_ID: price_dev
+        VITE_STRIPE_PUBLISHABLE_KEY: pk_test_dev
+      run: |
+        if [ -d packages/lastrevision ]; then
+          npm run build --workspace=packages/lastrevision
+        else
+          echo "Skipping LastRevision build (workspace not present in this repo)."
+        fi
+
+    - name: Verify LastRevision SPA Artifact
+      run: |
+        if [ -d packages/lastrevision ]; then
+          npm run verify:spa --workspace=packages/lastrevision
+        else
+          echo "Skipping LastRevision SPA verification (workspace not present in this repo)."
+        fi

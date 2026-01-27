@@ -1,0 +1,14 @@
+{
+  "name": "arrowgram-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w packages/web",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces"
+  }
+}

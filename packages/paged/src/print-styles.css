@@ -1,0 +1,431 @@
+/* General Body and Editor Styles */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  background-color: #f0f2f5;
+  color: #333;
+}
+
+.editor-container {
+  max-width: 900px;
+  margin: 2em auto;
+  padding: 2em;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+#markdown-input {
+  width: 100%;
+  height: 60vh;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1em;
+  font-size: 14px;
+  line-height: 1.6;
+  box-sizing: border-box;
+  margin-bottom: 1em;
+}
+
+/* Editor Controls & Button Styles */
+.editor-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1em;
+  gap: 1em;
+}
+
+.layout-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.layout-toggle span {
+  font-size: 14px;
+  color: #555;
+  padding: 0 8px;
+}
+
+.toggle-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: transparent;
+  color: #333;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.toggle-button.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.action-button {
+  flex-grow: 1;
+  max-width: 250px;
+  padding: 0.8em;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Preview Controls and Screen Layout */
+.preview-container {
+  position: relative;
+}
+
+.preview-controls {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
+
+.control-button {
+  padding: 10px 20px;
+  background-color: white;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.preview-content-area {
+  padding-top: 70px;
+}
+
+.loading-indicator {
+  font-size: 1.2em;
+  text-align: center;
+  padding: 4em;
+  color: #666;
+}
+
+@media screen {
+  .preview-content-area .pagedjs_pages {
+    padding-top: 0;
+  }
+
+  .pagedjs_pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    background-color: #f0f2f5;
+  }
+
+  .pagedjs_page {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* Page size and margins */
+@page {
+  size: 8.5in 11in;
+  margin: 1in;
+}
+
+/* Base typography for the paged output */
+.pagedjs_page_content {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  line-height: 1.5;
+}
+
+/* Dynamic Layout Styles */
+.layout-two-column .paper-body {
+  columns: 2;
+  column-gap: 0.25in;
+}
+
+.layout-two-column .title-block,
+.layout-two-column h1,
+.layout-two-column h2,
+.layout-two-column h3 {
+  column-span: all;
+}
+
+/* Utility: force an element to span both columns (LICS-style wide figures). */
+.layout-two-column .fullwidth {
+  column-span: all;
+  break-inside: avoid;
+}
+
+/* LICS-style overview tables (wide, compact, readable in 2-column). */
+.emdash-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10.5pt;
+  line-height: 1.3;
+}
+
+.emdash-table th,
+.emdash-table td {
+  border: 1px solid #999;
+  padding: 4px 6px;
+  vertical-align: top;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.emdash-table thead th {
+  background: #f7f7f7;
+}
+
+.emdash-table tr {
+  break-inside: avoid;
+}
+
+.emdash-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 9.5pt;
+  white-space: normal;
+}
+
+/* optional */
+/* .layout-two-column .mermaid-container, .layout-two-column .katex-display, .layout-two-column .vega-container { column-span: all; } */
+.layout-two-column .abstract {
+  break-inside: avoid;
+}
+
+.layout-two-column .abstract {
+  column-span: all;
+}
+
+.layout-two-column .abstract {
+  text-align: justify;
+}
+
+.layout-two-column .abstract h2 {
+  font-size: 12pt;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Styles for Pre-rendered Content */
+.katex-display {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+  break-inside: avoid;
+}
+
+.mermaid-container,
+.vega-container,
+.arrowgram-container {
+  page-break-inside: avoid;
+  display: flex;
+  justify-content: center;
+  margin: 1em 0;
+}
+
+.mermaid-container svg,
+.vega-container svg,
+.arrowgram-container svg {
+  max-width: 100%;
+  height: auto !important;
+}
+
+.mermaid-error,
+.vega-error,
+.arrowgram-error {
+  border: 1px solid red;
+  padding: 1em;
+  color: red;
+  text-align: center;
+  font-family: monospace;
+}
+
+.paper-body h1,
+.paper-body h2,
+.paper-body h3 {
+  break-after: avoid-column;
+}
+
+.title-block {
+  text-align: center;
+  margin-bottom: 2em;
+  line-height: 1.3;
+}
+
+.title {
+  font-size: 20pt;
+  font-weight: bold;
+  margin-bottom: 0.75em;
+}
+
+.authors {
+  font-size: 14pt;
+  margin-bottom: 0.75em;
+}
+
+.paper-body p,
+.paper-body li {
+  text-align: justify;
+}
+
+/* --- Explicit Markdown Typography --- */
+.paper-body h1 {
+  font-size: 18pt;
+  font-weight: bold;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.paper-body h2 {
+  font-size: 16pt;
+  font-weight: bold;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+}
+
+.paper-body h3 {
+  font-size: 14pt;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.paper-body p {
+  margin-bottom: 1em;
+}
+
+.paper-body ul,
+.paper-body ol {
+  margin-bottom: 1em;
+  padding-left: 2em;
+}
+
+.paper-body ul {
+  list-style-type: disc;
+}
+
+.paper-body ol {
+  list-style-type: decimal;
+}
+
+.paper-body li {
+  margin-bottom: 0.5em;
+}
+
+.paper-body strong {
+  font-weight: bold;
+}
+
+.paper-body em {
+  font-style: italic;
+}
+
+.paper-body blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1em;
+  color: #666;
+  margin: 1em 0;
+}
+
+.paper-body pre {
+  background: #f5f5f5;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.9em;
+  margin-bottom: 1em;
+}
+
+.paper-body code {
+  background: #f5f5f5;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* Print-specific styles */
+@media print {
+  body {
+    background: white;
+  }
+
+  .preview-controls,
+  .loading-indicator {
+    display: none;
+  }
+
+  .preview-content-area {
+    padding-top: 0;
+  }
+
+  .pagedjs_pages {
+    padding: 0;
+    margin: 0;
+    background-color: white;
+  }
+
+  .pagedjs_page {
+    box-shadow: none;
+    margin: 0;
+  }
+}
+
+
+
+.pagedjs_page_content {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 10pt;
+  line-height: 1.2;
+}
+
+
+/* Custom List Styles for minimal indentation */
+.paper-body ul,
+.paper-body ol {
+  /* This moves the bullet/number inside the content flow */
+  /* Resets default margin, which causes indentation */
+  margin: 0;
+  /* Resets default padding, which also causes indentation */
+  padding: 0;
+}
+
+/* Ensure list items also have minimal spacing */
+.paper-body li {
+  /* Aligns the content with the surrounding text */
+  text-indent: -1em;
+  /* Adds a small space to ensure the bullet/number is visible */
+  padding-left: 1em;
+  /* This can also be adjusted for spacing between list items */
+  margin-bottom: 0.25em;
+}
+
+
+/* Styles for Paged.js output */
+.pagedjs_page_content pre {
+  /* This ensures long lines of text will break to a new line */
+  word-wrap: break-word;
+  /* This prevents the single-line overflow behavior */
+  white-space: pre-wrap;
+  /* Adjusting for better readability within the page */
+  font-family: monospace;
+  font-size: 0.9em;
+  padding: 1em;
+  background-color: #f4f4f4;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}

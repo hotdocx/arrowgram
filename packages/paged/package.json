@@ -1,0 +1,37 @@
+{
+  "name": "arrowgram-paged",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "validate:paper": "node scripts/validate_paper.mjs",
+    "check:console": "node scripts/check_console.mjs",
+    "check:render": "npm run validate:paper && npm run build && npm run check:console"
+  },
+  "dependencies": {
+    "@hotdocx/arrowgram": "*",
+    "katex": "^0.16.9",
+    "lucide-react": "^0.475.0",
+    "mermaid": "^10.9.0",
+    "pagedjs": "^0.4.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "showdown": "^2.1.0",
+    "vega": "^5.28.0",
+    "vega-lite": "^5.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/showdown": "^2.0.6",
+    "@vitejs/plugin-react": "^4.2.1",
+    "playwright": "^1.55.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4",
+    "zod": "^4.3.5"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "exclude": [
+    "node_modules",
+    "tmp-arrowgram-original",
+    "tmp-quiver-codebase",
+    "tmp-arrowgram_paged"
+  ],
+  "references": [
+    {
+      "path": "./packages/arrowgram"
+    },
+    {
+      "path": "./packages/web"
+    },
+    {
+      "path": "./packages/paged"
+    },
+    {
+      "path": "./packages/lastrevision"
+    }
+  ]
+}
