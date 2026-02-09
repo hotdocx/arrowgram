@@ -24,7 +24,8 @@
     "node_modules",
     "tmp-arrowgram-original",
     "tmp-quiver-codebase",
-    "tmp-arrowgram_paged"
+    "tmp-arrowgram_paged",
+    "tmp-ai-chatbot"
   ],
   "references": [
     {

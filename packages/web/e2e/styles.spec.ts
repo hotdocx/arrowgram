@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 function encodeSpec(spec: object): string {
   const str = JSON.stringify(spec);
-  return Buffer.from(str).toString('base64');
+  return Buffer.from(str).toString('base64url');
 }
 
 test('renders ADJUNCTION style correctly', async ({ page }) => {
@@ -21,12 +21,11 @@ test('renders ADJUNCTION style correctly', async ({ page }) => {
 
   await page.goto(`/?spec=${encodeSpec(spec)}`);
   
-  const arrowGroup = page.locator('g[data-type="arrow"]');
-  await expect(arrowGroup).toBeVisible();
+  const path = page.locator('.arrow-visual path').first();
+  await expect(path).toBeVisible();
   
   // Adjunction draws the symbol AS the edge path.
   // We check if the path d contains Move and Line commands
-  const path = arrowGroup.locator('path').first();
   const d = await path.getAttribute('d');
   expect(d).toBeTruthy();
   // It should NOT look like a simple line (M ... L ...) covering the whole distance.

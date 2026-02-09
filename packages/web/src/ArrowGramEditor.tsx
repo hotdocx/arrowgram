@@ -395,14 +395,18 @@ export function ArrowGramEditor() {
 
   const onSpecChange = useCallback((newSpec: string) => setSpec(newSpec), [setSpec]);
 
-  const { nodes, arrows, diagram } = useMemo(() => {
-    try {
-      const result = computeDiagram(specString);
-      return { nodes: result.nodes, arrows: result.arrows, diagram: result };
-    } catch {
-      return { nodes: [], arrows: [], diagram: { arrows: [], nodes: [], viewBox: "0 0 100 100", error: null } };
-    }
-  }, [specString]);
+	  const { nodes, arrows, diagram } = useMemo(() => {
+	    try {
+	      const result = computeDiagram(specString);
+	      return { nodes: result.nodes, arrows: result.arrows, diagram: result };
+	    } catch {
+	      return {
+	        nodes: [],
+	        arrows: [],
+	        diagram: { arrows: [], nodes: [], masks: [], viewBox: "0 0 100 100", error: null },
+	      };
+	    }
+	  }, [specString]);
 
   const { interaction, handlers } = useEditorInteraction(svgRef, viewBox, setViewBox, nodes, arrows, onSpecChange, diagram);
 

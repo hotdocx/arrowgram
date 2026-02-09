@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useId } from "react";
 import { computeDiagram } from './core/diagramModel';
 import { ArrowGramDiagram } from './react/ArrowGramDiagram';
 
@@ -8,7 +8,10 @@ export interface ArrowGramProps {
 }
 
 export function ArrowGram({ spec: specString, id }: ArrowGramProps) {
-  const diagram = useMemo(() => computeDiagram(specString), [specString]);
+  const generatedId = useId();
+  // Ensure the ID is safe for SVG url references (strip colons from React's useId)
+  const finalId = id || generatedId.replace(/:/g, "");
+  const diagram = useMemo(() => computeDiagram(specString, finalId), [specString, finalId]);
 
   if (diagram.error) {
     return <div style={{ color: "red" }}>Error: {diagram.error}</div>;
@@ -16,7 +19,7 @@ export function ArrowGram({ spec: specString, id }: ArrowGramProps) {
 
   return (
     <svg
-      id={id}
+      id={finalId}
       width="100%"
       viewBox={diagram.viewBox}
       style={{ fontFamily: "sans-serif", overflow: "visible" }}

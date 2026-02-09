@@ -1,22 +1,26 @@
-import { useMemo } from 'react';
+import { useMemo, useId } from 'react';
 import { ArrowGramDiagram, computeDiagram } from '@hotdocx/arrowgram';
 import { Edit2 } from 'lucide-react';
 
 interface ArrowGramStaticProps {
     spec: string;
+    id?: string;
     className?: string;
     onEdit?: () => void;
 }
 
-export function ArrowGramStatic({ spec, className, onEdit }: ArrowGramStaticProps) {
+export function ArrowGramStatic({ spec, id, className, onEdit }: ArrowGramStaticProps) {
+    const generatedId = useId();
+    const finalId = id || generatedId.replace(/:/g, "");
+
     const { diagram, error } = useMemo(() => {
         try {
-            const result = computeDiagram(spec);
+            const result = computeDiagram(spec, finalId);
             return { diagram: result, error: null };
         } catch (e: any) {
             return { diagram: null, error: e.message || 'Unknown error' };
         }
-    }, [spec]);
+    }, [spec, finalId]);
 
     if (error) {
         return (

@@ -39,15 +39,31 @@ The project is a monorepo with two primary packages:
 ### 3.2. `@arrowgram/web` (formerly `packages/web`)
 *   **Status:** Implemented (Beta).
 *   **Purpose:** The "body". A full-featured Progressive Web App (PWA).
-*   **Tech:** React, Vite, Tailwind, Zustand, Zundo, Paged.js, Jest.
+*   **Tech:** React, Vite, Tailwind, Zustand, Zundo, Paged.js, Reveal.js, Jest.
 *   **Responsibilities:**
     *   **State Management:** Global store (Zustand) with robust Undo/Redo (`zundo`).
     *   **Persistence:** `IndexedDB`-based local "filesystem" for managing multiple projects.
     *   **Interaction:** Canvas manipulation (pan, zoom, drag nodes, drag connections).
     *   **AI Service:** interface to Gemini (and potentially others) for natural language diagramming.
-    *   **Export Pipeline:** High-fidelity export tools, including PDF generation via `pagedjs`.
+*   **Export Pipeline:** High-fidelity export tools, including PDF generation via Paged.js (paged articles) and Reveal.js print-to-PDF (slides).
 
-## 4. Functional Specifications
+### 3.3. `packages/lastrevision` (private SaaS runtime)
+*   **Status:** Implemented (private super-repo only).
+*   **Purpose:** A SaaS host/runtime for Arrowgram that adds auth + remote persistence + uploads + AI proxy, while embedding the same workspace/editor UI from `@arrowgram/web`.
+*   **Hosting model:** Split-hosting (static SPA on GitHub Pages + API on Cloud Run).
+*   **Auth model:** Bearer tokens (no third-party cookies) for reliability across origins.
+*   **Uploads:** Presigned direct-to-object-store uploads (GCS preferred; R2 fallback).
+*   **Validation:** End-to-end validation scripts exist for both local and deployed environments:
+    *   `scripts/validate_lastrevision_local.sh`
+    *   `CLOUD_RUN_URL=https://<service>.run.app scripts/validate_lastrevision_remote.sh`
+
+### 3.4 Community Gallery (SaaS Only)
+*   **Publishing**: Users can publish snapshots of their Diagrams or Papers.
+*   **Metadata**: Includes Title, Description, Event Date, and Tags.
+*   **Visuals**: Automatically generated screenshots (PNG).
+*   **Public Access**: Read-only gallery viewable by anyone.
+
+## 4. Technical Architecture
 
 ### 4.1. The Editor Experience (End-User UI/UX)
 *   **Projects System:**
@@ -118,3 +134,4 @@ The following directories in the codebase serve as reference and inspiration:
 -   `tmp-arrowgram-original/`: An earlier version of this project.
 -   `tmp-arrowgram_paged/`: Prototypes for the paged/paper feature.
 -   `reports/QUIVER_INSPIRATION.md`: Detailed analysis of the Quiver architecture.
+-   `reports/PLAN_REVEAL_JS_TEMPLATE.md`: Reveal.js slide template plan (master template + per-paper CSS side-artifact).

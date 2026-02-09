@@ -31,6 +31,7 @@ We employ a **testing pyramid** strategy:
 *   **Tests:** Located in `packages/web/e2e/`.
     *   `visual.spec.ts`: Checks basic rendering (e.g., "does a curved arrow actually curve?").
     *   `styles.spec.ts`: specifically verifies advanced arrow styles (Adjunction, Proarrow, Bullet) by inspecting SVG path attributes.
+    *   `attachments.spec.ts`: exercises OSS IndexedDB “workspace files” (upload/download/delete).
 *   **Running:**
     ```bash
     npm run test:e2e --workspace=packages/web
@@ -50,3 +51,41 @@ We employ a **testing pyramid** strategy:
 *   **New Math Logic:** Add a unit test in `packages/arrowgram`.
 *   **New UI Feature:** Add a component test in `packages/web`.
 *   **New Rendering Style:** Add a case to `packages/web/e2e/styles.spec.ts` to ensure it renders visible SVG elements distinct from default lines.
+
+## 6. LastRevision (SaaS) Validation
+
+LastRevision (`packages/lastrevision`) is validated via **curl smoke** + **Playwright E2E** at the repo root.
+
+For the full “how to run locally / why 401 happens / storage (GCS vs R2) / env files” guide, see:
+
+- `docs/sop/LASTREVISION_LOCAL_DEV.md`
+
+### 6.1 Local
+
+Runs docker Postgres, migrations, curl smoke (incl. AI proxy), and Playwright:
+
+```bash
+scripts/validate_lastrevision_local.sh
+```
+
+### 6.2 Deployed (GitHub Pages + Cloud Run)
+
+Runs Playwright against `https://hotdocx.github.io` and then a Cloud Run backend smoke using the same bearer token (to avoid auth rate limits):
+
+```bash
+CLOUD_RUN_URL=https://<service>.run.app scripts/validate_lastrevision_remote.sh
+```
+
+Note: remote Playwright runs intentionally use low concurrency to reduce flakiness against GitHub Pages + Cloud Run.
+
+Note: some SaaS E2E tests mock the attachment download proxy endpoint to keep the “AI tool → attach file-part → auto-resubmit” flow deterministic and not dependent on external object storage availability.
+
+### 6.3 Smoke script knobs
+
+`scripts/smoke_lastrevision.sh` supports a few environment overrides:
+
+- `SMOKE_ORIGIN=https://hotdocx.github.io` to test true split-origin CORS behavior
+- `SMOKE_TOKEN=<bearer-token>` to skip `sign-up` and reuse an existing token
+- `SMOKE_AI=0` to skip `/api/my/ai/proxy` streaming validation
+
+The smoke script also validates the “workspace files” flow by creating a project attachment via `POST /api/my/attachments`, uploading to the returned presigned URL, and then reading it back via `GET /api/my/uploads/url`.

@@ -23,6 +23,13 @@ const PreviewController = ({ markdown, isTwoColumn }: PreviewControllerProps) =>
         let isMounted = true;
         const processAndRender = async () => {
             let processedText = markdown;
+            const staticDiagrams = new Map<string, string>();
+            let diagramPlaceholderId = 0;
+            const createPlaceholder = (content: string) => {
+                const id = `AGDIAGRAM${diagramPlaceholderId++}AGDIAGRAM`;
+                staticDiagrams.set(id, content);
+                return id;
+            };
 
             // 0. Pre-process Vega-Lite charts directly to SVG strings
             const vegaRegex = /<div class="vega-lite"([^>]*)>([\s\S]*?)<\/div>/g;
@@ -48,9 +55,12 @@ const PreviewController = ({ markdown, isTwoColumn }: PreviewControllerProps) =>
             const mermaidMatches = Array.from(processedText.matchAll(mermaidRegex));
             const mermaidResults = await Promise.all(
                 mermaidMatches.map(async (match, i) => {
+                    const id = `ag-paged-mermaid-${Date.now()}-${i}`;
                     try {
-                        const { svg } = await mermaid.render(`mermaid-svg-${Date.now()}-${i}`, match[2].trim());
-                        return { original: match[0], replacement: `<div class="mermaid-container"${match[1]}>${svg}</div>` };
+                        const { svg } = await mermaid.render(id, match[2].trim());
+                        const fullHtml = `<div class="mermaid-container"${match[1]}>${svg}</div>`;
+                        const placeholder = createPlaceholder(fullHtml);
+                        return { original: match[0], replacement: `<div id="${placeholder}" class="mermaid-placeholder"></div>` };
                     } catch (e) { return { original: match[0], replacement: `<div class="mermaid-error">Diagram Error</div>` }; }
                 })
             );
@@ -59,12 +69,15 @@ const PreviewController = ({ markdown, isTwoColumn }: PreviewControllerProps) =>
             // 2. Pre-process Arrowgram diagrams
             const arrowgramRegex = /<div class="arrowgram"([^>]*)>([\s\S]*?)<\/div>/g;
             const arrowgramMatches = Array.from(processedText.matchAll(arrowgramRegex));
-            const arrowgramResults = arrowgramMatches.map((match) => {
+            const arrowgramResults = arrowgramMatches.map((match, i) => {
+                const id = `ag-paged-arrowgram-${Date.now()}-${i}`;
                 try {
                     const spec = match[2].trim();
                     JSON.parse(spec); // Validate JSON
-                    const svgString = ReactDOMServer.renderToStaticMarkup(<ArrowGramStatic spec={spec} />);
-                    return { original: match[0], replacement: `<div class="arrowgram-container"${match[1]}>${svgString}</div>` };
+                    const svgString = ReactDOMServer.renderToStaticMarkup(<ArrowGramStatic spec={spec} id={id} />);
+                    const fullHtml = `<div class="arrowgram-container"${match[1]}>${svgString}</div>`;
+                    const placeholder = createPlaceholder(fullHtml);
+                    return { original: match[0], replacement: `<div id="${placeholder}" class="arrowgram-placeholder"></div>` };
                 } catch (e: any) {
                     console.error("Arrowgram Error:", e);
                     return { original: match[0], replacement: `<div class="arrowgram-error">Diagram Error: ${e.message}</div>` };
@@ -102,6 +115,22 @@ const PreviewController = ({ markdown, isTwoColumn }: PreviewControllerProps) =>
             // Restore protected LaTeX blocks (so the KaTeX pass can see $$...$$ again).
             for (const [placeholder, originalBlock] of protectedMathBlocks.entries()) {
                 html = html.split(placeholder).join(originalBlock);
+            }
+
+            // Restore diagrams (Arrowgram & Mermaid)
+            for (const [placeholder, originalBlock] of staticDiagrams.entries()) {
+                const needle = `<div id="${placeholder}" class="mermaid-placeholder"></div>`;
+                const needle2 = `<div id="${placeholder}" class="arrowgram-placeholder"></div>`;
+                // Try both, or just check which map it came from?
+                // We reused `staticDiagrams` for both. The ID `AGDIAGRAM...` is in `placeholder`.
+                // The replacement text in processedText was `<div id="AGDIAGRAM..." ...></div>`.
+                // Showdown might have wrapped it or changed attributes order?
+                // Actually, since the ID is unique, we can regex replace based on ID.
+                // Or just use a simpler placeholder text like for math.
+                // But wait, the math placeholders are simple strings. The diagram placeholders are divs.
+                // Let's assume Showdown respects the div.
+                html = html.split(needle).join(originalBlock);
+                html = html.split(needle2).join(originalBlock);
             }
 
             // 5. Process LaTeX math with KaTeX, correctly ignoring code blocks.

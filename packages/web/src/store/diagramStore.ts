@@ -3,6 +3,10 @@ import { temporal } from 'zundo';
 import { NodeSpec, ArrowSpec, DiagramSpec } from '@hotdocx/arrowgram';
 import { formatSpec } from '../utils/specFormatter';
 
+export type SelectionState = {
+    key?: string;
+};
+
 interface DiagramState {
     spec: string;
     filename: string;

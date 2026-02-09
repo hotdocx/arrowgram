@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowGramStatic } from '../ArrowGramStatic';
 import './styles.css';
+import { cleanupEmptyPagedPages } from '../../preview/pagedCleanup';
+import { cssToDataUri, renderMarkdownToHtml } from '../../pipeline/commonMarkdownPipeline';
 
 // --- CONFIGURATION ---
 const generatePageStyles = (metadata: any) => {
@@ -39,9 +41,10 @@ interface PreviewControllerProps {
     markdown: string;
     isTwoColumn: boolean;
     onEditDiagram: (id: string, spec: string) => void;
+    customCss?: string;
 }
 
-export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: PreviewControllerProps) => {
+export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram, customCss }: PreviewControllerProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const pagedInstance = useRef<any>(null);
 
@@ -59,177 +62,33 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
         const processAndRender = async () => {
             if (!containerRef.current) return;
 
-            const [
-                ReactDOMServer,
-                showdownMod,
-                mermaidMod,
-                katexMod,
-                vega,
-                vegaLite,
-                pagedjs,
-            ] = await Promise.all([
-                import('react-dom/server.browser'),
-                import('showdown'),
-                import('mermaid'),
-                import('katex'),
-                // These modules are browser-safe. Keeping them dynamic avoids SSR bundling issues (e.g. node-canvas).
-                // @ts-ignore
-                import('vega'),
-                // @ts-ignore
-                import('vega-lite'),
-                import('pagedjs'),
-            ]);
-
-            const showdown = (showdownMod as any).default ?? showdownMod;
-            const mermaid = (mermaidMod as any).default ?? mermaidMod;
-            const katex = (katexMod as any).default ?? katexMod;
+            const pagedjs = await import('pagedjs');
             const Previewer = (pagedjs as any).Previewer ?? (pagedjs as any).default?.Previewer;
 
-            // 1. Pre-process Vega Lite
-            let processedText = markdown;
-            const vegaRegex = /<div class="vega-lite"([^>]*)>([\s\S]*?)<\/div>/g;
-            const vegaMatches = Array.from(processedText.matchAll(vegaRegex));
-
-            const vegaResults = await Promise.all(
-                vegaMatches.map(async (match) => {
-                    if (!isMounted) return { original: '', replacement: '' };
-                    try {
-                        const spec = JSON.parse(match[2].trim());
-                        const vegaSpec = (vegaLite as any).compile(spec).spec;
-                        const view = new (vega as any).View((vega as any).parse(vegaSpec), { renderer: 'svg' });
-                        const svg = await view.toSVG();
-                        return { original: match[0], replacement: `<div class="vega-container"${match[1]}>${svg}</div>` };
-                    } catch (e: any) {
-                        return { original: match[0], replacement: `<div class="vega-error">Chart Error: ${e.message}</div>` };
-                    }
-                })
-            );
+            const model = await renderMarkdownToHtml(markdown, {
+                idPrefix: `paper-editor-${renderId}`,
+                arrowgrams: { mode: "static+hydrate" },
+            });
 
             // Check staleness after async work
             // @ts-ignore
             if (!isMounted || containerRef.current._latestRenderId !== renderId) return;
 
-            for (const result of vegaResults) {
-                if (result.original) processedText = processedText.replace(result.original, result.replacement);
-            }
+            const pageStylesCss = generatePageStyles(model.metadata);
 
-            // 2. Pre-process Mermaid
-            (mermaid as any).initialize({ startOnLoad: false, theme: 'base' });
-            const mermaidRegex = /<div class="mermaid"([^>]*)>([\s\S]*?)<\/div>/g;
-            const mermaidMatches = Array.from(processedText.matchAll(mermaidRegex));
-            const mermaidResults = await Promise.all(
-                mermaidMatches.map(async (match, i) => {
-                    if (!isMounted) return { original: '', replacement: '' };
-                    try {
-                        const { svg } = await (mermaid as any).render(`mermaid-svg-${Date.now()}-${i}`, match[2].trim());
-                        return { original: match[0], replacement: `<div class="mermaid-container"${match[1]}>${svg}</div>` };
-                    } catch (e) { return { original: match[0], replacement: `<div class="mermaid-error">Diagram Error</div>` }; }
-                })
-            );
+            const escapeHtml = (input: unknown) =>
+                String(input ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
 
-            // Check staleness after async work
-            // @ts-ignore
-            if (!isMounted || containerRef.current._latestRenderId !== renderId) return;
-
-            for (const result of mermaidResults) {
-                if (result.original) processedText = processedText.replace(result.original, result.replacement);
-            }
-
-            // 3. Pre-process ArrowGram Placeholders
-            const arrowgramRegex = /<div class="arrowgram"([^>]*)>([\s\S]*?)<\/div>/g;
-            const arrowgrams: { id: string, spec: string }[] = [];
-            let agCounter = 0;
-
-            processedText = processedText.replace(arrowgramRegex, (match, attrs, content) => {
-                const id = `arrowgram-hydrate-${Date.now()}-${agCounter++}`;
-                const spec = content.trim();
-                arrowgrams.push({ id, spec });
-
-                try {
-                    // Render the static SVG markup to ensure Paged.js sees the correct dimensions.
-                    // onEdit is undefined here, so no button, but sizing is correct.
-                    const staticHtml = (ReactDOMServer as any).renderToStaticMarkup(
-                        <ArrowGramStatic spec={spec} />
-                    );
-                    return `<div id="${id}" class="arrowgram-hydrate-target">${staticHtml}</div>`;
-                } catch (e: any) {
-                    console.error("Static Render Error:", e);
-                    return `<div id="${id}" class="arrowgram-hydrate-target" style="min-height: 100px; border: 1px solid red;">Error rendering diagram</div>`;
-                }
-            });
-
-            // 4. Protect raw LaTeX blocks from the Markdown parser.
-            // Showdown may interpret underscores inside `$...$` / `$$...$$` as emphasis, producing `<em>` tags
-            // and breaking KaTeX input. We replace math blocks with placeholders before Markdown,
-            // then restore them right after conversion.
-            const protectedMathBlocks = new Map<string, string>();
-            let mathPlaceholderId = 0;
-            const protectMath = (block: string) => {
-                // Avoid `_` in placeholders: Markdown may interpret underscores as emphasis and mutate them.
-                const placeholder = `AGPROTMATH${mathPlaceholderId++}AGPROT`;
-                protectedMathBlocks.set(placeholder, block);
-                return placeholder;
-            };
-
-            // Protect display math first (can span lines).
-            processedText = processedText.replace(/\$\$[\s\S]+?\$\$/g, protectMath);
-            // Protect inline math (keep it on one line, avoid $$...$$).
-            processedText = processedText.replace(/\$(?!\$)(?:\\.|[^$\\\n])+\$/g, protectMath);
-
-            // 5. Markdown -> HTML
-            const converter = new (showdown as any).Converter({
-                metadata: true,
-                noHeaderId: true,
-                literalMidWordUnderscores: true
-            });
-            let html = converter.makeHtml(processedText);
-            const metadata = converter.getMetadata() as any;
-
-            const pageStylesCss = generatePageStyles(metadata);
-
-            // Restore protected LaTeX blocks (so the KaTeX pass can see $$...$$ again).
-            for (const [placeholder, originalBlock] of protectedMathBlocks.entries()) {
-                html = html.split(placeholder).join(originalBlock);
-            }
-
-            // 6. Katex
-            const protectedBlocks = new Map();
-            html = html.replace(/<(pre|code)[^>]*>[\s\S]*?<\/\1>/g, (match: string) => {
-                const placeholder = `%%PROTECTED_BLOCK_${protectedBlocks.size}%%`;
-                protectedBlocks.set(placeholder, match);
-                return placeholder;
-            });
-
-            // Process LaTeX math on the "unprotected" HTML.
-            // Display mode: $$...$$
-            html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_match, latex) => {
-                const cleaned = latex
-                    .trim()
-                    .replace(/\\\\([A-Za-z_])/g, '\\$1')
-                    .replace(/\\\\([,;:.!])/g, '\\$1');
-                try {
-                    return `<span class="katex-display">${(katex as any).renderToString(cleaned, { displayMode: true, throwOnError: false })}</span>`;
-                } catch (e: any) { return `<span class="katex-error">${e.message}</span>`; }
-            });
-            // Inline mode: $...$ (non-greedy)
-            html = html.replace(/\$([^$]+?)\$/g, (_match, latex) => {
-                const cleaned = latex
-                    .trim()
-                    .replace(/\\\\([A-Za-z_])/g, '\\$1')
-                    .replace(/\\\\([,;:.!])/g, '\\$1');
-                try {
-                    return (katex as any).renderToString(cleaned, { displayMode: false, throwOnError: false });
-                } catch (e: any) { return `<span class="katex-error">${e.message}</span>`; }
-            });
-
-            for (const [placeholder, originalBlock] of protectedBlocks.entries()) {
-                html = html.replace(placeholder, originalBlock);
-            }
-
-            // 6. Final Layout Wrapper
-            const titleBlockHtml = `<div class="title-block">${metadata.title ? `<div class="title">${metadata.title}</div>` : ''}${metadata.authors ? `<div class="authors">${metadata.authors}</div>` : ''}</div>`;
+            const titleBlockHtml = `<div class="title-block">${model.metadata.title ? `<div class="title">${escapeHtml(model.metadata.title)}</div>` : ''}${model.metadata.authors ? `<div class="authors">${escapeHtml(model.metadata.authors)}</div>` : ''}</div>`;
             const layoutClass = isTwoColumn ? 'layout-two-column' : 'layout-single-column';
-            const finalHtml = `<div class="${layoutClass}">${titleBlockHtml}<div class="paper-body">${html}</div></div>`;
+            // `model.html` is already sanitized by the pipeline; don't re-sanitize here or we risk
+            // stripping Arrowgram's KaTeX label HTML inside SVG <foreignObject>.
+            const finalHtml = `<div class="${layoutClass}">${titleBlockHtml}<div class="paper-body">${model.html}</div></div>`;
 
             // 7. Render with Paged.js
             if (containerRef.current) {
@@ -241,12 +100,13 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
 
                 const stylesheets = [];
                 if (pageStylesCss) {
-                    const base64Css = btoa(unescape(encodeURIComponent(pageStylesCss)));
-                    const dataUri = `data:text/css;base64,${base64Css}`;
-                    stylesheets.push(dataUri);
+                    stylesheets.push(cssToDataUri(pageStylesCss));
                 }
                 const katexCss = document.querySelector('link[href*="katex"]')?.getAttribute('href') || "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css";
                 stylesheets.push(katexCss);
+                if (customCss && customCss.trim()) {
+                    stylesheets.push(cssToDataUri(customCss));
+                }
 
                 const paged = new (Previewer as any)();
                 pagedInstance.current = paged;
@@ -256,8 +116,12 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram }: Prev
                     // @ts-ignore
                     if (!isMounted || containerRef.current._latestRenderId !== renderId) return;
 
+                    if (containerRef.current) {
+                        cleanupEmptyPagedPages(containerRef.current);
+                    }
+
                     // 8. Hydrate ArrowGram Components
-                    arrowgrams.forEach(({ id, spec }) => {
+                    model.arrowgrams.forEach(({ id, spec }) => {
                         const el = containerRef.current?.querySelector(`#${id}`);
                         if (el) {
                             const root = createRoot(el);

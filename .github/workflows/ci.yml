@@ -32,16 +32,11 @@ jobs:
           echo "present=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
-
-        present="$(node --input-type=module -e '
-          import fs from "node:fs";
-          const root = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const ws = Array.isArray(root.workspaces) ? root.workspaces : (root.workspaces?.packages ?? []);
-          const inWs = ws.includes("packages/*") || ws.includes("packages/lastrevision");
-          process.stdout.write(inWs ? "true" : "false");
-        ')"
-
-        echo "present=${present}" >> "$GITHUB_OUTPUT"
+        if npm pkg get name --workspace=packages/lastrevision >/dev/null 2>&1; then
+          echo "present=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "present=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Ensure No Nested Git Repos
       run: |

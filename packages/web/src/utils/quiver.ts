@@ -76,15 +76,17 @@ const AG_TO_QUIVER_BODY: Record<string, string> = {
 
 // Reverse Mapping (Quiver -> AG)
 // We stringify the array to use as a key
-function mapQuiverHeadToAG(headStack: string[]): { name: string, side?: "top" | "bottom" } {
+function mapQuiverHeadToAG(
+  headStack: string[]
+): { name: "none" | "normal" | "epi" | "hook" | "maps_to" | "harpoon"; side?: "top" | "bottom" } {
   if (typeof headStack === "undefined") return { name: "normal" }; // Default is Arrow
   if (headStack.length === 0) return { name: "none" }; // Explicitly None
   const json = JSON.stringify(headStack);
   if (json === '["epi"]') return { name: "normal" };
   if (json === '["epi","epi"]') return { name: "epi" };
-  if (json === '["mono"]') return { name: "mono" };
+  if (json === '["mono"]') return { name: "normal" };
   if (json === '["maps to"]') return { name: "maps_to" };
-  if (json === '["corner"]') return { name: "corner" }; // Usually handled via mode, but good fallback
+  if (json === '["corner"]') return { name: "normal" }; // Mode handles corners, not head style
 
   // Complex cases
   const first = headStack[0];
@@ -97,7 +99,9 @@ function mapQuiverHeadToAG(headStack: string[]): { name: string, side?: "top" | 
   return { name: "normal" }; // Fallback
 }
 
-function mapQuiverTailToAG(tailStack: string[]): { name: string, side?: "top" | "bottom" } {
+function mapQuiverTailToAG(
+  tailStack: string[]
+): { name: "none" | "normal" | "hook" | "maps_to" | "mono"; side?: "top" | "bottom" } {
   if (!tailStack || tailStack.length === 0) return { name: "none" };
   const json = JSON.stringify(tailStack);
   if (json === '["mono"]') return { name: "mono" };

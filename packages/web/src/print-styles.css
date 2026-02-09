@@ -110,6 +110,10 @@ body {
   padding-top: 70px;
 }
 
+.preview-container.no-controls .preview-content-area {
+  padding-top: 0;
+}
+
 .loading-indicator {
   font-size: 1.2em;
   text-align: center;
@@ -382,6 +386,13 @@ body {
   .pagedjs_page {
     box-shadow: none;
     margin: 0;
+  }
+
+  /* Avoid an extra trailing blank page in some browsers */
+  .pagedjs_page:last-child,
+  .pagedjs_page:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 }
 

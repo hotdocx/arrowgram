@@ -110,6 +110,10 @@ body {
   padding-top: 70px;
 }
 
+.preview-container.no-controls .preview-content-area {
+  padding-top: 0;
+}
+
 .loading-indicator {
   font-size: 1.2em;
   text-align: center;

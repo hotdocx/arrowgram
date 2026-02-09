@@ -103,7 +103,26 @@ function mapSpecToStyle(spec: ArrowSpec, isLoop: boolean): ArrowStyle {
     return style;
 }
 
-export function computeDiagram(specInput: string | DiagramSpec): ComputedDiagram {
+export function estimateLabelVisualLength(label: string): number {
+    if (!label) return 0;
+    
+    // Heuristic for LaTeX labels: count "atoms" rather than characters
+    if (label.startsWith('$') && label.endsWith('$')) {
+        let content = label.slice(1, -1);
+        
+        // Replace commands (e.g. \alpha) with a single character placeholder
+        content = content.replace(/\\[a-zA-Z]+/g, 'C'); 
+        
+        // Remove LaTeX syntax characters (_, ^, {, })
+        content = content.replace(/[_^{}]/g, '');
+        
+        return content.length;
+    }
+    
+    return label.length;
+}
+
+export function computeDiagram(specInput: string | DiagramSpec, idPrefix: string = ""): ComputedDiagram {
     try {
         const rawSpec: DiagramSpec = typeof specInput === 'string' ? JSON.parse(specInput) : specInput;
         const spec = DiagramSpecSchema.parse({ ...rawSpec, version: rawSpec.version || 1 });
@@ -160,11 +179,12 @@ export function computeDiagram(specInput: string | DiagramSpec): ComputedDiagram
                         : CONSTANTS.LABEL_ALIGNMENT.CENTRE;
 
                     // Heuristic for label size: ~12px per char + extra padding
-                    const labelLen = (arrowSpec.label || "").length;
+                    const labelLen = estimateLabelVisualLength(arrowSpec.label || "");
                     const boxWidth = labelLen > 0 ? Math.max(30, labelLen * 10 + 20) : 0;
                     const boxHeight = labelLen > 0 ? 24 : 0;
 
-                    const arrowObj = new Arrow(sourceShape, targetShape, style, { text: arrowSpec.label || "", color: arrowSpec.label_color, alignment: labelAlignment, size: new Dimensions(boxWidth, boxHeight) } as any, uniqueId);
+                    const domId = idPrefix ? `${idPrefix}-${uniqueId}` : uniqueId;
+                    const arrowObj = new Arrow(sourceShape, targetShape, style, { text: arrowSpec.label || "", color: arrowSpec.label_color, alignment: labelAlignment, size: new Dimensions(boxWidth, boxHeight) } as any, domId);
 
                     const computed = arrowObj.compute();
 

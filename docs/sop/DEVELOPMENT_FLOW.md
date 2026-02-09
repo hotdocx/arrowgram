@@ -17,6 +17,7 @@ npm install
 ### 2.2. Directory Structure
 *   `packages/arrowgram`: The core library (math, rendering, schema).
 *   `packages/web`: The web application (UI, state, persistence).
+*   `packages/lastrevision`: The private SaaS host/runtime (TanStack Start + Postgres + Better Auth).
 *   `docs/`: Documentation and SOPs.
 *   `reports/`: Analysis reports (e.g., gap analysis).
 
@@ -28,6 +29,15 @@ To develop the web application with hot-reloading:
 npm run dev
 ```
 This starts the Vite server (usually at `http://localhost:5173`).
+
+To develop the SaaS app locally (private repo only):
+
+```bash
+npm run dev -w packages/lastrevision
+```
+
+This starts the TanStack Start dev server at `http://localhost:3000`.
+See `docs/sop/LASTREVISION_LOCAL_DEV.md` for bearer-token auth and local validation scripts.
 
 ### 3.2. Making Changes
 1.  **Identify the Scope:** Determine if the change belongs in `core` (rendering logic, math) or `web` (UI, interaction).
@@ -73,3 +83,4 @@ This builds both workspaces.
 ## 6. Reference Material
 *   See `docs/sop/ARCHITECTURE.md` for system design.
 *   See `docs/sop/TESTING.md` for detailed testing strategies.
+*   See `docs/sop/LASTREVISION_LOCAL_DEV.md` for SaaS local dev/testing/storage.

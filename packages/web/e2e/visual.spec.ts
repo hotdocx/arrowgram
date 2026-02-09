@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Helper to encode spec for URL
 function encodeSpec(spec: object): string {
   const str = JSON.stringify(spec);
-  return Buffer.from(str).toString('base64');
+  return Buffer.from(str).toString('base64url');
 }
 
 test('renders curved arrow correctly', async ({ page }) => {

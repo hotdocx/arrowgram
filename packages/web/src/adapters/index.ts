@@ -1,2 +1,3 @@
 export * from './lastrevisionPapers';
-export * from './lastrevisionProjectStorage';
+export * from './lastrevisionProjectRepository';
+export * from "./lastrevisionAttachmentRepository";

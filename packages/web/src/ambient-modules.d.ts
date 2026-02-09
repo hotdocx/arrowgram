@@ -1,0 +1,2 @@
+declare module "reveal.js";
+
