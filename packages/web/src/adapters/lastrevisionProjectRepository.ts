@@ -44,37 +44,50 @@ function decodeId(id: string): RemoteId {
 export function createLastRevisionProjectRepository(params: {
   apiBaseUrl: string;
   getToken: () => string;
+  onUnauthorized?: () => void;
 }): ProjectRepository {
   const base = params.apiBaseUrl.replace(/\/+$/, "");
+
+  const toApiError = (message: string, status: number) => {
+    const err = new Error(`${message} (${status})`) as Error & { status?: number };
+    err.status = status;
+    return err;
+  };
 
   const authedFetch = async (path: string, init?: RequestInit) => {
     const token = params.getToken();
     const headers = new Headers(init?.headers);
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    return await fetch(`${base}${path}`, { ...init, headers });
+    const res = await fetch(`${base}${path}`, {
+      ...init,
+      headers,
+      credentials: "omit",
+    });
+    if (res.status === 401) params.onUnauthorized?.();
+    return res;
   };
 
   const listPapers = async (): Promise<PaperDto[]> => {
     const res = await authedFetch("/api/my/papers", { method: "GET" });
-    if (!res.ok) throw new Error(`Failed to list papers (${res.status})`);
+    if (!res.ok) throw toApiError("Failed to list papers", res.status);
     return (await res.json()) as PaperDto[];
   };
 
   const listDiagrams = async (): Promise<DiagramDto[]> => {
     const res = await authedFetch("/api/my/diagrams", { method: "GET" });
-    if (!res.ok) throw new Error(`Failed to list diagrams (${res.status})`);
+    if (!res.ok) throw toApiError("Failed to list diagrams", res.status);
     return (await res.json()) as DiagramDto[];
   };
 
   const getPaper = async (paperId: string): Promise<PaperDto> => {
     const res = await authedFetch(`/api/my/papers/${paperId}`, { method: "GET" });
-    if (!res.ok) throw new Error(`Failed to load paper (${res.status})`);
+    if (!res.ok) throw toApiError("Failed to load paper", res.status);
     return (await res.json()) as PaperDto;
   };
 
   const getDiagram = async (diagramId: string): Promise<DiagramDto> => {
     const res = await authedFetch(`/api/my/diagrams/${diagramId}`, { method: "GET" });
-    if (!res.ok) throw new Error(`Failed to load diagram (${res.status})`);
+    if (!res.ok) throw toApiError("Failed to load diagram", res.status);
     return (await res.json()) as DiagramDto;
   };
 
@@ -172,7 +185,7 @@ export function createLastRevisionProjectRepository(params: {
             isPublic: false,
           }),
         });
-        if (!res.ok) throw new Error(`Failed to create paper (${res.status})`);
+        if (!res.ok) throw toApiError("Failed to create paper", res.status);
         const created = (await res.json()) as PaperDto;
         return toProject("paper", created);
       }
@@ -186,7 +199,7 @@ export function createLastRevisionProjectRepository(params: {
           isPublic: false,
         }),
       });
-      if (!res.ok) throw new Error(`Failed to create diagram (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to create diagram", res.status);
       const created = (await res.json()) as DiagramDto;
       return toProject("diagram", created);
     },
@@ -212,7 +225,7 @@ export function createLastRevisionProjectRepository(params: {
             isPublic: input.isPublic,
           }),
         });
-        if (!res.ok) throw new Error(`Failed to update paper (${res.status})`);
+        if (!res.ok) throw toApiError("Failed to update paper", res.status);
         const updated = (await res.json()) as PaperDto;
         return toProject("paper", updated);
       }
@@ -226,7 +239,7 @@ export function createLastRevisionProjectRepository(params: {
           isPublic: input.isPublic,
         }),
       });
-      if (!res.ok) throw new Error(`Failed to update diagram (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to update diagram", res.status);
       const updated = (await res.json()) as DiagramDto;
       return toProject("diagram", updated);
     },
@@ -236,7 +249,7 @@ export function createLastRevisionProjectRepository(params: {
       const path =
         type === "paper" ? `/api/my/papers/${remoteId}` : `/api/my/diagrams/${remoteId}`;
       const res = await authedFetch(path, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Failed to delete project (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to delete project", res.status);
     },
 
     getPublicUrl,
@@ -269,7 +282,7 @@ export function createLastRevisionProjectRepository(params: {
         }),
       });
       
-      if (!presignRes.ok) throw new Error("Failed to get upload URL");
+      if (!presignRes.ok) throw toApiError("Failed to get upload URL", presignRes.status);
       const { uploadUrl, storageKey } = await presignRes.json();
 
       // 2. Upload screenshot
@@ -298,7 +311,7 @@ export function createLastRevisionProjectRepository(params: {
         }),
       });
 
-      if (!entryRes.ok) throw new Error("Failed to publish");
+      if (!entryRes.ok) throw toApiError("Failed to publish", entryRes.status);
       return (await entryRes.json()) as {
         publicationId: string;
         postId: string;

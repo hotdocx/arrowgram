@@ -2,6 +2,7 @@ import { svgAsPngUri } from 'save-svg-as-png';
 import { toBlob } from 'html-to-image';
 // @ts-ignore
 import katexCss from 'katex/dist/katex.min.css?inline';
+import type { PaperRenderTemplate } from './projectRepository';
 
 const CDN_FONTS_URL = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/fonts/";
 
@@ -56,22 +57,122 @@ export async function captureDiagramScreenshot(svgElement: SVGElement, filename:
   return new Blob([ab], { type: 'image/png' });
 }
 
-export async function capturePaperScreenshot(element: HTMLElement): Promise<Blob> {
-    // For Paper, we also want to ensure fonts load. 
-    // html-to-image allows embedding font CSS.
-    
-    const blob = await toBlob(element, {
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-        fontEmbedCSS: getFixedKatexCss(), // Inject valid font paths
-        // Filter out the problematic local font requests if possible?
-        // html-to-image doesn't have a direct "exclude original CSS" but 'fontEmbedCSS' helps.
-        // We can also try to suppress errors.
-    });
-    
-    if (!blob) {
-        throw new Error("Failed to capture screenshot");
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function findSnapshotTarget(
+  root: HTMLElement,
+  renderTemplate: PaperRenderTemplate,
+  timeoutMs = 2500
+): Promise<HTMLElement> {
+  const started = Date.now();
+  while (Date.now() - started <= timeoutMs) {
+    if (renderTemplate === "paged") {
+      const firstPage = root.querySelector<HTMLElement>(".pagedjs_page");
+      if (firstPage) return firstPage;
+    } else {
+      const revealRoot = root.querySelector<HTMLElement>(".reveal");
+      const firstSlide = revealRoot?.querySelector<HTMLElement>(".slides > section");
+      if (revealRoot && firstSlide) return revealRoot;
     }
-    
-    return blob;
+    await sleep(50);
+  }
+
+  throw new Error("Snapshot target not ready");
+}
+
+async function captureElementToBlob(element: HTMLElement): Promise<Blob> {
+  const blob = await toBlob(element, {
+    backgroundColor: "#ffffff",
+    cacheBust: true,
+    fontEmbedCSS: getFixedKatexCss(), // Inject valid font paths
+  });
+
+  if (!blob) {
+    throw new Error("Failed to capture screenshot");
+  }
+
+  return blob;
+}
+
+function createRevealFirstSlideSnapshot(
+  revealRoot: HTMLElement
+): { node: HTMLElement; cleanup: () => void } {
+  const firstSlide = revealRoot.querySelector<HTMLElement>(".slides > section");
+  if (!firstSlide) throw new Error("Snapshot target not ready");
+
+  const width = Math.max(1, Math.round(revealRoot.getBoundingClientRect().width || 960));
+  const height = Math.max(1, Math.round(revealRoot.getBoundingClientRect().height || 700));
+
+  const mount = document.createElement("div");
+  mount.style.position = "fixed";
+  mount.style.left = "-100000px";
+  mount.style.top = "0";
+  mount.style.width = `${width}px`;
+  mount.style.height = `${height}px`;
+  mount.style.opacity = "0";
+  mount.style.pointerEvents = "none";
+  mount.style.overflow = "hidden";
+
+  const scopedRoot = revealRoot.parentElement;
+  const scopedClone = (scopedRoot?.cloneNode(false) as HTMLElement | undefined) ?? document.createElement("div");
+  scopedClone.style.width = `${width}px`;
+  scopedClone.style.height = `${height}px`;
+  scopedClone.style.overflow = "hidden";
+
+  const revealClone = revealRoot.cloneNode(false) as HTMLElement;
+  revealClone.style.width = "100%";
+  revealClone.style.height = "100%";
+  revealClone.style.minHeight = "0";
+  revealClone.style.overflow = "hidden";
+
+  const slidesClone = document.createElement("div");
+  slidesClone.className = "slides";
+  slidesClone.style.width = "100%";
+  slidesClone.style.height = "100%";
+
+  const firstSlideClone = firstSlide.cloneNode(true) as HTMLElement;
+  firstSlideClone.classList.add("present");
+  firstSlideClone.classList.remove("past", "future");
+  firstSlideClone.removeAttribute("hidden");
+  firstSlideClone.removeAttribute("aria-hidden");
+  firstSlideClone.style.display = "block";
+  firstSlideClone.style.visibility = "visible";
+  firstSlideClone.style.opacity = "1";
+  firstSlideClone.style.transform = "none";
+  firstSlideClone.style.position = "absolute";
+  firstSlideClone.style.inset = "0";
+  firstSlideClone.style.width = "100%";
+  firstSlideClone.style.height = "100%";
+
+  slidesClone.appendChild(firstSlideClone);
+  revealClone.appendChild(slidesClone);
+  scopedClone.appendChild(revealClone);
+  mount.appendChild(scopedClone);
+  document.body.appendChild(mount);
+
+  return {
+    node: scopedClone,
+    cleanup: () => {
+      mount.remove();
+    },
+  };
+}
+
+export async function capturePaperScreenshot(
+  root: HTMLElement,
+  renderTemplate: PaperRenderTemplate
+): Promise<Blob> {
+  const target = await findSnapshotTarget(root, renderTemplate);
+  if (renderTemplate === "reveal") {
+    const snapshot = createRevealFirstSlideSnapshot(target);
+    try {
+      return await captureElementToBlob(snapshot.node);
+    } finally {
+      snapshot.cleanup();
+    }
+  }
+
+  return await captureElementToBlob(target);
 }

@@ -16,7 +16,11 @@ import { z } from "zod";
 import { diffLines } from "diff";
 import { useDiagramStore } from "../store/diagramStore";
 import { useToast } from "../context/ToastContext";
-import { useSettingsStore } from "../store/settingsStore";
+import {
+  OSS_GEMINI_MODELS,
+  resolveGeminiModelId,
+  useSettingsStore,
+} from "../store/settingsStore";
 import { DIAGRAM_SYSTEM_PROMPT, PAPER_SYSTEM_PROMPT } from "../services/prompts";
 import { tools as sharedTools } from "../ai/tools";
 import { useAttachmentRepository } from "../context/AttachmentRepositoryContext";
@@ -255,9 +259,10 @@ function savePersistedModel(projectId: string | undefined, modelId: string) {
 }
 
 export function AIChatPanel({ context, onBusyChange }: AIChatPanelProps) {
-  const { apiKey } = useSettingsStore();
+  const { apiKey, geminiModelId, setGeminiModelId } = useSettingsStore();
   const { addToast } = useToast();
   const attachmentRepo = useAttachmentRepository();
+  const selectedGeminiModelId = resolveGeminiModelId(geminiModelId);
 
   const storeSpec = useDiagramStore((state) => state.spec);
   const setStoreSpec = useDiagramStore((state) => state.setSpec);
@@ -539,7 +544,7 @@ export function AIChatPanel({ context, onBusyChange }: AIChatPanelProps) {
         const modelMessages = await convertToModelMessages(injectedMessages);
         const google = createGoogleGenerativeAI({ apiKey });
         const result = streamText({
-          model: google("gemini-3-pro-preview"),
+          model: google(selectedGeminiModelId),
           system,
           messages: modelMessages,
           tools: sharedTools,
@@ -550,7 +555,15 @@ export function AIChatPanel({ context, onBusyChange }: AIChatPanelProps) {
       },
       reconnectToStream: async () => null,
     };
-  }, [apiBaseUrl, apiKey, buildMessagesForRequest, isSaas, selectedModelId, system]);
+  }, [
+    apiBaseUrl,
+    apiKey,
+    buildMessagesForRequest,
+    isSaas,
+    selectedGeminiModelId,
+    selectedModelId,
+    system,
+  ]);
 
   const { messages, setMessages, sendMessage, addToolOutput, status } = useChat({
     id: chatId,
@@ -1073,7 +1086,26 @@ export function AIChatPanel({ context, onBusyChange }: AIChatPanelProps) {
               {usageToday ? `${usageToday.used}/${usageToday.limit} today` : "Usage --/--"}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="mb-2 flex items-center gap-2">
+            <select
+              className="flex-1 border rounded-md px-2 py-1.5 text-xs bg-white"
+              value={selectedGeminiModelId}
+              onChange={(e) => setGeminiModelId(e.target.value)}
+              disabled={showBusy}
+              title="Gemini model"
+            >
+              {OSS_GEMINI_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+            <div className="text-[11px] text-gray-600 whitespace-nowrap" title="Bring your own key">
+              BYOK
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2 mb-2">
           <label className="flex items-center gap-2 text-xs text-gray-600 select-none">
             <input

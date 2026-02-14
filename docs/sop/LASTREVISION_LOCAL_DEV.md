@@ -33,6 +33,7 @@ Most LastRevision “my” endpoints are protected:
 LastRevision intentionally uses **bearer token auth** (not cookies) so split hosting works reliably.
 
 - The client stores the bearer token in `localStorage` under key `hotdocx_bearer_token`.
+- Token persistence accepts both auth response header (`set-auth-token`) and JSON token payloads.
 - Requests include `Authorization: Bearer <token>`.
 - If `hotdocx_bearer_token` is missing/empty/invalid, the backend returns `401 Unauthorized`.
 
@@ -45,6 +46,7 @@ If you reset the dev DB or change `BETTER_AUTH_SECRET`, any existing token in `l
 Fix:
 - Delete `hotdocx_bearer_token` from browser localStorage.
 - Re-run `/sign-in` or `/sign-up`.
+- Confirm `hotdocx_bearer_token` is recreated before testing `/dashboard/editor`.
 
 ---
 

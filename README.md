@@ -2,6 +2,10 @@
 
 **Arrowgram** is a production-grade toolkit for creating commutative diagrams for the web and research papers. It is designed to be easily used by humans (via a sleek web editor) and AI coding agents (via a strictly typed JSON API).
 
+**Try it now at: [https://hotdocx.github.io/arrowgram](https://hotdocx.github.io/arrowgram)**
+
+**And its LastRevision version: [https://hotdocx.github.io](https://hotdocx.github.io)**
+
 ![Arrowgram Screenshot](packages/web/arrowgram.png)
 
 ## Key Features
@@ -38,9 +42,20 @@ This is a monorepo managed by NPM Workspaces.
 
 ### Installation
 
+**Public OSS clone (default):**
+
 ```bash
 git clone https://github.com/hotdocx/arrowgram.git
 cd arrowgram
+npm install
+```
+
+**Private super-repo clone (internal maintainers):**
+
+```bash
+git clone https://github.com/hotdocx/arrowgram-super.git arrowgram
+cd arrowgram
+git remote add public https://github.com/hotdocx/arrowgram.git
 npm install
 ```
 
@@ -77,6 +92,22 @@ npm test --workspace=packages/web
 ```bash
 npm run build
 ```
+
+## Private -> Public Release Flow
+
+When working in the private super-repo:
+
+1. Push private source of truth:
+   - `git push origin main`
+2. Export allowlisted OSS subset and sync public repo:
+   - `scripts/sync_public_oss.sh`
+3. Deploy OSS site to public `gh-pages`:
+   - `scripts/deploy_arrowgram_pages.sh`
+
+Safety:
+- `scripts/export_oss.sh` is allowlist-based and excludes `packages/lastrevision/**`.
+- Never push private code directly to `https://github.com/hotdocx/arrowgram`.
+- See `docs/sop/OSS_MIRRORING.md` for the full SOP.
 
 ## For AI Agents
 

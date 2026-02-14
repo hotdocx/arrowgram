@@ -40,15 +40,28 @@ function toAttachment(projectId: string, dto: AttachmentDto): Attachment {
 export function createLastRevisionAttachmentRepository(params: {
   apiBaseUrl: string;
   getToken: () => string;
+  onUnauthorized?: () => void;
 }): AttachmentRepository {
   const base = params.apiBaseUrl.replace(/\/+$/, "");
   const cache = new Map<string, Attachment>();
+
+  const toApiError = (message: string, status: number) => {
+    const err = new Error(`${message} (${status})`) as Error & { status?: number };
+    err.status = status;
+    return err;
+  };
 
   const authedFetch = async (path: string, init?: RequestInit) => {
     const token = params.getToken();
     const headers = new Headers(init?.headers);
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    return await fetch(`${base}${path}`, { ...init, headers });
+    const res = await fetch(`${base}${path}`, {
+      ...init,
+      headers,
+      credentials: "omit",
+    });
+    if (res.status === 401) params.onUnauthorized?.();
+    return res;
   };
 
   const repo: AttachmentRepository = {
@@ -62,7 +75,7 @@ export function createLastRevisionAttachmentRepository(params: {
         )}`,
         { method: "GET" }
       );
-      if (!res.ok) throw new Error(`Failed to list attachments (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to list attachments", res.status);
       const items = (await res.json()) as AttachmentDto[];
       const attachments = items.map((dto) => toAttachment(projectId, dto));
       for (const a of attachments) cache.set(a.id, a);
@@ -84,7 +97,7 @@ export function createLastRevisionAttachmentRepository(params: {
           sizeBytes: file.size,
         }),
       });
-      if (!res.ok) throw new Error(`Failed to presign attachment (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to presign attachment", res.status);
       const json = (await res.json()) as { uploadUrl: string; attachment: AttachmentDto };
       const attachment = toAttachment(projectId, json.attachment);
       cache.set(attachment.id, attachment);
@@ -112,7 +125,7 @@ export function createLastRevisionAttachmentRepository(params: {
           }
         );
         if (!proxyRes.ok) {
-          throw new Error(`Upload failed (${proxyRes.status})`);
+          throw toApiError("Upload failed", proxyRes.status);
         }
         return attachment;
       } catch (e) {
@@ -129,7 +142,7 @@ export function createLastRevisionAttachmentRepository(params: {
       const res = await authedFetch(`/api/my/attachments/${attachmentId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`Failed to delete attachment (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to delete attachment", res.status);
       cache.delete(attachmentId);
     },
 
@@ -158,7 +171,7 @@ export function createLastRevisionAttachmentRepository(params: {
         `/api/my/uploads/url?key=${encodeURIComponent(meta.storageKey)}`,
         { method: "GET" }
       );
-      if (!urlRes.ok) throw new Error(`Failed to get attachment URL (${urlRes.status})`);
+      if (!urlRes.ok) throw toApiError("Failed to get attachment URL", urlRes.status);
       const { url } = (await urlRes.json()) as { url: string };
       const blobRes = await fetch(url);
       if (!blobRes.ok) throw new Error(`Failed to download attachment (${blobRes.status})`);

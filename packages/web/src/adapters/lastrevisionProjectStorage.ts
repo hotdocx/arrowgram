@@ -21,25 +21,38 @@ type DiagramDto = {
 export function createLastRevisionProjectStorage(params: {
   apiBaseUrl: string;
   getToken: () => string;
+  onUnauthorized?: () => void;
 }): ProjectStorage {
   const base = params.apiBaseUrl.replace(/\/+$/, "");
+
+  const toApiError = (message: string, status: number) => {
+    const err = new Error(`${message} (${status})`) as Error & { status?: number };
+    err.status = status;
+    return err;
+  };
 
   const authedFetch = async (path: string, init?: RequestInit) => {
     const token = params.getToken();
     const headers = new Headers(init?.headers);
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    return await fetch(`${base}${path}`, { ...init, headers });
+    const res = await fetch(`${base}${path}`, {
+      ...init,
+      headers,
+      credentials: "omit",
+    });
+    if (res.status === 401) params.onUnauthorized?.();
+    return res;
   };
 
   const listPapers = async (): Promise<PaperDto[]> => {
     const res = await authedFetch("/api/my/papers", { method: "GET" });
-    if (!res.ok) throw new Error(`Failed to list papers (${res.status})`);
+    if (!res.ok) throw toApiError("Failed to list papers", res.status);
     return (await res.json()) as PaperDto[];
   };
 
   const listDiagrams = async (): Promise<DiagramDto[]> => {
     const res = await authedFetch("/api/my/diagrams", { method: "GET" });
-    if (!res.ok) throw new Error(`Failed to list diagrams (${res.status})`);
+    if (!res.ok) throw toApiError("Failed to list diagrams", res.status);
     return (await res.json()) as DiagramDto[];
   };
 
@@ -110,7 +123,7 @@ export function createLastRevisionProjectStorage(params: {
         const res = await authedFetch(`/api/my/papers/${paper.item.id}`, {
           method: "DELETE",
         });
-        if (!res.ok) throw new Error(`Failed to delete paper (${res.status})`);
+        if (!res.ok) throw toApiError("Failed to delete paper", res.status);
         return;
       }
       const diagram = await findByTitle("diagram", name);
@@ -118,7 +131,7 @@ export function createLastRevisionProjectStorage(params: {
         const res = await authedFetch(`/api/my/diagrams/${diagram.item.id}`, {
           method: "DELETE",
         });
-        if (!res.ok) throw new Error(`Failed to delete diagram (${res.status})`);
+        if (!res.ok) throw toApiError("Failed to delete diagram", res.status);
         return;
       }
     },
@@ -136,7 +149,7 @@ export function createLastRevisionProjectStorage(params: {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: name, markdown: spec }),
           });
-          if (!res.ok) throw new Error(`Failed to update paper (${res.status})`);
+          if (!res.ok) throw toApiError("Failed to update paper", res.status);
           const updated = (await res.json()) as PaperDto;
           return {
             name: updated.title,
@@ -151,7 +164,7 @@ export function createLastRevisionProjectStorage(params: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: name, markdown: spec }),
         });
-        if (!res.ok) throw new Error(`Failed to create paper (${res.status})`);
+        if (!res.ok) throw toApiError("Failed to create paper", res.status);
         const created = (await res.json()) as PaperDto;
         return {
           name: created.title,
@@ -168,7 +181,7 @@ export function createLastRevisionProjectStorage(params: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: name, spec }),
         });
-        if (!res.ok) throw new Error(`Failed to update diagram (${res.status})`);
+        if (!res.ok) throw toApiError("Failed to update diagram", res.status);
         const updated = (await res.json()) as DiagramDto;
         return {
           name: updated.title,
@@ -183,7 +196,7 @@ export function createLastRevisionProjectStorage(params: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: name, spec }),
       });
-      if (!res.ok) throw new Error(`Failed to create diagram (${res.status})`);
+      if (!res.ok) throw toApiError("Failed to create diagram", res.status);
       const created = (await res.json()) as DiagramDto;
       return {
         name: created.title,
@@ -194,4 +207,3 @@ export function createLastRevisionProjectStorage(params: {
     },
   };
 }
-

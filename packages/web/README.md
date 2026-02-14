@@ -2,6 +2,11 @@
 
 The client-side Arrowgram workspace UI (React + Vite).
 
+**Try it now at: [https://hotdocx.github.io/arrowgram](https://hotdocx.github.io/arrowgram)**
+
+**And its LastRevision version: [https://hotdocx.github.io](https://hotdocx.github.io)**
+
+
 It supports:
 
 - **Diagrams**: visual commutative diagram editor (Arrowgram JSON).
@@ -19,6 +24,11 @@ Papers can be rendered using a per-document “master template”:
 - `reveal` (Reveal.js): slide deck preview (slides separated by a line containing `---`).
 
 Each paper also has a **CSS side-artifact** (`customCss`) applied on top of template defaults.
+
+When publishing a paper to gallery, the snapshot thumbnail is template-aware:
+
+- `paged`: captures the **first rendered page** only.
+- `reveal`: captures the **first slide** only.
 
 ### Creating new papers
 

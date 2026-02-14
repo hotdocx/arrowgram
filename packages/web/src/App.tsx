@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { PaperEditor } from "./components/PaperEditor/PaperEditor";
 import { Toolbar } from "./components/Toolbar";
@@ -84,6 +84,22 @@ export default function App() {
   const [isEditingDiagramTitle, setIsEditingDiagramTitle] = useState(false);
   const [diagramTitleDraft, setDiagramTitleDraft] = useState("");
   const { addToast } = useToast();
+  const isUnauthorizedError = useCallback((error: unknown): boolean => {
+    const status = (error as { status?: unknown })?.status;
+    if (status === 401) return true;
+    if (!(error instanceof Error)) return false;
+    return /\b401\b/.test(error.message) || /unauthorized/i.test(error.message);
+  }, []);
+
+  const addRepoErrorToast = useCallback(
+    (error: unknown, fallback: string) => {
+      const message = isUnauthorizedError(error)
+        ? "Session expired. Please sign in again."
+        : fallback;
+      addToast(message, "error");
+    },
+    [addToast, isUnauthorizedError]
+  );
 
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [screenshotBlob, setScreenshotBlob] = useState<Blob | null>(null);
@@ -183,7 +199,7 @@ export default function App() {
       addToast("Project saved successfully!", "success");
     } catch (e) {
       console.error(e);
-      addToast("Failed to save project.", "error");
+      addRepoErrorToast(e, "Failed to save project.");
     }
   };
 
@@ -203,7 +219,7 @@ export default function App() {
       }
     } catch (e) {
       console.error(e);
-      addToast("Failed to rename project.", "error");
+      addRepoErrorToast(e, "Failed to rename project.");
     }
   };
 
@@ -228,7 +244,7 @@ export default function App() {
       return url;
     } catch (e) {
       console.error(e);
-      addToast("Failed to create share URL", "error");
+      addRepoErrorToast(e, "Failed to create share URL");
       return null;
     }
   };
@@ -291,7 +307,7 @@ export default function App() {
         await handleOpenProject(hostConfig.initialProjectId!);
       } catch (e) {
         console.error(e);
-        if (!cancelled) addToast("Failed to load project.", "error");
+        if (!cancelled) addRepoErrorToast(e, "Failed to load project.");
       }
     })();
     return () => {
@@ -493,23 +509,33 @@ export default function App() {
                 onRename={
                   canPersist
                     ? async (nextTitle) => {
-                        const updated = await repo.update({
-                          id: activeProject.id,
-                          title: nextTitle,
-                        });
-                        setActiveProject(updated);
+                        try {
+                          const updated = await repo.update({
+                            id: activeProject.id,
+                            title: nextTitle,
+                          });
+                          setActiveProject(updated);
+                        } catch (e) {
+                          console.error(e);
+                          addRepoErrorToast(e, "Failed to rename project.");
+                        }
                       }
                     : undefined
                 }
                 onPersist={
                   canPersist
                     ? async (paper) => {
-                        const updated = await repo.update({
-                          id: activeProject.id,
-                          title: activeProject.title,
-                          paper,
-                        });
-                        setActiveProject(updated);
+                        try {
+                          const updated = await repo.update({
+                            id: activeProject.id,
+                            title: activeProject.title,
+                            paper,
+                          });
+                          setActiveProject(updated);
+                        } catch (e) {
+                          console.error(e);
+                          addRepoErrorToast(e, "Failed to save project.");
+                        }
                       }
                     : undefined
                 }
@@ -544,13 +570,18 @@ export default function App() {
                         isPublic: Boolean(activeProject.isPublic),
                         publicUrl: shareUrl ?? undefined,
                         onTogglePublic: async (next) => {
-                          const updated = await repo.update({
-                            id: activeProject.id,
-                            isPublic: next,
-                          });
-                          setActiveProject(updated);
-                          if (!next) {
-                            setShareUrl(null);
+                          try {
+                            const updated = await repo.update({
+                              id: activeProject.id,
+                              isPublic: next,
+                            });
+                            setActiveProject(updated);
+                            if (!next) {
+                              setShareUrl(null);
+                            }
+                          } catch (e) {
+                            console.error(e);
+                            addRepoErrorToast(e, "Failed to update sharing");
                           }
                         },
                         onCopyShareLink: async () => {
@@ -564,7 +595,10 @@ export default function App() {
                                   return;
                               }
                               try {
-                                  const blob = await capturePaperScreenshot(element);
+                                  const blob = await capturePaperScreenshot(
+                                    element,
+                                    activeProject.content.renderTemplate
+                                  );
                                   setScreenshotBlob(blob);
                                   setShowPublishModal(true);
                               } catch (e) {
@@ -680,7 +714,7 @@ export default function App() {
                           );
                         } catch (e) {
                           console.error(e);
-                          addToast("Failed to update sharing", "error");
+                          addRepoErrorToast(e, "Failed to update sharing");
                         }
                       }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
@@ -855,7 +889,7 @@ export default function App() {
               setActiveProject((prev) => (prev ? { ...prev, isPublic: true } : null));
             } catch (e) {
               console.error(e);
-              addToast("Failed to publish", "error");
+              addRepoErrorToast(e, "Failed to publish");
             }
           }}
         />

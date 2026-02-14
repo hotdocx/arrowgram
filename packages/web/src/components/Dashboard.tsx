@@ -5,9 +5,10 @@ import { Button } from './ui/Button';
 import { useProjectRepository } from '../context/ProjectRepositoryContext';
 import type { ProjectSummary } from '../utils/projectRepository';
 import { useEditorHostConfig } from '../context/EditorHostContext';
+import { useToast } from '../context/ToastContext';
 
 interface DashboardProps {
-    onOpenProject: (projectId: string) => void;
+    onOpenProject: (projectId: string) => Promise<void> | void;
 }
 
 export function Dashboard({ onOpenProject }: DashboardProps) {
@@ -15,34 +16,64 @@ export function Dashboard({ onOpenProject }: DashboardProps) {
     const { createNew } = useDiagramStore();
     const repo = useProjectRepository();
     const host = useEditorHostConfig();
+    const { addToast } = useToast();
+
+    const isUnauthorizedError = (error: unknown): boolean => {
+        const status = (error as { status?: unknown })?.status;
+        if (status === 401) return true;
+        if (!(error instanceof Error)) return false;
+        return /\b401\b/.test(error.message) || /unauthorized/i.test(error.message);
+    };
+
+    const toastRepoError = (error: unknown, fallback: string) => {
+        const message = isUnauthorizedError(error)
+            ? "Session expired. Please sign in again."
+            : fallback;
+        addToast(message, "error");
+    };
 
     useEffect(() => {
         loadProjects();
     }, []);
 
     const loadProjects = async () => {
-        const list = await repo.list();
-        setProjects(list);
+        try {
+            const list = await repo.list();
+            setProjects(list);
+        } catch (error) {
+            console.error(error);
+            toastRepoError(error, "Failed to load projects.");
+        }
     };
 
     const handleCreateNewDiagram = async () => {
-        createNew();
-        const created = await repo.create({
-            type: 'diagram',
-            title: 'Untitled Diagram',
-            content: JSON.stringify({ version: 1, nodes: [], arrows: [] }, null, 2),
-        });
-        onOpenProject(created.id);
+        try {
+            createNew();
+            const created = await repo.create({
+                type: 'diagram',
+                title: 'Untitled Diagram',
+                content: JSON.stringify({ version: 1, nodes: [], arrows: [] }, null, 2),
+            });
+            await onOpenProject(created.id);
+        } catch (error) {
+            console.error(error);
+            toastRepoError(error, "Failed to create diagram.");
+        }
     };
 
     const createPaper = async (opts: { title: string; markdown: string; renderTemplate: "paged" | "reveal" }) => {
-        const created = await repo.create({
-            type: 'paper',
-            title: opts.title,
-            content: opts.markdown,
-            paper: { renderTemplate: opts.renderTemplate, customCss: "" },
-        });
-        onOpenProject(created.id);
+        try {
+            const created = await repo.create({
+                type: 'paper',
+                title: opts.title,
+                content: opts.markdown,
+                paper: { renderTemplate: opts.renderTemplate, customCss: "" },
+            });
+            await onOpenProject(created.id);
+        } catch (error) {
+            console.error(error);
+            toastRepoError(error, "Failed to create paper.");
+        }
     };
 
     const handleCreateNewPagedPaper = async () => {
@@ -78,15 +109,25 @@ Add more slides using a line containing only:
         await createPaper({ title: "My New Slides", markdown, renderTemplate: "reveal" });
     };
 
-    const handleOpen = (project: ProjectSummary) => {
-        onOpenProject(project.id);
+    const handleOpen = async (project: ProjectSummary) => {
+        try {
+            await onOpenProject(project.id);
+        } catch (error) {
+            console.error(error);
+            toastRepoError(error, "Failed to open project.");
+        }
     };
 
     const handleDelete = async (e: React.MouseEvent, id: string, title: string) => {
         e.stopPropagation();
         if (confirm(`Are you sure you want to delete "${title}"?`)) {
-            await repo.remove(id);
-            loadProjects();
+            try {
+                await repo.remove(id);
+                await loadProjects();
+            } catch (error) {
+                console.error(error);
+                toastRepoError(error, "Failed to delete project.");
+            }
         }
     };
 

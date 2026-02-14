@@ -7,6 +7,11 @@ This repository is intended to be a **private super-repo** containing both:
 
 The OSS subset is mirrored into a **public repo** (e.g. `github.com/hotdocx/arrowgram`).
 
+## Remote model (in this private super-repo clone)
+
+- `origin` -> private super-repo (`hotdocx/arrowgram-super`)
+- `public` -> OSS mirror repo (`hotdocx/arrowgram`)
+
 ## Goals
 
 - Prevent any private code or secrets from leaking to the public repo.
@@ -21,10 +26,21 @@ The OSS subset is mirrored into a **public repo** (e.g. `github.com/hotdocx/arro
    - `scripts/export_oss.sh /tmp/arrowgram-oss-export`
 3. In the export dir, push to the public repo:
    - `git init`
-   - `git remote add origin <public-repo-url>`
+   - `git remote add public <public-repo-url>`
    - `git add .`
    - `git commit -m "sync: export from private super-repo"`
-   - `git push -f origin main`
+   - `git push -f public main`
+
+## Recommended workflow (scripted)
+
+From the private super-repo working tree:
+
+1. Push private source of truth:
+   - `git push origin main`
+2. Sync allowlisted OSS export to public `main`:
+   - `scripts/sync_public_oss.sh`
+3. Deploy OSS artifacts to public `gh-pages`:
+   - `scripts/deploy_arrowgram_pages.sh`
 
 ## Allowlist
 

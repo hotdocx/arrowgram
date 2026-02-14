@@ -3,7 +3,11 @@ import { createPortal } from "react-dom";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
-import { useSettingsStore } from "../store/settingsStore";
+import {
+  OSS_GEMINI_MODELS,
+  resolveGeminiModelId,
+  useSettingsStore,
+} from "../store/settingsStore";
 import { useProjectRepository } from "../context/ProjectRepositoryContext";
 import {
   fetchAiSettings,
@@ -19,7 +23,13 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
-  const { apiKey, setApiKey, apiProvider } = useSettingsStore();
+  const {
+    apiKey,
+    setApiKey,
+    apiProvider,
+    geminiModelId,
+    setGeminiModelId,
+  } = useSettingsStore();
   const repo = useProjectRepository();
   const [showKey, setShowKey] = useState(false);
   const [availableModels, setAvailableModels] = useState<AiModelOption[]>([]);
@@ -140,6 +150,20 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   Custom (Soon)
                 </button>
               </div>
+            </div>
+            <div>
+              <Label className="mb-2 block">Gemini Model</Label>
+              <select
+                className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                value={resolveGeminiModelId(geminiModelId)}
+                onChange={(e) => setGeminiModelId(e.target.value)}
+              >
+                {OSS_GEMINI_MODELS.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <Label className="mb-2 block">Gemini API Key</Label>

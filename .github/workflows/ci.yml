@@ -59,6 +59,7 @@ jobs:
     - name: Build LastRevision (SPA mode)
       if: steps.has_lastrevision.outputs.present == 'true'
       env:
+        NODE_OPTIONS: --max-old-space-size=6144
         DATABASE_URL: postgresql://postgres:example@localhost:5432/postgres
         BETTER_AUTH_SECRET: dev-ci-secret
         STRIPE_SECRET_KEY: sk_test_dev
