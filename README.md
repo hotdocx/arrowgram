@@ -4,7 +4,40 @@
 
 **Try it now at: [https://hotdocx.github.io/arrowgram](https://hotdocx.github.io/arrowgram)**
 
-**And its LastRevision version: [https://hotdocx.github.io](https://hotdocx.github.io)**
+# LastRevision on Hotdocx
+
+LastRevision offers live cohort training that helps professionals use AI tools in general and apply them directly to Arrowgram workflows for diagrams, books, and slide decks.
+
+No coding needed.
+
+You learn practical ChatGPT and 15+ AI-tool workflows for real work, then use the same stack to produce publish-ready technical outputs in days, not months.
+
+Weekly sessions focus on both:
+- General AI productivity and delivery workflows you can reuse across roles
+- Arrowgram-specific creation workflows for AI-assisted diagrams, papers/books, and slide decks
+
+Join professionals, instructors, and researchers in live sessions that convert ideas into publishable outputs.
+
+- 3 hours weekly Saturday cohorts, 7:30 PM GST (UTC+4)
+- Free for this intro cohort
+- 20,000+ community network
+- Weekly live Saturday cohorts
+- Hotdocx + LastRevision + Arrowgram stack
+
+**Enroll and launch your workspace: [https://hotdocx.github.io](https://hotdocx.github.io)**
+
+# LastRevision.pro
+
+Build and publish your professional AI agents that co-work for you 24/7, save you time, and get you funded by fans and local clients.
+
+- Dedicated 24/7 cloud computers
+- Webhook trigger events, scheduled automations
+- API tools, Gmail, Website, Latex, Excel, PDF tools
+- Agent-to-agent marketplace
+- Run your AI workspace from Telegram or WhatsApp chat
+- OpenClaw-compatible 🦞 for professionals
+
+**Explore LastRevision.pro: [https://LastRevision.pro/](https://LastRevision.pro/)**
 
 ![Arrowgram Screenshot](packages/web/arrowgram.png)
 
