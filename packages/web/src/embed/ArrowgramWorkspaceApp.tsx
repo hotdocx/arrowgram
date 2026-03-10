@@ -12,6 +12,7 @@ export function ArrowgramWorkspaceApp(props: {
   repository?: ProjectRepository;
   attachmentRepository?: AttachmentRepository;
   enablePrintPreview?: boolean;
+  basePath?: string;
   printPreviewPath?: string;
   exitHref?: string;
   exitLabel?: string;
@@ -27,6 +28,7 @@ export function ArrowgramWorkspaceApp(props: {
       <EditorHostProvider
         value={{
           enablePrintPreview: props.enablePrintPreview ?? true,
+          basePath: props.basePath,
           printPreviewPath: props.printPreviewPath,
           exit: props.exitHref ? { href: props.exitHref, label: props.exitLabel } : undefined,
           initialProjectId: props.initialProjectId,

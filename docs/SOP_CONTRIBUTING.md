@@ -33,11 +33,19 @@ We use **Zustand** for state, with **Zundo** for undo/redo.
     -   Add the option to the `PropertyEditor` dropdowns in `packages/web/src/PropertyEditor.tsx`.
 
 ### 2.2 Releasing a New Version
-1.  **Test**: Run `npm test --workspace=packages/arrowgram`.
-2.  **Build**: Run `npm run build` in root (builds both packages).
+1.  **Validate core package**:
+    -   `npm test --workspace=packages/arrowgram -- --run`
+    -   `npm run build --workspace=packages/arrowgram`
+    -   `npm pack --dry-run --workspace=packages/arrowgram`
+2.  **Validate web package**:
+    -   `npm test --workspace=packages/web`
+    -   `npm run build:lib --workspace=packages/web`
+    -   `npm run build:app --workspace=packages/web`
+    -   `npm pack --dry-run --workspace=packages/web`
 3.  **Publish**:
-    -   Navigate to `packages/arrowgram`.
-    -   Run `npm publish` (ensure you are logged in).
+    -   Sync the OSS mirror/public repo first.
+    -   Publish `@hotdocx/arrowgram` from `packages/arrowgram`.
+    -   Publish `@hotdocx/arrowgram-web` from `packages/web`.
 
 ### 2.3 Running E2E Tests
 1.  **Run All**:

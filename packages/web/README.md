@@ -1,54 +1,39 @@
-# Arrowgram Web Workspace (`@arrowgram/web`)
+# `@hotdocx/arrowgram-web`
 
-The client-side Arrowgram workspace UI (React + Vite).
+Embeddable Arrowgram workspace and paper-editor components for React apps.
 
-**Try it now at: [https://hotdocx.github.io/arrowgram](https://hotdocx.github.io/arrowgram)**
+This package is the reusable UI layer on top of `@hotdocx/arrowgram`. It exposes:
 
-**And its LastRevision version: [https://hotdocx.github.io](https://hotdocx.github.io)**
+- `@hotdocx/arrowgram-web/embed` for the full workspace and paper editor
+- `@hotdocx/arrowgram-web/adapters` for local and LastRevision-style repositories
+- `@hotdocx/arrowgram-web/preview` for paper preview components
+- `@hotdocx/arrowgram-web/ai` for the built-in AI tool definitions
 
-
-It supports:
-
-- **Diagrams**: visual commutative diagram editor (Arrowgram JSON).
-- **Papers / Documents**: Markdown editor with a live renderer pipeline:
-  - Arrowgram blocks (`<div class="arrowgram">…</div>`)
-  - KaTeX math (`$...$`, `$$...$$`)
-  - Mermaid (`<div class="mermaid">…</div>`)
-  - Vega-Lite (`<div class="vega-lite">{...}</div>`)
-
-### Paper templates (master processors)
-
-Papers can be rendered using a per-document “master template”:
-
-- `paged` (Paged.js): paginated article/book preview + “Print / Save PDF”.
-- `reveal` (Reveal.js): slide deck preview (slides separated by a line containing `---`).
-
-Each paper also has a **CSS side-artifact** (`customCss`) applied on top of template defaults.
-
-When publishing a paper to gallery, the snapshot thumbnail is template-aware:
-
-- `paged`: captures the **first rendered page** only.
-- `reveal`: captures the **first slide** only.
-
-### Creating new papers
-
-From the workspace dashboard, you can create:
-
-- **New Paged Paper** (starts in `paged`)
-- **New Slides** (starts in `reveal`)
-
-## URL Import
- 
-You can preload content via query params:
- 
-- Diagram inline: `/?spec=<base64url(utf8-json)>`
-- Paper inline: `/?paper=<base64url(utf8-markdown)>`
-- Fetch by URL (CORS-dependent): `/?link=<https://... or /path>&type=diagram|paper`
-- Load from localStorage: `/?link=ls:my_key&type=paper`
-
-## Development
+## Install
 
 ```bash
-npm install
-npm run dev
+npm install @hotdocx/arrowgram-web @hotdocx/arrowgram react react-dom
 ```
+
+## Example
+
+```tsx
+import { ArrowgramWorkspaceApp } from "@hotdocx/arrowgram-web/embed";
+
+export function App() {
+  return <ArrowgramWorkspaceApp />;
+}
+```
+
+`ArrowgramWorkspaceApp` uses local IndexedDB persistence by default. Pass custom repositories if your host app needs remote storage or attachment backends.
+
+## Package Notes
+
+- React peer dependency: `^18.2.0 || ^19.0.0`
+- `ArrowgramWorkspaceApp` accepts `basePath` and `printPreviewPath` for hosts mounted under a subpath.
+- The hosted OSS editor remains available at <https://hotdocx.github.io/arrowgram>.
+
+## Repository
+
+- OSS repo: <https://github.com/hotdocx/arrowgram>
+- Architecture/spec docs: <https://github.com/hotdocx/arrowgram/tree/main/docs>

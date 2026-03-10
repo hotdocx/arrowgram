@@ -4,9 +4,14 @@
     "description": "A React library for creating commutative diagrams with a declarative JSON syntax.",
     "author": "Antigravity",
     "license": "MIT",
+    "homepage": "https://github.com/hotdocx/arrowgram/tree/main/packages/arrowgram",
+    "bugs": {
+        "url": "https://github.com/hotdocx/arrowgram/issues"
+    },
     "repository": {
         "type": "git",
-        "url": "https://github.com/hotdocx/arrowgram.git"
+        "url": "git+https://github.com/hotdocx/arrowgram.git",
+        "directory": "packages/arrowgram"
     },
     "keywords": [
         "commutative-diagrams",
@@ -24,19 +29,27 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/arrowgram.js",
             "require": "./dist/arrowgram.umd.cjs"
-        }
+        },
+        "./arrowgram.schema.json": "./arrowgram.schema.json"
     },
     "files": [
-        "dist"
+        "dist",
+        "arrowgram.schema.json",
+        "LICENSE"
     ],
     "scripts": {
         "dev": "vite build --watch",
-        "build": "vite build",
-        "test": "vitest"
+        "build": "vite build && npm run schema:generate",
+        "schema:generate": "node ./scripts/generate_schema.mjs",
+        "test": "vitest",
+        "prepublishOnly": "npm test -- --run && npm run build"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "peerDependencies": {
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0"
+        "react": "^18.2.0 || ^19.0.0",
+        "react-dom": "^18.2.0 || ^19.0.0"
     },
     "dependencies": {
         "katex": "^0.16.22"

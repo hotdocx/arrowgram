@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 import App from "./App";
+import { EditorHostProvider } from "./context/EditorHostContext";
 import { ToastProvider } from "./context/ToastContext";
 import { ProjectRepositoryProvider } from "./context/ProjectRepositoryContext";
 
@@ -28,9 +29,11 @@ if (rootEl) {
     root.render(
     <StrictMode>
         <ToastProvider>
+        <EditorHostProvider value={{ basePath: import.meta.env.BASE_URL }}>
         <ProjectRepositoryProvider>
             <App />
         </ProjectRepositoryProvider>
+        </EditorHostProvider>
         </ToastProvider>
     </StrictMode>
     );

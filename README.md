@@ -55,7 +55,7 @@ Build and publish your professional AI agents that co-work for you 24/7, save yo
     -   **Advanced Styles:** Support for adjunctions, pullbacks, squiggly arrows, proarrows, bullets, and more.
 -   **Production Ready:**
     -   **Export:** SVG, PNG, and TikZ-CD (for LaTeX papers).
-    -   **Standalone Library:** Use `@arrowgram/core` in your own React apps or server-side pipelines.
+    -   **Standalone Libraries:** Use `@hotdocx/arrowgram` for the core renderer/schema and `@hotdocx/arrowgram-web` for the embeddable workspace UI.
 
 ## Repository Structure
 

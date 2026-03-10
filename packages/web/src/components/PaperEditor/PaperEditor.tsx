@@ -19,6 +19,7 @@ import { useToast } from '../../context/ToastContext';
 import { SettingsDialog } from '../SettingsDialog';
 import { HelpDialog } from '../HelpDialog';
 import { useEditorHostConfig } from '../../context/EditorHostContext';
+import { getPrintPreviewUrl } from '../../utils/basePath';
 import type { PaperContent, PaperRenderTemplate } from '../../utils/projectRepository';
 
 const CSS_PLACEHOLDER_PAGED = `/* Custom CSS (Paged.js papers)
@@ -190,10 +191,7 @@ export function PaperEditor({
 	        localStorage.setItem('print_layout', String(isTwoColumn));
 	        const href = hostConfig.printPreviewPath
 	            ? new URL(hostConfig.printPreviewPath, window.location.origin).toString()
-	            : (() => {
-	                const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
-	                return new URL('print-preview', baseUrl).toString();
-	            })();
+	            : getPrintPreviewUrl(hostConfig.basePath);
 	        const url = new URL(href);
 	        if (paper.renderTemplate === "reveal") {
 	            url.searchParams.set("print-pdf", "1");

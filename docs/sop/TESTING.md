@@ -42,10 +42,12 @@ We employ a **testing pyramid** strategy:
 *   **Platform:** GitHub Actions (`.github/workflows/ci.yml`).
 *   **Workflow:**
     1.  Install dependencies.
-    2.  Build Core.
+    2.  Build Core and regenerate the published JSON Schema.
     3.  Run Core Tests (Vitest).
-    4.  Build Web.
-    5.  *TODO:* Add E2E tests to CI (requires headless browser setup).
+    4.  Build Web library + Web app.
+    5.  Run Web Jest tests.
+    6.  Install headless Chromium and run Playwright E2E.
+    7.  Run `npm pack --dry-run` for the publishable packages.
 
 ## 5. Adding New Tests
 *   **New Math Logic:** Add a unit test in `packages/arrowgram`.

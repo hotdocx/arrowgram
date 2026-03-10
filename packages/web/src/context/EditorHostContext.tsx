@@ -3,8 +3,13 @@ import React from "react";
 export interface EditorHostConfig {
   enablePrintPreview: boolean;
   /**
+   * Base path where the standalone app is mounted.
+   * Standalone GitHub Pages builds pass `/arrowgram/`; embedders usually keep `/`.
+   */
+  basePath?: string;
+  /**
    * Optional absolute path (same-origin) for the print preview route in the host app.
-   * If unset, Arrowgram falls back to `${import.meta.env.BASE_URL}/print-preview`.
+   * If unset, Arrowgram falls back to `${basePath}/print-preview`.
    */
   printPreviewPath?: string;
   /**
@@ -48,6 +53,7 @@ export interface EditorHostConfig {
 
 const defaultHostConfig: EditorHostConfig = {
   enablePrintPreview: true,
+  basePath: "/",
 };
 
 const EditorHostContext = React.createContext<EditorHostConfig>(defaultHostConfig);

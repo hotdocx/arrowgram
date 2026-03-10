@@ -1,26 +1,71 @@
 {
-    "name": "@arrowgram/web",
+    "name": "@hotdocx/arrowgram-web",
     "version": "1.0.0",
     "type": "module",
-    "exports": {
-        ".": "./src/index.ts",
-        "./preview": "./src/preview/index.ts",
-        "./adapters": "./src/adapters/index.ts",
-        "./embed": "./src/embed/index.ts",
-        "./ai": "./src/ai/index.ts"
+    "description": "Embeddable Arrowgram workspace, paper editor, preview components, and adapters.",
+    "license": "MIT",
+    "homepage": "https://github.com/hotdocx/arrowgram/tree/main/packages/web",
+    "bugs": {
+        "url": "https://github.com/hotdocx/arrowgram/issues"
     },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hotdocx/arrowgram.git",
+        "directory": "packages/web"
+    },
+    "sideEffects": [
+        "**/*.css"
+    ],
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./preview": {
+            "types": "./dist/preview/index.d.ts",
+            "import": "./dist/preview.js"
+        },
+        "./adapters": {
+            "types": "./dist/adapters/index.d.ts",
+            "import": "./dist/adapters.js"
+        },
+        "./embed": {
+            "types": "./dist/embed/index.d.ts",
+            "import": "./dist/embed.js"
+        },
+        "./ai": {
+            "types": "./dist/ai/index.d.ts",
+            "import": "./dist/ai.js"
+        }
+    },
+    "files": [
+        "dist",
+        "LICENSE"
+    ],
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "npm run build:lib && npm run build:app",
+        "build:app": "vite build --outDir dist-pages",
+        "build:lib": "vite build --config vite.lib.config.ts",
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-        "preview": "vite preview",
+        "preview": "vite preview --outDir dist-pages",
         "test": "jest",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "prepublishOnly": "npm test && npm run build:lib"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "peerDependencies": {
+        "react": "^18.2.0 || ^19.0.0",
+        "react-dom": "^18.2.0 || ^19.0.0"
     },
     "dependencies": {
         "@ai-sdk/google": "^3.0.16",
         "@ai-sdk/react": "^3.0.61",
-        "@hotdocx/arrowgram": "*",
+        "@hotdocx/arrowgram": "^1.0.0",
         "ai": "^6.0.59",
         "canvg": "^4.0.3",
         "diff": "^8.0.2",
@@ -32,8 +77,6 @@
         "lucide-react": "^0.562.0",
         "mermaid": "^11.8.0",
         "pagedjs": "^0.4.3",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
         "reveal.js": "^5.2.1",
         "save-svg-as-png": "^1.4.17",
         "showdown": "^2.1.0",

@@ -47,11 +47,29 @@ jobs:
     - name: Build Core Library
       run: npm run build --workspace=packages/arrowgram
 
+    - name: Verify Generated Core Schema Is Committed
+      run: git diff --exit-code -- packages/arrowgram/arrowgram.schema.json
+
     - name: Run Core Tests
       run: npm test --workspace=packages/arrowgram -- --run
 
-    - name: Build Web App
+    - name: Pack Core Library
+      run: npm pack --dry-run --workspace=packages/arrowgram
+
+    - name: Run Web Unit Tests
+      run: npm test --workspace=packages/web
+
+    - name: Install Playwright Chromium
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Web E2E Tests
+      run: npm run test:e2e --workspace=packages/web
+
+    - name: Build Web Package + App
       run: npm run build --workspace=packages/web
+
+    - name: Pack Web Package
+      run: npm pack --dry-run --workspace=packages/web
 
     - name: Build Paged Viewer
       run: npm run build --workspace=packages/paged

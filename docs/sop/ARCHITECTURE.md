@@ -5,7 +5,7 @@ Arrowgram is designed as a **hybrid architecture** splitting core logic from the
 
 **Important:** The core data model is defined in `packages/arrowgram/src/types.ts`. Any changes to this schema must be synchronized with the authoritative reference in `docs/ARROWGRAM_SPEC.md`.
 
-## 2. Core Library (`@arrowgram/core`)
+## 2. Core Library (`@hotdocx/arrowgram`)
 **Location:** `packages/arrowgram`
 
 ### 2.1. Responsibilities
@@ -23,7 +23,7 @@ Arrowgram is designed as a **hybrid architecture** splitting core logic from the
     *   **Layout:** Label positioning, Shortening (gaps), Masking for 2-cells.
 *   **`computeDiagram` (`src/core/diagramModel.ts`):** The main entry point. Takes a JSON spec, computes layout/geometry, resolves dependencies (e.g. 2-cells connecting to other arrows), and outputs a `ComputedDiagram` ready for rendering.
 
-## 3. Web Application (`@arrowgram/web`)
+## 3. Web Application (`@hotdocx/arrowgram-web`)
 **Location:** `packages/web`
 
 ### 3.1. Tech Stack

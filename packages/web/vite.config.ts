@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: ['arrowgram'],
+      exclude: ['@hotdocx/arrowgram'],
     },
   };
 });

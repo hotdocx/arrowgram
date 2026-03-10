@@ -19,6 +19,7 @@ import katexCss from 'katex/dist/katex.min.css?inline';
 import { useProjectRepository } from "./context/ProjectRepositoryContext";
 import { useEditorHostConfig } from "./context/EditorHostContext";
 import type { Project } from "./utils/projectRepository";
+import { getBasePath, getBaseUrl } from "./utils/basePath";
 import { AttachmentsPanel } from "./components/AttachmentsPanel";
 import { PublishGalleryModal } from './components/PublishGalleryModal';
 import { captureDiagramScreenshot, capturePaperScreenshot } from './utils/screenshot';
@@ -40,10 +41,7 @@ export default function App() {
   const disableAttachments = Boolean(hostConfig.disableAttachments);
 
   // Simple routing for Print Preview (supports GitHub Pages subpaths, e.g. /arrowgram/print-preview)
-  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname.replace(
-    /\/$/,
-    ''
-  );
+  const basePath = getBasePath(hostConfig.basePath);
   const relativePath = window.location.pathname.startsWith(basePath + '/')
     ? window.location.pathname.slice(basePath.length)
     : window.location.pathname;
@@ -385,7 +383,7 @@ export default function App() {
     if (!requested) return;
 
     const forcedType = params.get("type");
-    const baseUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+    const baseUrl = getBaseUrl(hostConfig.basePath);
     const src = resolveRequestedImport(requested, baseUrl);
     if (!src) {
       addToast("Invalid URL import source.", "error");
@@ -429,7 +427,7 @@ export default function App() {
       cancelled = true;
       controller.abort();
     };
-  }, []);
+  }, [addToast, hostConfig.basePath, hostConfig.initialProjectId]);
   
     let content;
   
