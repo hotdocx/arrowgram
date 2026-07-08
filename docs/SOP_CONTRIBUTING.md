@@ -46,6 +46,17 @@ We use **Zustand** for state, with **Zundo** for undo/redo.
     -   Sync the OSS mirror/public repo first.
     -   Publish `@hotdocx/arrowgram` from `packages/arrowgram`.
     -   Publish `@hotdocx/arrowgram-web` from `packages/web`.
+4.  **Tag the release**:
+    -   Prefer a single repo-level annotated tag for coordinated OSS npm releases from this monorepo.
+    -   Example: `oss-npm-v1.0.0`
+    -   Recommended sequence:
+        - `git push origin main`
+        - `scripts/sync_public_oss.sh`
+        - `scripts/deploy_arrowgram_pages.sh`
+        - `git tag -a oss-npm-v1.0.0 -m "First public npm release"`
+        - `git push origin oss-npm-v1.0.0`
+    -   For the **public repo**, create the same tag name on the **public mirror's `main` commit**, not by pushing the private tag object directly to `public`.
+    -   Reason: a tag created in the private super-repo points into private history; pushing that tag object to the public repo can be rejected by GitHub repository rules or secret scanning.
 
 ### 2.3 Running E2E Tests
 1.  **Run All**:

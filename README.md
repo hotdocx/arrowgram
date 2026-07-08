@@ -110,6 +110,14 @@ npm run dev -w packages/lastrevision
 
 See `docs/sop/LASTREVISION_LOCAL_DEV.md` for bearer token auth, local validation scripts, and attachment upload (CORS) notes.
 
+**Deploy the SaaS backend to the GetPaidX Azure environment (private repo only):**
+
+```bash
+GPX_ENV_FILE=/home/user1/closerfans/.env.production npm run deploy:lastrevision:azure
+```
+
+This creates/updates the ArrowGram `lastrevision-app` Azure Container App, uses a separate `lastrevision` database on the shared GetPaidX Azure PostgreSQL server, and uses Azure Blob for uploads. See `reports/PLAN_AZURE_MIGRATION_GETPAIDX_SHARED_RESOURCES_2026-07-05.md`.
+
 **Run Tests:**
 
 ```bash

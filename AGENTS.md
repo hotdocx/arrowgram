@@ -62,7 +62,7 @@ Refer to these files for detailed specific knowledge.
     *   `packages/lastrevision` is the SaaS layer, wrapping the editor with remote persistence and auth.
 3.  **Split Hosting (SaaS):**
     *   **Frontend:** `https://hotdocx.github.io/` (GitHub Pages, Static SPA).
-    *   **Backend:** `https://<service>.run.app` (Cloud Run, API + Auth + DB).
+    *   **Backend:** Azure Container Apps for the current GetPaidX-shared migration target; legacy Cloud Run remains as rollback/reference until cutover is complete.
     *   **Auth:** Token-based (Bearer) to support split origins. **No Third-Party Cookies.**
 
 ### SaaS Integration (`packages/lastrevision`)
@@ -72,7 +72,7 @@ Refer to these files for detailed specific knowledge.
     *   **Local Adapter:** Uses IndexedDB (for OSS users).
     *   **Remote Adapter:** Uses HTTP API to Cloud Run (for SaaS users).
 *   **Auth:** bearer token stored in `localStorage` key `hotdocx_bearer_token`. `/api/my/*` returns `401` until you sign in.
-*   **Uploads:** browser uploads go directly to object storage via presigned PUT URLs (bucket CORS required).
+*   **Uploads:** browser uploads go directly to object storage via signed PUT URLs (bucket/container CORS required). Azure Blob is preferred for the GetPaidX-shared Azure deployment; GCS/R2 remain fallback/legacy providers.
 *   **AI Proxy:** SaaS uses a server-side proxy (`/api/my/ai/proxy`) to inject API keys and track usage, while OSS uses "Bring Your Own Key" (BYOK) client-side.
 
 ---
@@ -89,7 +89,8 @@ We use a **Testing Pyramid**:
 ### Deployment Scripts (@scripts/)
 *   **`deploy_arrowgram_pages.sh`**: Deploys OSS editor to `hotdocx/arrowgram` (gh-pages).
 *   **`deploy_lastrevision_pages.sh`**: Deploys SaaS SPA to `hotdocx/hotdocx.github.io` (gh-pages).
-*   **`deploy_lastrevision_cloudrun.sh`**: Deploys SaaS API to Google Cloud Run.
+*   **`deploy_lastrevision_cloudrun.sh`**: Legacy/rollback deploy for SaaS API to Google Cloud Run.
+*   **`deploy_lastrevision_azure.sh`**: Deploys SaaS API to Azure Container Apps using GetPaidX shared Azure resources.
 *   **`export_oss.sh`**: Exports the OSS subset for mirroring.
 *   **`smoke_lastrevision.sh`**: Curl-based smoke test for the deployed API.
 
@@ -129,3 +130,4 @@ This is a **private super-repo**. Code in `packages/lastrevision` is **PRIVATE**
 
 Refer to **@reports/TASKS_SAAS.md** for the active checklist.
 *   **Priority:** Finalizing the SaaS integration (Sharing UX, AI Proxy, Workspace Files v2).
+*   **Current infrastructure task:** migrate LastRevision backend/database/uploads from GCP to the GetPaidX Azure subscription/resource group. See `reports/PLAN_AZURE_MIGRATION_GETPAIDX_SHARED_RESOURCES_2026-07-05.md`.

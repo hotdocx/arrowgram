@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "npm run dev -w packages/web",
     "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces",
+    "deploy:lastrevision:azure": "bash scripts/deploy_lastrevision_azure.sh",
+    "migrate:lastrevision:gcs-to-azure": "tsx scripts/migrate_lastrevision_gcs_to_azure_blob.ts"
   }
 }

@@ -39,6 +39,46 @@ export type ProjectRepositoryCapabilities = {
   ai?: {
     mode: "byok-client" | "server-proxy";
   };
+  sync?: {
+    mode: "file-bridge";
+    canSubscribe?: boolean;
+    canDiff?: boolean;
+    canSnapshot?: boolean;
+    canDiagnostics?: boolean;
+  };
+};
+
+export type ProjectRepositoryEvent = {
+  type:
+    | "workspace.changed"
+    | "project.created"
+    | "project.updated"
+    | "project.deleted"
+    | "workspace.snapshot"
+    | "diagnostics.changed";
+  id?: string;
+};
+
+export type ProjectRepositoryStatus = {
+  dirty: boolean;
+  baseline?: { kind: string; sha: string | null };
+  diagnostics?: Array<{
+    projectId?: string;
+    path?: string;
+    severity: "error" | "warning";
+    message: string;
+  }>;
+};
+
+export type ProjectRepositoryDiff = {
+  baseline?: { kind: string; sha: string | null };
+  files: Array<{
+    path: string;
+    status: "added" | "modified" | "deleted" | "renamed" | "untracked";
+    oldText: string;
+    newText: string;
+    unifiedDiff: string;
+  }>;
 };
 
 export interface ProjectRepository {
@@ -59,6 +99,10 @@ export interface ProjectRepository {
     isPublic?: boolean;
   }): Promise<Project>;
   remove(id: string): Promise<void>;
+  subscribe?(listener: (event: ProjectRepositoryEvent) => void): () => void;
+  getStatus?(): Promise<ProjectRepositoryStatus>;
+  getDiff?(): Promise<ProjectRepositoryDiff>;
+  saveSnapshot?(message?: string): Promise<{ sha?: string | null; committed?: boolean }>;
   getPublicUrl?(id: string): Promise<string>;
   publishToGallery?(
     id: string,

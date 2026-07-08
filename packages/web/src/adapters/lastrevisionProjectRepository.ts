@@ -41,6 +41,26 @@ function decodeId(id: string): RemoteId {
   return { type, remoteId };
 }
 
+function isAzureBlobUploadUrl(uploadUrl: string) {
+  try {
+    return new URL(uploadUrl).hostname.endsWith(".blob.core.windows.net");
+  } catch {
+    return false;
+  }
+}
+
+function buildObjectStorageUploadHeaders(uploadUrl: string, contentType: string) {
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+  };
+
+  if (isAzureBlobUploadUrl(uploadUrl)) {
+    headers["x-ms-blob-type"] = "BlockBlob";
+  }
+
+  return headers;
+}
+
 export function createLastRevisionProjectRepository(params: {
   apiBaseUrl: string;
   getToken: () => string;
@@ -289,7 +309,7 @@ export function createLastRevisionProjectRepository(params: {
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
         body: metadata.screenshotBlob,
-        headers: { "Content-Type": "image/png" },
+        headers: buildObjectStorageUploadHeaders(uploadUrl, "image/png"),
       });
       if (!uploadRes.ok) throw new Error("Failed to upload screenshot");
 

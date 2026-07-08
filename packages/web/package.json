@@ -1,6 +1,6 @@
 {
     "name": "@hotdocx/arrowgram-web",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "type": "module",
     "description": "Embeddable Arrowgram workspace, paper editor, preview components, and adapters.",
     "license": "MIT",
@@ -38,7 +38,8 @@
         "./ai": {
             "types": "./dist/ai/index.d.ts",
             "import": "./dist/ai.js"
-        }
+        },
+        "./dist/arrowgram-web.css": "./dist/arrowgram-web.css"
     },
     "files": [
         "dist",

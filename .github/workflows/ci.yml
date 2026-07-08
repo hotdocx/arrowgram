@@ -71,6 +71,15 @@ jobs:
     - name: Pack Web Package
       run: npm pack --dry-run --workspace=packages/web
 
+    - name: Build Agent Package
+      run: npm run build --workspace=packages/agent
+
+    - name: Run Agent Tests
+      run: npm test --workspace=packages/agent
+
+    - name: Pack Agent Package
+      run: npm pack --dry-run --workspace=packages/agent
+
     - name: Build Paged Viewer
       run: npm run build --workspace=packages/paged
 

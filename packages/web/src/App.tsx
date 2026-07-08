@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ArrowGramEditor } from "./ArrowGramEditor";
 import { PaperEditor } from "./components/PaperEditor/PaperEditor";
 import { Toolbar } from "./components/Toolbar";
@@ -10,7 +10,7 @@ import { useDiagramStore } from "./store/diagramStore";
 import { AIChatPanel } from './components/AIChatPanel';
 import { PropertyEditor } from "./PropertyEditor";
 import { useToast } from "./context/ToastContext";
-import { PanelRight, ChevronLeft, Save, Paperclip, Upload } from "lucide-react";
+import { PanelRight, ChevronLeft, Save, Paperclip, Upload, GitCompare, Camera } from "lucide-react";
 import { Dashboard } from "./components/Dashboard";
 import PrintPreview from "./PrintPreview";
 import { computeDiagram } from "@hotdocx/arrowgram";
@@ -18,7 +18,7 @@ import { computeDiagram } from "@hotdocx/arrowgram";
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { useProjectRepository } from "./context/ProjectRepositoryContext";
 import { useEditorHostConfig } from "./context/EditorHostContext";
-import type { Project } from "./utils/projectRepository";
+import type { Project, ProjectRepositoryDiff, ProjectRepositoryStatus } from "./utils/projectRepository";
 import { getBasePath, getBaseUrl } from "./utils/basePath";
 import { AttachmentsPanel } from "./components/AttachmentsPanel";
 import { PublishGalleryModal } from './components/PublishGalleryModal';
@@ -31,6 +31,115 @@ import {
 } from "./utils/urlImport";
 
 type ViewState = 'dashboard' | 'editor';
+
+function BridgeDiffModal(props: {
+  diff: ProjectRepositoryDiff | null;
+  onClose: () => void;
+}) {
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const files = props.diff?.files ?? [];
+  const selected = files.find((file) => file.path === selectedPath) ?? files[0];
+
+  useEffect(() => {
+    if (files.length === 0) {
+      setSelectedPath(null);
+      return;
+    }
+    if (!selectedPath || !files.some((file) => file.path === selectedPath)) {
+      setSelectedPath(files[0].path);
+    }
+  }, [files, selectedPath]);
+
+  if (!props.diff) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-5xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b flex items-center justify-between gap-3">
+          <div>
+            <div className="font-semibold text-gray-800">Changes since last saved snapshot</div>
+            <div className="text-xs text-gray-500">
+              {props.diff.baseline?.kind === "git" && props.diff.baseline.sha
+                ? `Baseline ${props.diff.baseline.sha.slice(0, 7)}`
+                : "No saved baseline"}
+            </div>
+          </div>
+          <button className="text-sm text-gray-600 hover:text-gray-900" onClick={props.onClose}>
+            Close
+          </button>
+        </div>
+        {files.length === 0 ? (
+          <div className="p-8 text-sm text-gray-600">No changes since last saved snapshot.</div>
+        ) : (
+          <div className="grid h-[70vh] grid-cols-[240px_1fr]">
+            <div className="border-r bg-gray-50 overflow-auto p-2">
+              {files.map((file) => (
+                <button
+                  key={file.path}
+                  type="button"
+                  onClick={() => setSelectedPath(file.path)}
+                  className={`w-full rounded px-3 py-2 text-left text-xs ${
+                    selected?.path === file.path
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:bg-white/70"
+                  }`}
+                >
+                  <div className="font-medium truncate">{file.path}</div>
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">{file.status}</div>
+                </button>
+              ))}
+            </div>
+            <div className="overflow-auto bg-gray-950 text-gray-100">
+              <pre className="min-h-full p-4 text-xs leading-5 whitespace-pre-wrap break-words">
+                {selected?.unifiedDiff ?? ""}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BridgeStatusBar(props: {
+  status: ProjectRepositoryStatus | null;
+  isLoading: boolean;
+  onReview: () => void;
+  onSnapshot: () => void;
+}) {
+  const diagnostics = props.status?.diagnostics ?? [];
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-lg">
+      <div className={`h-2 w-2 rounded-full ${props.status?.dirty ? "bg-amber-500" : "bg-emerald-500"}`} />
+      <div className="whitespace-nowrap text-gray-700">
+        {props.status?.dirty ? "Unsaved source changes" : "Sources saved"}
+      </div>
+      {diagnostics.length > 0 ? (
+        <div className="whitespace-nowrap rounded bg-red-50 px-2 py-1 text-red-700">
+          {diagnostics.length} diagnostic{diagnostics.length === 1 ? "" : "s"}
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={props.onReview}
+        disabled={props.isLoading}
+        className="inline-flex items-center gap-1 rounded border border-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      >
+        <GitCompare size={14} />
+        Review changes
+      </button>
+      <button
+        type="button"
+        onClick={props.onSnapshot}
+        disabled={props.isLoading}
+        className="inline-flex items-center gap-1 rounded bg-gray-900 px-2 py-1 text-white hover:bg-gray-800 disabled:opacity-50"
+      >
+        <Camera size={14} />
+        Save snapshot
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const repo = useProjectRepository();
@@ -101,6 +210,54 @@ export default function App() {
 
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [screenshotBlob, setScreenshotBlob] = useState<Blob | null>(null);
+  const isFileBridge = repo.capabilities.sync?.mode === "file-bridge";
+  const [bridgeStatus, setBridgeStatus] = useState<ProjectRepositoryStatus | null>(null);
+  const [bridgeDiff, setBridgeDiff] = useState<ProjectRepositoryDiff | null>(null);
+  const [bridgeBusy, setBridgeBusy] = useState(false);
+  const lastBridgePersistedKeyRef = useRef<string>("");
+
+  const bridgeProjectKey = useCallback((project: Project | null, diagramSpec: string, diagramName: string) => {
+    if (!project) return "";
+    if (project.type === "paper") {
+      return JSON.stringify({
+        id: project.id,
+        title: project.title,
+        markdown: project.content.markdown,
+        renderTemplate: project.content.renderTemplate,
+        themeId: project.content.themeId ?? null,
+        customCss: project.content.customCss,
+      });
+    }
+    return JSON.stringify({ id: project.id, title: diagramName, content: diagramSpec });
+  }, []);
+
+  const refreshBridgeStatus = useCallback(async () => {
+    if (!isFileBridge || !repo.getStatus) return;
+    try {
+      setBridgeStatus(await repo.getStatus());
+    } catch (error) {
+      console.error(error);
+    }
+  }, [isFileBridge, repo]);
+
+  const refreshActiveProjectFromRepo = useCallback(async () => {
+    const projectId = activeProjectId ?? activeProject?.id;
+    if (!projectId) return;
+    try {
+      const project = await repo.get(projectId);
+      setActiveProject(project);
+      if (project.type === "diagram") {
+        useDiagramStore.getState().setFilename(project.title);
+        setSpec(project.content);
+        lastBridgePersistedKeyRef.current = bridgeProjectKey(project, project.content, project.title);
+      } else {
+        lastBridgePersistedKeyRef.current = bridgeProjectKey(project, spec, filename);
+      }
+    } catch (error) {
+      console.error(error);
+      addRepoErrorToast(error, "Failed to refresh project.");
+    }
+  }, [activeProject?.id, activeProjectId, addRepoErrorToast, bridgeProjectKey, filename, repo, setSpec, spec]);
 
   const handleExport = async (format: 'tikz' | 'svg' | 'png', options: { fitView?: boolean, showGrid?: boolean } = { fitView: true, showGrid: true }) => {
     if (format === 'tikz') {
@@ -294,6 +451,99 @@ export default function App() {
     if (project.type === "diagram") {
       useDiagramStore.getState().setFilename(project.title);
       setSpec(project.content);
+      lastBridgePersistedKeyRef.current = bridgeProjectKey(project, project.content, project.title);
+    } else {
+      lastBridgePersistedKeyRef.current = bridgeProjectKey(project, spec, filename);
+    }
+    void refreshBridgeStatus();
+  };
+
+  useEffect(() => {
+    if (!isFileBridge || !repo.subscribe) return;
+    return repo.subscribe(() => {
+      void refreshBridgeStatus();
+      if (view === "editor") {
+        void refreshActiveProjectFromRepo();
+      }
+    });
+  }, [isFileBridge, refreshActiveProjectFromRepo, refreshBridgeStatus, repo, view]);
+
+  useEffect(() => {
+    if (!isFileBridge) {
+      setBridgeStatus(null);
+      return;
+    }
+    void refreshBridgeStatus();
+  }, [isFileBridge, refreshBridgeStatus]);
+
+  useEffect(() => {
+    if (!isFileBridge || !canPersist || !activeProject) return;
+    const key = bridgeProjectKey(activeProject, spec, filename);
+    if (!key || key === lastBridgePersistedKeyRef.current) return;
+    const timer = window.setTimeout(() => {
+      lastBridgePersistedKeyRef.current = key;
+      const update =
+        activeProject.type === "paper"
+          ? repo.update({ id: activeProject.id, title: activeProject.title, paper: activeProject.content })
+          : repo.update({ id: activeProject.id, title: filename, content: spec });
+      void update
+        .then((updated) => {
+          setActiveProject(updated);
+          void refreshBridgeStatus();
+        })
+        .catch((error) => {
+          console.error(error);
+          lastBridgePersistedKeyRef.current = "";
+          addRepoErrorToast(error, "Failed to sync project files.");
+        });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeProject,
+    addRepoErrorToast,
+    bridgeProjectKey,
+    canPersist,
+    filename,
+    isFileBridge,
+    refreshBridgeStatus,
+    repo,
+    spec,
+  ]);
+
+  const handleReviewBridgeChanges = async () => {
+    if (!repo.getDiff) return;
+    setBridgeBusy(true);
+    try {
+      setBridgeDiff(await repo.getDiff());
+      await refreshBridgeStatus();
+    } catch (error) {
+      console.error(error);
+      addRepoErrorToast(error, "Failed to load source diff.");
+    } finally {
+      setBridgeBusy(false);
+    }
+  };
+
+  const handleSaveBridgeSnapshot = async () => {
+    if (!repo.saveSnapshot) return;
+    setBridgeBusy(true);
+    try {
+      const result = await repo.saveSnapshot("Save Arrowgram snapshot");
+      await refreshBridgeStatus();
+      setBridgeDiff(null);
+      addToast(
+        result.committed === false
+          ? "No source changes to snapshot."
+          : result.sha
+            ? `Snapshot saved (${result.sha.slice(0, 7)}).`
+            : "Snapshot saved.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      addRepoErrorToast(error, "Failed to save snapshot.");
+    } finally {
+      setBridgeBusy(false);
     }
   };
 
@@ -867,6 +1117,15 @@ export default function App() {
     return (
       <>
         {content}
+        {isFileBridge && view === "editor" ? (
+          <BridgeStatusBar
+            status={bridgeStatus}
+            isLoading={bridgeBusy}
+            onReview={handleReviewBridgeChanges}
+            onSnapshot={handleSaveBridgeSnapshot}
+          />
+        ) : null}
+        <BridgeDiffModal diff={bridgeDiff} onClose={() => setBridgeDiff(null)} />
         <TikzExportModal
           tikzCode={tikzCode}
           onClose={() => setShowTikz(false)}
