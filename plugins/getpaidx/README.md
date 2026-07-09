@@ -6,4 +6,6 @@ After installing, use Codex's Connect flow or `codex mcp login getpaidx-cloud` t
 
 The remote `getpaidx-cloud` connection deliberately has a distinct ID from the optional repo-local `getpaidx` PAT adapter, so both can be installed without one hiding the other.
 
+The first file, build, snapshot, or publish operation for a newly created cloud workspace can provision and bootstrap an Azure controller. The plugin allows up to five minutes for that cold path; later calls use the active controller and return normally.
+
 The plugin exposes catalog-backed API discovery plus curated workflows for posts, Arrowgram workspaces, safe source edits, diffs, builds, snapshots, artifact-site publishing, and workspace closure.
