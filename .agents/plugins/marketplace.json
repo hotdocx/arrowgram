@@ -1,0 +1,32 @@
+{
+  "name": "hotdocx",
+  "interface": {
+    "displayName": "Hotdocx"
+  },
+  "plugins": [
+    {
+      "name": "arrowgram",
+      "source": {
+        "source": "local",
+        "path": "./plugins/arrowgram"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer"
+    },
+    {
+      "name": "getpaidx",
+      "source": {
+        "source": "local",
+        "path": "./plugins/getpaidx"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer"
+    }
+  ]
+}

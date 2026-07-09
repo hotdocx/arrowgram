@@ -17,9 +17,10 @@ npm install
 ### 2.2. Directory Structure
 *   `packages/arrowgram`: The core library (math, rendering, schema).
 *   `packages/web`: The web application (UI, state, persistence).
+*   `packages/agent`: The file-backed bridge/runtime for agent-friendly editing.
 *   `packages/lastrevision`: The private SaaS host/runtime (TanStack Start + Postgres + Better Auth).
 *   `docs/`: Documentation and SOPs.
-*   `reports/`: Analysis reports (e.g., gap analysis).
+*   `reports/`: Consolidated current-state reports, active detailed plans, and short implementation plans. Retired historical reports live in ignored `.scratchpad/reports-archive-2026-07-08/`.
 
 ## 3. Development Cycle
 
@@ -40,9 +41,15 @@ This starts the TanStack Start dev server at `http://localhost:3000`.
 See `docs/sop/LASTREVISION_LOCAL_DEV.md` for bearer-token auth and local validation scripts.
 
 ### 3.2. Making Changes
-1.  **Identify the Scope:** Determine if the change belongs in `core` (rendering logic, math) or `web` (UI, interaction).
-2.  **Edit Code:** Follow the project's coding style (TypeScript, functional components, hooks).
-3.  **Verify Locally:** Use the running web app to visually verify changes.
+1.  **Orient:** Read `AGENTS.md`, the relevant durable docs/specs, and one current-state report if status context is needed:
+    *   `reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md`
+    *   `reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md`
+    *   `reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md`
+    *   active detailed plans such as the Azure migration plan or agent-friendly editor plan when working in those areas
+2.  **Identify the Scope:** Determine if the change belongs in `packages/arrowgram` (schema/rendering/math), `packages/web` (editor UI/adapters/papers), `packages/agent` (file bridge), or private `packages/lastrevision` (SaaS host).
+3.  **Edit Code:** Follow the project's coding style (TypeScript, functional components, hooks).
+4.  **Verify Locally:** Run the focused validation command for the touched package and use the running web app to visually verify UI changes.
+5.  **Protect OSS Boundaries:** Never move private `packages/lastrevision` code, secrets, env files, or generated runtime state into allowlisted OSS paths.
 
 ### 3.3. Building
 To ensure everything compiles correctly:
@@ -84,3 +91,5 @@ This builds both workspaces.
 *   See `docs/sop/ARCHITECTURE.md` for system design.
 *   See `docs/sop/TESTING.md` for detailed testing strategies.
 *   See `docs/sop/LASTREVISION_LOCAL_DEV.md` for SaaS local dev/testing/storage.
+*   See `docs/sop/OSS_MIRRORING.md` before exporting or deploying the OSS mirror.
+*   Search archived reports directly with `rg "term" .scratchpad/reports-archive-2026-07-08` only when current docs/code do not answer a historical question.

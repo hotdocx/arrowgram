@@ -58,7 +58,7 @@ We employ a **testing pyramid** strategy:
 
 LastRevision (`packages/lastrevision`) is validated via **curl smoke** + **Playwright E2E** at the repo root.
 
-For the full “how to run locally / why 401 happens / storage (GCS vs R2) / env files” guide, see:
+For the full “how to run locally / why 401 happens / storage (Azure Blob vs GCS/R2) / env files” guide, see:
 
 - `docs/sop/LASTREVISION_LOCAL_DEV.md`
 
@@ -70,15 +70,15 @@ Runs docker Postgres, migrations, curl smoke (incl. AI proxy), and Playwright:
 scripts/validate_lastrevision_local.sh
 ```
 
-### 6.2 Deployed (GitHub Pages + Cloud Run)
+### 6.2 Deployed
 
-Runs Playwright against `https://hotdocx.github.io` and then a Cloud Run backend smoke using the same bearer token (to avoid auth rate limits):
+Runs Playwright against `https://hotdocx.github.io` and then a backend smoke using the same bearer token (to avoid auth rate limits). The current infrastructure target is Azure Container Apps; Cloud Run validation remains available as a legacy/rollback path while those scripts remain in the repo.
 
 ```bash
 CLOUD_RUN_URL=https://<service>.run.app scripts/validate_lastrevision_remote.sh
 ```
 
-Note: remote Playwright runs intentionally use low concurrency to reduce flakiness against GitHub Pages + Cloud Run.
+Note: remote Playwright runs intentionally use low concurrency to reduce flakiness against split-hosting deployments.
 
 Note: some SaaS E2E tests mock the attachment download proxy endpoint to keep the “AI tool → attach file-part → auto-resubmit” flow deterministic and not dependent on external object storage availability.
 
@@ -91,3 +91,5 @@ Note: some SaaS E2E tests mock the attachment download proxy endpoint to keep th
 - `SMOKE_AI=0` to skip `/api/my/ai/proxy` streaming validation
 
 The smoke script also validates the “workspace files” flow by creating a project attachment via `POST /api/my/attachments`, uploading to the returned presigned URL, and then reading it back via `GET /api/my/uploads/url`.
+
+For the consolidated validation/deployment map, see `reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md`.

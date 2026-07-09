@@ -63,6 +63,7 @@ This is a monorepo managed by NPM Workspaces.
 
 -   **`packages/arrowgram`**: The core library. Contains the geometry engine, Zod schemas, and React renderer. Tested with **Vitest**.
 -   **`packages/web`**: The official web-based editor. Built with React, Vite, and Paged.js. Tested with **Jest**.
+-   **`packages/agent`**: File-backed bridge/runtime for agent-friendly Arrowgram editing and static output.
 -   **`packages/lastrevision`**: Private SaaS host/runtime for Arrowgram (TanStack Start + Postgres + Better Auth). Not included in the OSS mirror.
 -   **`tmp-quiver-codebase`**, **`tmp-arrowgram-original`**: Reference implementations and inspiration sources.
 
@@ -110,13 +111,19 @@ npm run dev -w packages/lastrevision
 
 See `docs/sop/LASTREVISION_LOCAL_DEV.md` for bearer token auth, local validation scripts, and attachment upload (CORS) notes.
 
+**Use the Codex plugins:**
+
+The Arrowgram Codex plugin source lives in `plugins/arrowgram`; it packages the `arrowgram` skill plus a helper script that runs the local `arrowgram-agent` CLI when available and otherwise falls back to `npx -y @hotdocx/arrowgram-agent`.
+
+The public `getpaidx` plugin lives in `plugins/getpaidx` and connects Codex to the hosted GetPaidX OAuth MCP endpoint for cloud posts and Arrowgram workspaces. Both plugins are listed by `.agents/plugins/marketplace.json` and are exported to the OSS mirror. Install the public marketplace with `codex plugin marketplace add hotdocx/arrowgram --sparse .agents/plugins --sparse plugins`, then install the desired plugin from the `hotdocx` marketplace.
+
 **Deploy the SaaS backend to the GetPaidX Azure environment (private repo only):**
 
 ```bash
 GPX_ENV_FILE=/home/user1/closerfans/.env.production npm run deploy:lastrevision:azure
 ```
 
-This creates/updates the ArrowGram `lastrevision-app` Azure Container App, uses a separate `lastrevision` database on the shared GetPaidX Azure PostgreSQL server, and uses Azure Blob for uploads. See `reports/PLAN_AZURE_MIGRATION_GETPAIDX_SHARED_RESOURCES_2026-07-05.md`.
+This creates/updates the ArrowGram `lastrevision-app` Azure Container App, uses a separate `lastrevision` database on the shared GetPaidX Azure PostgreSQL server, and uses Azure Blob for uploads. Current deployment and rollback context is summarized in [Current Operations, Testing, And Deployment](./reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md).
 
 **Run Tests:**
 
@@ -155,10 +162,17 @@ Safety:
 Start with [AGENTS.md](./AGENTS.md) (repo context map + workflows), then read:
 
 - [JSON API Specification](./docs/ARROWGRAM_SPEC.md) (DiagramSpec schema)
+- [Current Arrowgram Editor And Packages](./reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md) (editor/package status snapshot)
+- [Current LastRevision SaaS Product](./reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md) (private SaaS status snapshot)
+- [Current Operations, Testing, And Deployment](./reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md) (validation, mirroring, deployment)
 - [LastRevision Local Dev](./docs/sop/LASTREVISION_LOCAL_DEV.md) (SaaS local/dev/prod testing + storage)
 - [LastRevision Reference IDs](./packages/lastrevision/docs/reference-ids.md) (permanent citation IDs for publications)
-- [Reference ID Port Plan](./reports/PLAN_REFERENCE_ID_PORT.md) (implementation checklist + rollout)
-- [Reveal Slides Template Plan](./reports/PLAN_REVEAL_JS_TEMPLATE.md) (slides master template + CSS side-artifact)
+- Active detailed plans:
+  - [Azure Migration Plan](./reports/PLAN_AZURE_MIGRATION_GETPAIDX_SHARED_RESOURCES_2026-07-05.md)
+  - [Agent-Friendly Arrowgram Editor Plan](./reports/PLAN_AGENT_FRIENDLY_ARROWGRAM_EDITOR_2026-07-07.md)
+  - [Codex Plugin Architecture Plan](./reports/PLAN_CODEX_PLUGIN_ARCHITECTURE_ARROWGRAM_GETPAIDX_2026-07-08.md)
+
+Note for `packages/lastrevision`: `packages/lastrevision/docs/features/` and some older package docs are mostly historical starter-template material from the unfinished base app. Treat them as implementation archaeology only; current LastRevision behavior is defined by live code, package docs listed above, root SOPs, and the consolidated current-state reports.
 
 ## Documentation
 
@@ -171,8 +185,12 @@ Start with [AGENTS.md](./AGENTS.md) (repo context map + workflows), then read:
     -   [Testing Strategy](./docs/sop/TESTING.md)
     -   [LastRevision Local Dev](./docs/sop/LASTREVISION_LOCAL_DEV.md)
 -   [Contributing SOP](./docs/SOP_CONTRIBUTING.md)
--   [Reference ID Architecture](./reports/REFERENCE_ID_ARCHITECTURE.md)
--   [Reference ID Port Plan](./reports/PLAN_REFERENCE_ID_PORT.md)
+-   [Current Arrowgram Editor And Packages](./reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md)
+-   [Current LastRevision SaaS Product](./reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md)
+-   [Current Operations, Testing, And Deployment](./reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md)
+-   [Retired Reports Index](./reports/RETIRED_REPORTS_INDEX_2026-07-08.md)
+-   [Azure Migration Plan](./reports/PLAN_AZURE_MIGRATION_GETPAIDX_SHARED_RESOURCES_2026-07-05.md)
+-   [Agent-Friendly Arrowgram Editor Plan](./reports/PLAN_AGENT_FRIENDLY_ARROWGRAM_EDITOR_2026-07-07.md)
 
 ## License
 

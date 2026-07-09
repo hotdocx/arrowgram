@@ -7,6 +7,8 @@ This repository is intended to be a **private super-repo** containing both:
 
 The OSS subset is mirrored into a **public repo** (e.g. `github.com/hotdocx/arrowgram`).
 
+For the current deployment and validation overview, see `reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md`.
+
 ## Remote model (in this private super-repo clone)
 
 - `origin` -> private super-repo (`hotdocx/arrowgram-super`)

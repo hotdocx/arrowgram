@@ -50,12 +50,12 @@ The project is a monorepo with two primary packages:
 ### 3.3. `packages/lastrevision` (private SaaS runtime)
 *   **Status:** Implemented (private super-repo only).
 *   **Purpose:** A SaaS host/runtime for Arrowgram that adds auth + remote persistence + uploads + AI proxy, while embedding the same workspace/editor UI from `@arrowgram/web`.
-*   **Hosting model:** Split-hosting (static SPA on GitHub Pages + API on Cloud Run).
+*   **Hosting model:** Split-hosting (static SPA on GitHub Pages + API on Azure Container Apps; Cloud Run remains legacy rollback/reference).
 *   **Auth model:** Bearer tokens (no third-party cookies) for reliability across origins.
-*   **Uploads:** Presigned direct-to-object-store uploads (GCS preferred; R2 fallback).
+*   **Uploads:** Presigned direct-to-object-store uploads (Azure Blob preferred for the current Azure target; GCS/R2 fallback).
 *   **Validation:** End-to-end validation scripts exist for both local and deployed environments:
     *   `scripts/validate_lastrevision_local.sh`
-    *   `CLOUD_RUN_URL=https://<service>.run.app scripts/validate_lastrevision_remote.sh`
+    *   `CLOUD_RUN_URL=https://<api-service-url> scripts/validate_lastrevision_remote.sh`
 
 ### 3.4 Community Gallery (SaaS Only)
 *   **Publishing**: Users can publish snapshots of their Diagrams or Papers.
@@ -125,7 +125,7 @@ The project is a monorepo with two primary packages:
 2.  **UX Polish:** Implement the "Projects" dashboard and Keyboard Shortcuts. [IN PROGRESS]
 3.  **AI Refinement:** Implement "Merging" logic for incremental AI updates. [IN PROGRESS]
 4.  **DevOps:** CI/CD for NPM publishing and Docker containerization. [PARTIAL - CI Active]
-5.  **Launch:** Deploy to GitHub Pages / Cloud Run.
+5.  **Launch:** Deploy to GitHub Pages / Azure Container Apps, with Cloud Run retained as rollback/reference until fully retired.
 
 ## 7. Reference Material
 
@@ -133,5 +133,6 @@ The following directories in the codebase serve as reference and inspiration:
 -   `tmp-quiver-codebase/`: A snapshot of the `q.uiver.app` codebase. Useful for understanding complex geometry logic (intersections, bezier curves).
 -   `tmp-arrowgram-original/`: An earlier version of this project.
 -   `tmp-arrowgram_paged/`: Prototypes for the paged/paper feature.
--   `reports/QUIVER_INSPIRATION.md`: Detailed analysis of the Quiver architecture.
--   `reports/PLAN_REVEAL_JS_TEMPLATE.md`: Reveal.js slide template plan (master template + per-paper CSS side-artifact).
+-   `docs/ARROWGRAM_SPEC.md`: Authoritative JSON schema reference for generated diagrams.
+-   `reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md`: Current editor/package status, including paper, print, and Reveal.js slide rendering.
+-   `reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md`: Current private SaaS status for hosted publishing, gallery, and AI workflows.

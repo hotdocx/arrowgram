@@ -1,6 +1,6 @@
 # LastRevision (SaaS) Local Dev, Testing, and Storage
 
-This SOP documents how to run and validate the private SaaS app (`packages/lastrevision`) **locally** (no GitHub Pages / no Cloud Run deploy) and how storage is selected across local vs deployed environments.
+This SOP documents how to run and validate the private SaaS app (`packages/lastrevision`) **locally** (no GitHub Pages / remote backend deploy) and how storage is selected across local vs deployed environments.
 
 If you are an AI agent starting from the repo root, start here after reading `AGENTS.md`.
 
@@ -20,6 +20,7 @@ Locally, both frontend and backend run on the same dev origin:
 See also:
 - `packages/lastrevision/docs/deploy.md`
 - `packages/lastrevision/docs/reference-ids.md` (publication reference IDs)
+- `reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md` (current validation/deployment map)
 
 ---
 
@@ -177,7 +178,7 @@ Calendar behavior:
 
 ## 5) Storage: which provider is used (Azure Blob vs GCS vs Cloudflare R2)
 
-Storage is selected **on the backend** at runtime (Cloud Run or local dev server), not by GitHub Pages.
+Storage is selected **on the backend** at runtime (Azure Container Apps, legacy Cloud Run, or local dev server), not by GitHub Pages.
 
 Selection logic lives in `packages/lastrevision/src/utils/storage/index.ts`:
 
@@ -261,8 +262,8 @@ LastRevision uses a mix of **Vite client env** (prefixed with `VITE_`) and **ser
 ### 7.2 Deployment defaults (not the source of truth)
 
 - File: `packages/lastrevision/.env.production`
-- Used as a *defaults file* by `scripts/deploy_lastrevision_cloudrun.sh` (it is `source`d).
-- The deploy script may **derive additional env vars** (notably `GCS_BUCKET`) and inject them into Cloud Run.
+- Used as a *defaults file* by deployment scripts such as `scripts/deploy_lastrevision_azure.sh` and the legacy `scripts/deploy_lastrevision_cloudrun.sh`.
+- The legacy Cloud Run deploy script may **derive additional env vars** (notably `GCS_BUCKET`) and inject them into Cloud Run.
 
 ### 7.3 Deployed runtime (source of truth)
 

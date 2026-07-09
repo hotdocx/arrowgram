@@ -41,6 +41,18 @@ Arrowgram is designed as a **hybrid architecture** splitting core logic from the
 *   **Gemini API:** Integrated directly into the frontend (via `src/components/AIChatPanel.tsx`).
 *   **Workflow:** User request -> LLM generates JSON -> JSON merged/replaced in Store -> UI updates.
 
-## 4. Cross-Reference
-*   **API Spec:** See `packages/paged/AGENTS.md` and `docs/ARROWGRAM_SPEC.md` for the JSON schema used by AI agents.
-*   **Gap Analysis:** See `reports/GAP_ANALYSIS.md` for feature parity status vs Quiver.
+## 4. Package Boundaries
+
+*   **`packages/arrowgram`:** Core schema, geometry, computed model, and React SVG renderer. This package should stay usable without the SaaS host.
+*   **`packages/web`:** OSS editor/workspace UI, paper/preview pipelines, adapters, AI/BYOK mode, local persistence, and embeddable workspace exports.
+*   **`packages/paged`:** Paged.js viewer/prototype package for paper-style rendering.
+*   **`packages/agent`:** File-backed bridge/runtime for agent-friendly Arrowgram editing and static output.
+*   **`packages/lastrevision`:** Private SaaS host/runtime for remote persistence, auth, uploads, AI proxying, gallery/publications, reference IDs, subscriptions, and deployment-specific wiring.
+
+## 5. Cross-Reference
+
+*   **API Spec:** See `docs/ARROWGRAM_SPEC.md` for the JSON schema used by AI agents.
+*   **Editor/package status:** See `reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md`.
+*   **SaaS product status:** See `reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md`.
+*   **Operations/testing/deployment status:** See `reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md`.
+*   **Historical reports:** Retired reports are archived under `.scratchpad/reports-archive-2026-07-08/`; search them only when current docs/code are ambiguous.
