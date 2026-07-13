@@ -38,6 +38,20 @@ We employ a **testing pyramid** strategy:
     ```
     *Note: The test runner handles starting the dev server automatically.*
 
+### 3.3. Agent Bridge End-to-End (Playwright)
+
+The file-backed bridge owns a separate browser suite because it must start
+`arrowgram-agent dev` against temporary git-backed workspaces rather than the
+ordinary IndexedDB Vite app.
+
+```bash
+npm run test:e2e --workspace=packages/agent
+```
+
+The suite verifies full-editor startup, external file refresh, browser source
+autosync, embedded visual diagram editing, manifest review/snapshot behavior,
+and standalone diagram canvas persistence.
+
 ## 4. Continuous Integration (CI)
 *   **Platform:** GitHub Actions (`.github/workflows/ci.yml`).
 *   **Workflow:**

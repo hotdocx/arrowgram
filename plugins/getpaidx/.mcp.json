@@ -4,7 +4,7 @@
       "url": "https://getpaidx.com/api/mcp",
       "startup_timeout_sec": 20,
       "tool_timeout_sec": 300,
-      "default_tools_approval_mode": "prompt"
+      "default_tools_approval_mode": "auto"
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "getpaidx",
-  "version": "0.1.2",
+  "version": "0.1.2+codex.20260713232431",
   "description": "Hosted GetPaidX MCP workflows for cloud posts and Arrowgram workspaces.",
   "author": {
     "name": "GetPaidX"
@@ -8,7 +8,13 @@
   "homepage": "https://getpaidx.com",
   "repository": "https://github.com/hotdocx/arrowgram",
   "license": "MIT",
-  "keywords": ["getpaidx", "codex", "mcp", "workspace", "arrowgram"],
+  "keywords": [
+    "getpaidx",
+    "codex",
+    "mcp",
+    "workspace",
+    "arrowgram"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "GetPaidX",
@@ -16,7 +22,10 @@
     "longDescription": "GetPaidX lets Codex securely manage cloud posts and Arrowgram workspaces through the hosted OAuth-protected MCP server.",
     "developerName": "GetPaidX",
     "category": "Developer",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "websiteURL": "https://getpaidx.com",
     "defaultPrompt": [
       "Create a GetPaidX Arrowgram workspace.",

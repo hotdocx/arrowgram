@@ -22,26 +22,28 @@ Do not edit `dist/` as source. Rebuild it with `arrowgram-agent build`.
 
 ## Commands
 
-Prefer the helper bundled with this plugin:
-
-```bash
-node plugins/arrowgram/scripts/arrowgram-agent.mjs <command> [args...]
-```
-
-The helper uses the local workspace `node_modules/.bin/arrowgram-agent` when available and otherwise falls back to:
+Use the portable package command from ordinary Arrowgram workspaces:
 
 ```bash
 npx -y @hotdocx/arrowgram-agent <command> [args...]
 ```
 
+When developing inside the Arrowgram monorepo itself, the repo-local helper is also available:
+
+```bash
+node plugins/arrowgram/scripts/arrowgram-agent.mjs <command> [args...]
+```
+
+Do not assume that repository-relative helper path exists in an arbitrary user workspace.
+
 Core commands:
 
 ```bash
-node plugins/arrowgram/scripts/arrowgram-agent.mjs init --type paper --root .
-node plugins/arrowgram/scripts/arrowgram-agent.mjs init --type diagram --root .
-node plugins/arrowgram/scripts/arrowgram-agent.mjs validate --root .
-node plugins/arrowgram/scripts/arrowgram-agent.mjs dev --root . --host 127.0.0.1 --port 4173
-node plugins/arrowgram/scripts/arrowgram-agent.mjs build --root . --out dist
+npx -y @hotdocx/arrowgram-agent init --type paper --root .
+npx -y @hotdocx/arrowgram-agent init --type diagram --root .
+npx -y @hotdocx/arrowgram-agent validate --root .
+npx -y @hotdocx/arrowgram-agent dev --root . --host 127.0.0.1 --port 4173
+npx -y @hotdocx/arrowgram-agent build --root . --out dist
 ```
 
 ## Workflow

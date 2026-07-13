@@ -1,6 +1,6 @@
 {
   "name": "arrowgram",
-  "version": "0.1.0",
+  "version": "0.1.0+codex.20260713225256",
   "description": "Codex workflows for file-backed Arrowgram diagrams and papers.",
   "author": {
     "name": "Hotdocx"
@@ -8,7 +8,13 @@
   "homepage": "https://github.com/hotdocx/arrowgram",
   "repository": "https://github.com/hotdocx/arrowgram",
   "license": "MIT",
-  "keywords": ["arrowgram", "diagrams", "papers", "codex", "agent"],
+  "keywords": [
+    "arrowgram",
+    "diagrams",
+    "papers",
+    "codex",
+    "agent"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Arrowgram",
@@ -16,7 +22,10 @@
     "longDescription": "Arrowgram helps Codex initialize, edit, validate, preview, snapshot, and build file-backed Arrowgram workspaces using @hotdocx/arrowgram-agent.",
     "developerName": "Hotdocx",
     "category": "Developer",
-    "capabilities": ["Write", "Interactive"],
+    "capabilities": [
+      "Write",
+      "Interactive"
+    ],
     "websiteURL": "https://github.com/hotdocx/arrowgram",
     "defaultPrompt": [
       "Create an Arrowgram paper workspace here.",

@@ -12,8 +12,8 @@ arrowgram-agent build --root . --out dist
 ```
 
 The bridge treats `arrowgram.workspace.json` plus its referenced source files as
-the editable state. Diffs compare the current source files against the last git
-snapshot where a git baseline is available.
+the editable state. Diffs compare the manifest and current/baseline-declared
+source files against the last git snapshot where a git baseline is available.
 
 ## Workspace Files
 
@@ -61,6 +61,20 @@ an SSE stream used by `@hotdocx/arrowgram-web` to keep the editor synchronized.
 
 ## Static Output
 
-`arrowgram-agent build` writes a read-only `index.html` with Markdown converted
-to HTML and embedded Arrowgram diagrams rendered as SVG. The editable bridge API
-is not included in the published output.
+`arrowgram-agent build` writes read-only static output with Markdown converted
+to HTML and embedded Arrowgram diagrams rendered as SVG. Paged papers include a
+local Paged.js runtime, Reveal papers become a Reveal slide deck with local
+runtime assets, and standalone diagrams remain static SVG documents. The
+editable bridge API is not included in published output.
+
+## Validation
+
+```bash
+npm run build -w packages/agent
+npm test -w packages/agent
+npm run test:e2e -w packages/agent
+```
+
+The Playwright suite starts real bridge servers and verifies file-to-browser,
+browser-to-file, embedded visual diagram, manifest diff/snapshot, and standalone
+diagram canvas persistence flows.

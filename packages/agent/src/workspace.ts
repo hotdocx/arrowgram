@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createTwoFilesPatch } from "diff";
 import showdown from "showdown";
 import { ArrowGramDiagram, computeDiagram, DiagramSpecSchema } from "@hotdocx/arrowgram";
 import katex from "katex";
@@ -82,6 +84,7 @@ export type BridgeStatus = {
 };
 
 const MANIFEST_FILE = "arrowgram.workspace.json";
+const requireFromHere = createRequire(import.meta.url);
 
 function nowIso() {
   return new Date().toISOString();
@@ -399,6 +402,26 @@ export async function sourcePaths(root: string) {
   );
 }
 
+async function headManifestSourcePaths(root: string) {
+  if (!(await hasGitRepository(root)) || !(await currentGitSha(root))) return [];
+  const raw = await gitShowHead(root, MANIFEST_FILE);
+  if (!raw.trim()) return [];
+  try {
+    const manifest = parseManifest(JSON.parse(raw));
+    return manifest.projects.flatMap((project) =>
+      [project.source, project.customCss].filter((item): item is string => Boolean(item))
+    );
+  } catch {
+    return [];
+  }
+}
+
+export async function workspaceTrackedPaths(root: string) {
+  const current = await sourcePaths(root);
+  const baseline = await headManifestSourcePaths(root);
+  return Array.from(new Set([MANIFEST_FILE, ...current, ...baseline]));
+}
+
 async function gitStatusMap(root: string, paths: string[]) {
   if (!(await hasGitRepository(root))) return new Map<string, string>();
   const result = await runGit(root, ["status", "--porcelain", "--", ...paths]);
@@ -417,19 +440,16 @@ async function gitShowHead(root: string, relativePath: string) {
   return result.code === 0 ? result.stdout : "";
 }
 
-function diffHeader(filePath: string, oldText: string, newText: string) {
-  const oldLines = oldText.split("\n");
-  const newLines = newText.split("\n");
-  const lines = [`--- a/${filePath}`, `+++ b/${filePath}`];
-  const max = Math.max(oldLines.length, newLines.length);
-  for (let i = 0; i < max; i++) {
-    const oldLine = oldLines[i];
-    const newLine = newLines[i];
-    if (oldLine === newLine) continue;
-    if (oldLine !== undefined) lines.push(`-${oldLine}`);
-    if (newLine !== undefined) lines.push(`+${newLine}`);
-  }
-  return lines.join("\n");
+function unifiedDiff(filePath: string, oldText: string, newText: string) {
+  return createTwoFilesPatch(
+    `a/${filePath}`,
+    `b/${filePath}`,
+    oldText,
+    newText,
+    undefined,
+    undefined,
+    { context: 3 }
+  );
 }
 
 function escapeHtml(input: unknown) {
@@ -506,8 +526,76 @@ function renderMarkdown(markdown: string) {
   return { html, metadata: (converter.getMetadata() as Record<string, unknown>) ?? {} };
 }
 
+function splitMarkdownIntoSlides(markdown: string) {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const slides: string[] = [];
+  let current: string[] = [];
+  let inFence = false;
+  let fence = "```";
+  let index = 0;
+
+  if (lines[0]?.trim() === "---") {
+    current.push(lines[0]);
+    index = 1;
+    while (index < lines.length) {
+      current.push(lines[index]!);
+      if (lines[index]!.trim() === "---") {
+        index += 1;
+        break;
+      }
+      index += 1;
+    }
+  }
+
+  for (; index < lines.length; index += 1) {
+    const line = lines[index]!;
+    const trimmed = line.trimStart();
+    if (!inFence && (trimmed.startsWith("```") || trimmed.startsWith("~~~"))) {
+      inFence = true;
+      fence = trimmed.startsWith("~~~") ? "~~~" : "```";
+      current.push(line);
+      continue;
+    }
+    if (inFence && trimmed.startsWith(fence)) {
+      inFence = false;
+      current.push(line);
+      continue;
+    }
+    if (!inFence && line.trim() === "---") {
+      const slide = current.join("\n").trimEnd();
+      if (slide.trim()) slides.push(`${slide}\n`);
+      current = [];
+      continue;
+    }
+    current.push(line);
+  }
+
+  const finalSlide = current.join("\n").trimEnd();
+  if (finalSlide.trim()) slides.push(`${finalSlide}\n`);
+  return slides.length ? slides : ["\n"];
+}
+
+async function copyStaticAsset(source: string, outDir: string, relativePath: string) {
+  const destination = path.join(outDir, relativePath);
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  await fs.copyFile(source, destination);
+}
+
+async function writePagedRuntime(outDir: string) {
+  const pagedRoot = path.dirname(path.dirname(requireFromHere.resolve("pagedjs")));
+  await copyStaticAsset(path.join(pagedRoot, "dist", "paged.polyfill.js"), outDir, "assets/paged.polyfill.js");
+}
+
+async function writeRevealRuntime(outDir: string) {
+  await Promise.all([
+    copyStaticAsset(requireFromHere.resolve("reveal.js/dist/reveal.js"), outDir, "assets/reveal.js"),
+    copyStaticAsset(requireFromHere.resolve("reveal.js/dist/reveal.css"), outDir, "assets/reveal.css"),
+    copyStaticAsset(requireFromHere.resolve("reveal.js/dist/theme/black.css"), outDir, "assets/reveal-black.css"),
+  ]);
+}
+
 export async function diffWorkspace(root: string): Promise<{ baseline: BridgeStatus["baseline"]; files: BridgeDiffFile[] }> {
-  const paths = await sourcePaths(root);
+  const paths = await workspaceTrackedPaths(root);
   const isGit = await hasGitRepository(root);
   const baseline: BridgeStatus["baseline"] = isGit
     ? { kind: "git", sha: await currentGitSha(root) }
@@ -534,7 +622,7 @@ export async function diffWorkspace(root: string): Promise<{ baseline: BridgeSta
       status: fileStatus,
       oldText,
       newText,
-      unifiedDiff: diffHeader(relativePath, oldText, newText),
+      unifiedDiff: unifiedDiff(relativePath, oldText, newText),
     });
   }
   return { baseline, files };
@@ -577,7 +665,8 @@ export async function workspaceStatus(root: string): Promise<BridgeStatus> {
   const manifest = await readManifest(root);
   const diagnostics = await validateWorkspace(root);
   const diff = await diffWorkspace(root);
-  const status = await gitStatusMap(root, await sourcePaths(root));
+  const status = await gitStatusMap(root, await workspaceTrackedPaths(root));
+  const manifestDirty = status.has(MANIFEST_FILE);
   return {
     ok: true,
     root,
@@ -589,7 +678,10 @@ export async function workspaceStatus(root: string): Promise<BridgeStatus> {
       type: project.type,
       title: project.title,
       sourcePath: project.source,
-      dirty: status.has(project.source) || Boolean(project.customCss && status.has(project.customCss)),
+      dirty:
+        manifestDirty ||
+        status.has(project.source) ||
+        Boolean(project.customCss && status.has(project.customCss)),
     })),
     diagnostics,
   };
@@ -597,8 +689,8 @@ export async function workspaceStatus(root: string): Promise<BridgeStatus> {
 
 export async function snapshotWorkspace(root: string, message = "Save Arrowgram snapshot") {
   await ensureGitRepository(root);
-  const paths = await sourcePaths(root);
-  await gitOk(root, ["add", MANIFEST_FILE, ...paths]);
+  const paths = await workspaceTrackedPaths(root);
+  await gitOk(root, ["add", "--", ...paths]);
   const staged = await runGit(root, ["diff", "--cached", "--quiet"]);
   if (staged.code === 0) return { sha: await currentGitSha(root), committed: false };
   await gitOk(root, ["commit", "-m", message]);
@@ -616,44 +708,79 @@ export async function buildStaticWorkspace(root: string, outDir: string) {
     active?.type === "paper"
       ? String(renderMarkdown(active.content.markdown).metadata.title ?? active.title)
       : (active?.title ?? "Arrowgram");
-  const body =
-    active?.type === "paper"
-      ? renderMarkdown(active.content.markdown).html
-      : active?.type === "diagram"
-        ? `<div class="arrowgram-container">${renderDiagramSvg(active.content, "ag-static-main")}</div>`
-        : "<p>No Arrowgram project found.</p>";
   const customCss = active?.type === "paper" ? active.content.customCss : "";
-  const html = `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(title)}</title>
-  <style>
+  const sharedStyles = `
     body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; color: #1f2937; background: #f8fafc; }
-    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 56px; }
-    article { background: white; border: 1px solid #e5e7eb; padding: 32px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
-    h1, h2, h3 { color: #111827; line-height: 1.2; }
+    h1, h2, h3 { line-height: 1.2; }
     p { line-height: 1.65; }
     code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    pre { overflow-x: auto; background: #f1f5f9; padding: 16px; border-radius: 6px; }
+    pre { overflow-x: auto; background: #f1f5f9; color: #111827; padding: 16px; border-radius: 6px; }
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #d1d5db; padding: 6px 8px; }
     .arrowgram-container { display: flex; justify-content: center; margin: 24px 0; page-break-inside: avoid; }
     .arrowgram-svg { width: min(100%, 760px); height: auto; min-height: 120px; }
     .arrowgram-error { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .katex { font-size: 1em; }
+  `;
+
+  let html: string;
+  if (active?.type === "paper" && active.content.renderTemplate === "reveal") {
+    await writeRevealRuntime(resolvedOutDir);
+    const slides = splitMarkdownIntoSlides(active.content.markdown)
+      .map((slide) => `<section>${renderMarkdown(slide).html}</section>`)
+      .join("\n");
+    html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="assets/reveal.css" />
+  <link rel="stylesheet" href="assets/reveal-black.css" />
+  <style>
+    ${sharedStyles}
+    .reveal .slides section { text-align: left; }
+    .reveal .arrowgram-container { background: white; padding: 16px; border-radius: 12px; }
     ${escapeStyle(customCss)}
   </style>
 </head>
-<body>
-  <main>
-    <article>
-      ${body}
-    </article>
-  </main>
+<body data-arrowgram-render-template="reveal">
+  <div class="reveal"><div class="slides">${slides}</div></div>
+  <script src="assets/reveal.js"></script>
+  <script>Reveal.initialize({ hash: true, controls: true, progress: true });</script>
 </body>
 </html>
 `;
+  } else {
+    if (active?.type === "paper") await writePagedRuntime(resolvedOutDir);
+    const body =
+      active?.type === "paper"
+        ? renderMarkdown(active.content.markdown).html
+        : active?.type === "diagram"
+          ? `<div class="arrowgram-container">${renderDiagramSvg(active.content, "ag-static-main")}</div>`
+          : "<p>No Arrowgram project found.</p>";
+    const isPaper = active?.type === "paper";
+    html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    ${sharedStyles}
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 56px; }
+    article { background: white; border: 1px solid #e5e7eb; padding: 32px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+    h1, h2, h3 { color: #111827; }
+    @page { size: letter; margin: 18mm; }
+    ${escapeStyle(customCss)}
+  </style>
+</head>
+<body data-arrowgram-render-template="${isPaper ? "paged" : "diagram"}">
+  <main><article>${body}</article></main>
+  ${isPaper ? '<script src="assets/paged.polyfill.js"></script>' : ""}
+</body>
+</html>
+`;
+  }
   await fs.writeFile(path.join(resolvedOutDir, "index.html"), html, "utf8");
 }

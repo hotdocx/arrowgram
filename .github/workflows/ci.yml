@@ -77,6 +77,9 @@ jobs:
     - name: Run Agent Tests
       run: npm test --workspace=packages/agent
 
+    - name: Run Agent Bridge E2E Tests
+      run: npm run test:e2e --workspace=packages/agent
+
     - name: Pack Agent Package
       run: npm pack --dry-run --workspace=packages/agent
 

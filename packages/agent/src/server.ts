@@ -35,6 +35,10 @@ function arrowgramWebDistPath(fileName: string) {
   return found;
 }
 
+function arrowgramEsmPath() {
+  return fileURLToPath(import.meta.resolve("@hotdocx/arrowgram"));
+}
+
 export type DevServerOptions = {
   root: string;
   host: string;
@@ -191,7 +195,7 @@ export async function startDevServer(options: DevServerOptions) {
           find: "@hotdocx/arrowgram-web/dist/arrowgram-web.css",
           replacement: arrowgramWebDistPath("arrowgram-web.css"),
         },
-        { find: "@hotdocx/arrowgram", replacement: requireFromHere.resolve("@hotdocx/arrowgram") },
+        { find: "@hotdocx/arrowgram", replacement: arrowgramEsmPath() },
       ],
     },
     server: {
