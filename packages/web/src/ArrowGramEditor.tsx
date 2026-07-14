@@ -226,8 +226,15 @@ function useEditorInteraction(
 
       if (deltaX === 0 && deltaY === 0) return; // No grid snap change
 
+      // Selection updates from pointer-down are asynchronous. On the first
+      // drag of an unselected node, this render can still see the previous
+      // selection, so always move the interaction source at minimum.
+      const movingIds = selectedIds.has(interaction.source)
+        ? selectedIds
+        : new Set([interaction.source]);
+
       const newNodes = nodes.map(n => {
-        if (selectedIds.has(n.name)) {
+        if (movingIds.has(n.name)) {
           return { ...n, left: n.left + deltaX, top: n.top + deltaY };
         }
         return n;

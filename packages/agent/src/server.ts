@@ -198,6 +198,13 @@ export async function startDevServer(options: DevServerOptions) {
         { find: "@hotdocx/arrowgram", replacement: arrowgramEsmPath() },
       ],
     },
+    optimizeDeps: {
+      // The editor library intentionally externalizes its browser dependencies.
+      // Scan its built entry points up front so Vite resolves dependencies from
+      // the installed package rather than discovering them after the editor is
+      // interactive and reloading during an active edit gesture.
+      entries: [arrowgramWebDistPath("embed.js"), arrowgramWebDistPath("adapters.js")],
+    },
     server: {
       middlewareMode: true,
       hmr: {

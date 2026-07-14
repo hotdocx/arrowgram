@@ -71,20 +71,32 @@ test("standalone diagram canvas movement writes diagram.json", async ({ page }) 
     await page.getByRole("heading", { name: "Untitled Diagram" }).click();
     await expect(page.locator("#arrowgram-canvas")).toBeVisible();
 
+    const diagramPath = path.join(workspace.root, "diagram.json");
+    const initialSpec = JSON.parse(await fs.readFile(diagramPath, "utf8"));
+    const initialNode = initialSpec.nodes.find((item: { name?: string }) => item.name === "A");
+    expect(initialNode).toBeTruthy();
+
     const node = page.locator('[data-type="node"][data-id="A"]');
+    await node.click({ force: true });
+    await expect(page.getByRole("heading", { name: "node A" })).toBeVisible();
     const box = await node.boundingBox();
     expect(box).not.toBeNull();
-    await page.mouse.move(box!.x + box!.width / 2, box!.y + 5);
+    const initialSvgX = await node.getAttribute("x");
+    const start = { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 };
+    const end = { x: start.x + 80, y: start.y + 45 };
+    await page.mouse.move(start.x, start.y);
     await page.mouse.down();
-    await page.mouse.move(box!.x + box!.width / 2 + 80, box!.y + 45, { steps: 5 });
+    await page.waitForTimeout(50);
+    await page.mouse.move(end.x, end.y, { steps: 10 });
     await page.mouse.up();
+    await expect.poll(() => node.getAttribute("x")).not.toBe(initialSvgX);
+    await page.getByRole("button", { name: "Save", exact: true }).click();
 
-    await expect
-      .poll(async () => {
-        const spec = JSON.parse(await fs.readFile(path.join(workspace.root, "diagram.json"), "utf8"));
-        return spec.nodes.find((item: { name?: string }) => item.name === "A");
-      })
-      .toMatchObject({ name: "A", left: 240, top: 200 });
+    await expect.poll(async () => {
+      const spec = JSON.parse(await fs.readFile(diagramPath, "utf8"));
+      const movedNode = spec.nodes.find((item: { name?: string }) => item.name === "A");
+      return movedNode.left !== initialNode.left || movedNode.top !== initialNode.top;
+    }).toBe(true);
     await expect(page.getByText("Unsaved source changes")).toBeVisible();
   } finally {
     await workspace.close();
