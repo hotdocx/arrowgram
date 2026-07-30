@@ -69,6 +69,7 @@ test("paper bridge synchronizes file, source, visual, diff, and snapshot edits",
 
     await page.getByRole("button", { name: "Save snapshot" }).click();
     await expect(page.getByText("Sources saved")).toBeVisible();
+    expect(lifecycleErrors).toEqual([]);
   } finally {
     await workspace.close();
   }

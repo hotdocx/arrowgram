@@ -142,7 +142,12 @@ export const PreviewController = ({ markdown, isTwoColumn, onEditDiagram, custom
 
         return () => {
             isMounted = false;
-            roots.forEach(r => r.unmount());
+            // This preview owns nested React roots inside Paged.js-generated DOM. Cleanup can be
+            // triggered by a source update while an Edit Visual click is still rendering the
+            // outer editor root. Unmount on the next task so React finishes that render first.
+            for (const root of roots) {
+                window.setTimeout(() => root.unmount(), 0);
+            }
         };
     }, [markdown, isTwoColumn, onEditDiagram]);
 
