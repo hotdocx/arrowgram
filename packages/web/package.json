@@ -1,6 +1,6 @@
 {
     "name": "@hotdocx/arrowgram-web",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "type": "module",
     "description": "Embeddable Arrowgram workspace, paper editor, preview components, and adapters.",
     "license": "MIT",
