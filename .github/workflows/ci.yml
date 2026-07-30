@@ -83,6 +83,9 @@ jobs:
     - name: Pack Agent Package
       run: npm pack --dry-run --workspace=packages/agent
 
+    - name: Verify Packed Agent Install
+      run: npm run test:packed --workspace=packages/agent
+
     - name: Build Paged Viewer
       run: npm run build --workspace=packages/paged
 

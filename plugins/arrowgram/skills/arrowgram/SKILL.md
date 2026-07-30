@@ -22,11 +22,15 @@ Do not edit `dist/` as source. Rebuild it with `arrowgram-agent build`.
 
 ## Commands
 
-Use the portable package command from ordinary Arrowgram workspaces:
+Use the pinned portable package command from ordinary Arrowgram workspaces:
 
 ```bash
-npx -y @hotdocx/arrowgram-agent <command> [args...]
+npx -y @hotdocx/arrowgram-agent@0.1.6 <command> [args...]
 ```
+
+Keep this version pin unless the plugin is deliberately upgraded and acceptance-tested against a
+newer agent release. An unversioned `npx` command follows npm's `latest` tag and is less
+reproducible.
 
 When developing inside the Arrowgram monorepo itself, the repo-local helper is also available:
 
@@ -39,11 +43,11 @@ Do not assume that repository-relative helper path exists in an arbitrary user w
 Core commands:
 
 ```bash
-npx -y @hotdocx/arrowgram-agent init --type paper --root .
-npx -y @hotdocx/arrowgram-agent init --type diagram --root .
-npx -y @hotdocx/arrowgram-agent validate --root .
-npx -y @hotdocx/arrowgram-agent dev --root . --host 127.0.0.1 --port 4173
-npx -y @hotdocx/arrowgram-agent build --root . --out dist
+npx -y @hotdocx/arrowgram-agent@0.1.6 init --type paper --root .
+npx -y @hotdocx/arrowgram-agent@0.1.6 init --type diagram --root .
+npx -y @hotdocx/arrowgram-agent@0.1.6 validate --root .
+npx -y @hotdocx/arrowgram-agent@0.1.6 dev --root . --host 127.0.0.1 --port 4173
+npx -y @hotdocx/arrowgram-agent@0.1.6 build --root . --out dist
 ```
 
 ## Workflow

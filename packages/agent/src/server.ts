@@ -22,9 +22,28 @@ import {
 const requireFromHere = createRequire(import.meta.url);
 
 function arrowgramWebDistPath(fileName: string) {
+  const packageExport =
+    fileName === "embed.js"
+      ? "@hotdocx/arrowgram-web/embed"
+      : fileName === "adapters.js"
+        ? "@hotdocx/arrowgram-web/adapters"
+        : fileName === "arrowgram-web.css"
+          ? "@hotdocx/arrowgram-web/dist/arrowgram-web.css"
+          : undefined;
+
+  if (packageExport) {
+    try {
+      const resolved = fileURLToPath(import.meta.resolve(packageExport));
+      if (existsSync(resolved)) return resolved;
+    } catch {
+      // Fall through to source-tree compatibility paths below.
+    }
+  }
+
   const agentRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
   const candidates = [
     path.resolve(agentRoot, "../web/dist", fileName),
+    path.resolve(agentRoot, "../arrowgram-web/dist", fileName),
     path.resolve(agentRoot, "node_modules/@hotdocx/arrowgram-web/dist", fileName),
     path.resolve(process.cwd(), "node_modules/@hotdocx/arrowgram-web/dist", fileName),
   ];

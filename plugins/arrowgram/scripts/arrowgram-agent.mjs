@@ -15,7 +15,7 @@ const localBin = process.platform === 'win32'
 const args = process.argv.slice(2);
 const command = existsSync(localBin)
   ? { bin: process.execPath, args: [localBin, ...args] }
-  : { bin: 'npx', args: ['-y', '@hotdocx/arrowgram-agent', ...args] };
+  : { bin: 'npx', args: ['-y', '@hotdocx/arrowgram-agent@0.1.6', ...args] };
 
 const child = spawn(command.bin, command.args, {
   cwd: process.cwd(),

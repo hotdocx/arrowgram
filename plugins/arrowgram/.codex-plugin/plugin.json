@@ -1,6 +1,6 @@
 {
   "name": "arrowgram",
-  "version": "0.1.0+codex.20260713225256",
+  "version": "0.1.0+codex.20260730045249",
   "description": "Codex workflows for file-backed Arrowgram diagrams and papers.",
   "author": {
     "name": "Hotdocx"
