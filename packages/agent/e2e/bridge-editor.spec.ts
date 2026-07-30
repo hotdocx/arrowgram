@@ -21,6 +21,15 @@ async function createServer(type: "paper" | "diagram") {
 
 test("paper bridge synchronizes file, source, visual, diff, and snapshot edits", async ({ page }) => {
   const workspace = await createServer("paper");
+  const lifecycleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      message.text().includes("Attempted to synchronously unmount a root")
+    ) {
+      lifecycleErrors.push(message.text());
+    }
+  });
   try {
     await page.goto(workspace.url);
     await expect(page.getByRole("heading", { name: "My Workspace" })).toBeVisible();
@@ -40,6 +49,7 @@ test("paper bridge synchronizes file, source, visual, diff, and snapshot edits",
 
     await page.getByRole("button", { name: "Edit Visual" }).click();
     await expect(page.getByRole("heading", { name: "Edit Diagram" })).toBeVisible();
+    expect(lifecycleErrors).toEqual([]);
     await page.locator('[data-type="node"][data-id="A"]').last().click({ force: true });
     await page.locator('input[name="label"]').last().fill("A visual");
     await page.getByRole("button", { name: "Apply Changes" }).click();

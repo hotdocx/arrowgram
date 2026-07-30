@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { DocumentPreview } from './DocumentPreview';
 import {
     PanelLeft,
@@ -201,9 +201,9 @@ export function PaperEditor({
 	    };
 
     // -- Diagram Editing --
-    const handleDiagramEdit = (id: string, spec: string) => {
+    const handleDiagramEdit = useCallback((id: string, spec: string) => {
         setEditingDiagram({ id, spec });
-    };
+    }, []);
 
     const handleDiagramSave = (newSpec: string) => {
         if (!editingDiagram) return;
