@@ -27,7 +27,7 @@ We employ a **testing pyramid** strategy:
 
 ### 3.2. End-to-End & Visual (Playwright)
 *   **Scope:** Rendering correctness, browser interaction, visual regression.
-*   **Configuration:** `packages/web/playwright.config.ts`
+*   **Configuration:** `packages/web/e2e/playwright.config.ts`
 *   **Tests:** Located in `packages/web/e2e/`.
     *   `visual.spec.ts`: Checks basic rendering (e.g., "does a curved arrow actually curve?").
     *   `styles.spec.ts`: specifically verifies advanced arrow styles (Adjunction, Proarrow, Bullet) by inspecting SVG path attributes.

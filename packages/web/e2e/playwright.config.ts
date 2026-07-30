@@ -4,7 +4,8 @@ const port = Number(process.env.PW_PORT ?? 5174);
 const baseURL = process.env.PW_BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({
-  testDir: './e2e',
+  tsconfig: './tsconfig.json',
+  testDir: '.',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

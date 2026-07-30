@@ -53,7 +53,7 @@
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
         "preview": "vite preview --outDir dist-pages",
         "test": "jest",
-        "test:e2e": "playwright test",
+        "test:e2e": "playwright test -c e2e/playwright.config.ts",
         "prepublishOnly": "npm test && npm run build:lib"
     },
     "publishConfig": {
