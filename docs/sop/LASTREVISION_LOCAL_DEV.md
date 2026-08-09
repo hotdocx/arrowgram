@@ -302,7 +302,7 @@ Notes:
 - Playwright runs against the GitHub Pages SPA (`PAGES_URL`, default `https://hotdocx.github.io`).
 - Curl smoke runs against the ACA backend and can retrieve production email OTPs through `gog`.
 - Use `1337777.ooo@gmail.com` as the default OTP smoke inbox for migration validation.
-- Other authenticated `gog` Gmail accounts available for dev/test inbox workflows are `getpaidx.com@gmail.com`, `lastrevision.pro@gmail.com`, and `re365.net@gmail.com`.
+- `more.more.names@gmail.com` is the independent secondary `gog` test inbox. `getpaidx.com@gmail.com` and `lastrevision.pro@gmail.com` are app-owned identities, while `re365.net@gmail.com` accesses the same underlying mailbox as `getpaidx.com@re365.net`; do not use those managed identities or aliases as simulated external recipients.
 - Playwright global setup now signs in via email OTP, so remote validation must have working ACS delivery, `TEST_OTP_BYPASS_CODE`, or a `gog` OTP retrieval strategy.
 
 ---

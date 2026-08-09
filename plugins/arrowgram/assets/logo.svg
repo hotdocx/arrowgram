@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title description">
+  <title id="title">Arrowgram logo</title>
+  <desc id="description">A commutative square with four nodes and directed arrows.</desc>
+  <rect width="512" height="512" rx="96" fill="#EFF6FF"/>
+  <rect x="18" y="18" width="476" height="476" rx="78" fill="none" stroke="#2563EB" stroke-width="20"/>
+  <g fill="none" stroke="#1E3A8A" stroke-linecap="round" stroke-linejoin="round" stroke-width="28">
+    <path d="M156 156h178M356 178v156M334 356H178M156 334V178"/>
+    <path d="m310 132 24 24-24 24M380 310l-24 24-24-24M202 380l-24-24 24-24M132 202l24-24 24 24"/>
+  </g>
+  <g fill="#2563EB" stroke="#EFF6FF" stroke-width="12">
+    <circle cx="156" cy="156" r="38"/>
+    <circle cx="356" cy="156" r="38"/>
+    <circle cx="356" cy="356" r="38"/>
+    <circle cx="156" cy="356" r="38"/>
+  </g>
+</svg>

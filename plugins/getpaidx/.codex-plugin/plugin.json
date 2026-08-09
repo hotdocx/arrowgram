@@ -1,9 +1,10 @@
 {
   "name": "getpaidx",
-  "version": "0.1.2+codex.20260713232431",
-  "description": "Hosted GetPaidX MCP workflows for cloud posts and Arrowgram workspaces.",
+  "version": "0.2.0+codex.20260809053900",
+  "description": "Hosted GetPaidX MCP workflows for posts, conference peer review, and cloud workspaces.",
   "author": {
-    "name": "GetPaidX"
+    "name": "GetPaidX.com",
+    "url": "https://getpaidx.com"
   },
   "homepage": "https://getpaidx.com",
   "repository": "https://github.com/hotdocx/arrowgram",
@@ -18,21 +19,26 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "GetPaidX",
-    "shortDescription": "Control GetPaidX cloud posts and workspaces.",
-    "longDescription": "GetPaidX lets Codex securely manage cloud posts and Arrowgram workspaces through the hosted OAuth-protected MCP server.",
-    "developerName": "GetPaidX",
-    "category": "Developer",
+    "shortDescription": "Manage posts, peer review, and workspaces",
+    "longDescription": "GetPaidX lets Codex securely manage cloud posts, conference peer-review lifecycles, and Arrowgram workspaces through the hosted OAuth-protected MCP server.",
+    "developerName": "GetPaidX.com",
+    "category": "Business & Operations",
     "capabilities": [
       "Interactive",
       "Write"
     ],
     "websiteURL": "https://getpaidx.com",
+    "privacyPolicyURL": "https://getpaidx.com/marketing/terms",
+    "termsOfServiceURL": "https://getpaidx.com/marketing/terms",
     "defaultPrompt": [
       "Create a GetPaidX Arrowgram workspace.",
+      "Set up and run a GetPaidX conference peer-review workflow.",
       "Inspect my active GetPaidX workspaces.",
       "Build and publish my Arrowgram workspace."
     ],
-    "brandColor": "#0F766E"
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
   },
   "mcpServers": "./.mcp.json"
 }
