@@ -1,7 +1,7 @@
 {
   "name": "getpaidx",
-  "version": "0.2.0+codex.20260809053900",
-  "description": "Hosted GetPaidX MCP workflows for posts, conference peer review, and cloud workspaces.",
+  "version": "0.2.0+codex.20260809122605",
+  "description": "Hosted GetPaidX MCP workflows for posts, conference peer review, Live Sessions, commerce, and cloud workspaces.",
   "author": {
     "name": "GetPaidX.com",
     "url": "https://getpaidx.com"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "GetPaidX",
-    "shortDescription": "Manage posts, peer review, and workspaces",
-    "longDescription": "GetPaidX lets Codex securely manage cloud posts, conference peer-review lifecycles, and Arrowgram workspaces through the hosted OAuth-protected MCP server.",
+    "shortDescription": "Manage posts, peer review, live sessions, and workspaces",
+    "longDescription": "GetPaidX lets Codex securely manage cloud posts, conference peer-review lifecycles, Live Sessions and fixed-price Live Offers, and Arrowgram workspaces through the hosted OAuth-protected MCP server.",
     "developerName": "GetPaidX.com",
     "category": "Business & Operations",
     "capabilities": [
@@ -33,6 +33,8 @@
     "defaultPrompt": [
       "Create a GetPaidX Arrowgram workspace.",
       "Set up and run a GetPaidX conference peer-review workflow.",
+      "Schedule and run a GetPaidX Live Session.",
+      "Prepare a fixed-price offer for a live selling session.",
       "Inspect my active GetPaidX workspaces.",
       "Build and publish my Arrowgram workspace."
     ],

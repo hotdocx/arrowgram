@@ -20,4 +20,6 @@ The optional `getpaidx-local` marketplace from the private GetPaidX repository i
 
 The first file, build, snapshot, or publish operation for a newly created cloud workspace can provision and bootstrap an Azure controller. The plugin allows up to five minutes for that cold path; later calls use the active controller and return normally.
 
-The plugin exposes catalog-backed API discovery plus curated workflows for posts, conference peer-review setup and full review cycles, Arrowgram workspaces, safe source edits, diffs, builds, snapshots, artifact-site publishing, and workspace closure.
+The plugin exposes catalog-backed API discovery plus curated workflows for posts, conference peer-review setup and full review cycles, Live Room configuration and occurrences, participant moderation, persistent meeting chat, fixed-price Live Offers, policy-checked links to the authenticated media/chat/offer UI, Arrowgram workspaces, safe source edits, diffs, builds, snapshots, artifact-site publishing, and workspace closure.
+
+The Live Sessions MCP surface is control-plane-only: it never returns raw media or persists RTC credentials. Interactive media handoff uses `getpaidx_get_live_session_ui_link`, and GetPaidX rechecks the signed-in identity, admission policy, occurrence state, and rollout gates when that normal post UI opens.
