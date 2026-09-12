@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "nodes": [
+    { "name": "A", "left": 0, "top": 0, "label": "$A$" }
+  ],
+  "arrows": [
+    { "from": "A", "to": "A", "radius": 100, "label": "$f$" }
+  ]
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { reverseArrow, flipArrow } from './diagramModel';
-import { ArrowSpec } from '../types';
+import type { ArrowSpec } from '../types';
 
 describe('Arrow Transforms', () => {
     describe('reverseArrow', () => {
@@ -59,7 +59,7 @@ describe('Arrow Transforms', () => {
             };
             const flipped = flipArrow(spec);
             expect(flipped.angle).toBe(-90); // 90 + 180 = 270 -> -90
-            expect((flipped as any).radius).toBe(40); // Radius unchanged
+            expect(flipped.radius).toBe(40); // Radius unchanged
             expect(flipped.label_alignment).toBe('right'); // Alignment swapped
         });
     });

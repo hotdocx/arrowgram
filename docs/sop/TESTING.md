@@ -16,7 +16,28 @@ We employ a **testing pyramid** strategy:
     *   `src/diagramModel.test.js`: Verifies that JSON specs are correctly parsed into computed models.
     *   `src/core/arrowTransforms.test.ts`: Verifies arrow geometry logic.
     *   `src/core/shorten.test.ts`: Verifies arrow shortening logic.
-    *   *TODO:* Add specific math tests for `curve.ts` (bezier length, intersections).
+    *   `test/contract.characterization.test.ts`: Tracks reviewed vNext regressions; `it.fails` cases must be converted when their owning phase lands.
+    *   `test/schema-contract.test.ts`: Verifies strict schemas, semantic diagnostics, legacy normalization, dependency planning, and computed/source identity.
+    *   `test/json-schema-equivalence.test.ts`: Verifies Draft 2020-12 structural equivalence and the explicit runtime-only semantic boundary.
+    *   `test/property/geometry.property.test.ts`: Runs deterministic geometry invariants and the current shortening boundary corpus.
+    *   `test/curve-invariants.test.ts`: Verifies exact curve extrema bounds, partial rendering, rounded-rectangle containment, and monotonic arc-length inversion.
+    *   `test/label-contract.test.tsx`: Verifies mixed label tokenization, malformed/KaTeX fallbacks, MathML, accessibility, summaries, rotation, and instance-scoped masks.
+    *   `test/spec-examples.test.ts`: Executes every JSON example in `docs/ARROWGRAM_SPEC.md`.
+
+Core local commands:
+
+```bash
+npm run check:fast -w packages/arrowgram
+npm run test:coverage -w packages/arrowgram
+npm run test:property -w packages/arrowgram
+npm run benchmark -w packages/arrowgram
+npm run verify:package -w packages/arrowgram
+npm run check -w packages/arrowgram
+```
+
+`typecheck` uses `tsconfig.check.json` and must not leave `*.tsbuildinfo` residue. `schema:check` builds declarations into ignored output and compares the committed schema with the public in-package generator without rewriting the tracked file.
+
+`verify:package` creates an isolated temporary tarball and consumer set. It verifies package contents and dependency ownership, proves schema/core contain no UI/DOM imports, compiles NodeNext consumers, runs ESM/CJS, tests React 18 and 19 SSR plus hydration, bundles a browser fixture, enforces per-entry/tarball budgets, prints a SHA-256 digest, and removes the temporary tree on success.
 
 ## 3. Web App Testing (`packages/web`)
 *   **Tools:** **Jest** (Unit) and **Playwright** (E2E).
@@ -54,14 +75,18 @@ and standalone diagram canvas persistence.
 
 ## 4. Continuous Integration (CI)
 *   **Platform:** GitHub Actions (`.github/workflows/ci.yml`).
-*   **Workflow:**
-    1.  Install dependencies.
-    2.  Build Core and regenerate the published JSON Schema.
-    3.  Run Core Tests (Vitest).
-    4.  Build Web library + Web app.
-    5.  Run Web Jest tests.
-    6.  Install headless Chromium and run Playwright E2E.
-    7.  Run `npm pack --dry-run` for the publishable packages.
+*   **Workflow DAG:**
+    1.  Policy/lockfile and generated-residue checks.
+    2.  Core Node 20.19/22/24 matrix: lint, type, 113 unit/contract/property tests,
+        coverage thresholds, schema drift, performance budgets, exact packed consumers,
+        production audit, SBOM, and uploaded tarball evidence.
+    3.  Independent web Jest/library/app build and Chromium E2E jobs with failure artifacts.
+    4.  Independent agent unit/packed-install and browser-bridge jobs with failure artifacts.
+    5.  Paged canonical validation/build.
+    6.  Guarded private LastRevision build/SPA verification.
+
+The workflow has read-only permissions, per-job timeouts, superseded-run cancellation, and
+independent failure visibility.
 
 ## 5. Adding New Tests
 *   **New Math Logic:** Add a unit test in `packages/arrowgram`.

@@ -1,17 +1,31 @@
-import {
+import type {
     ArrowSpec,
     ComputedArrow,
     ComputedDiagram,
+    ComputedLabelLayout,
     ComputedMask,
+    ComputedNodeLabel,
+    CanonicalDiagramSpec,
     DiagramSpec,
-    DiagramSpecSchema,
     NodeSpec
 } from '../types';
+import {
+    buildArrowDependencyPlan,
+    computedArrowKey,
+    firstErrorMessage,
+    makeDiagnostic,
+    parseDiagramSpec,
+    type ArrowgramDiagnostic,
+    type ArrowgramResult,
+    type ParseDiagramSpecOptions,
+} from '../schema';
+import { ARROWGRAM_LIMITS } from '../schema/limits';
 import { Point, Dimensions, mod } from './ds';
 import { RoundedRectangle } from './curve';
 import { Arrow, ArrowStyle, CONSTANTS, RoundedRectShape } from './arrow';
+import { createLabelLayout, estimateMathVisualUnits } from './label';
 
-const NODE_RADIUS = 25;
+const NODE_RADIUS = ARROWGRAM_LIMITS.nodeRadius;
 
 export function normalizeAngle(angle: number): number {
     const a = mod(angle, 360);
@@ -21,8 +35,6 @@ export function normalizeAngle(angle: number): number {
 interface EndpointInfo {
     pos: Point;
     shape: RoundedRectangle;
-    isNode: boolean;
-    level: number;
 }
 
 function mapSpecToStyle(spec: ArrowSpec, isLoop: boolean): ArrowStyle {
@@ -30,7 +42,9 @@ function mapSpecToStyle(spec: ArrowSpec, isLoop: boolean): ArrowStyle {
 
     // Set defaults based on spec or Quiver defaults
     style.level = spec.style?.level ?? 1;
-    style.curve = spec.radius ?? spec.curve ?? 0;
+    style.curve = isLoop
+        ? (spec.radius ?? ARROWGRAM_LIMITS.defaultLoopRadius)
+        : (spec.curve ?? spec.radius ?? 0);
     style.shift = spec.shift ?? 0;
     style.angle = (spec.angle ?? 0) * Math.PI / 180;
     style.label_position = 0.5; // Default (Quiver uses 0-100? No 0-1 in ArrowStyle, 0-100 in spec)
@@ -93,7 +107,7 @@ function mapSpecToStyle(spec: ArrowSpec, isLoop: boolean): ArrowStyle {
     }
 
     if (spec.style?.tail?.name) {
-        let name = spec.style.tail.name.toUpperCase();
+        const name = spec.style.tail.name.toUpperCase();
         let key = name;
         if (name === 'HOOK') key = `HOOK_${spec.style.tail.side?.toUpperCase() || 'TOP'}`;
 
@@ -108,27 +122,92 @@ export function estimateLabelVisualLength(label: string): number {
     
     // Heuristic for LaTeX labels: count "atoms" rather than characters
     if (label.startsWith('$') && label.endsWith('$')) {
-        let content = label.slice(1, -1);
-        
-        // Replace commands (e.g. \alpha) with a single character placeholder
-        content = content.replace(/\\[a-zA-Z]+/g, 'C'); 
-        
-        // Remove LaTeX syntax characters (_, ^, {, })
-        content = content.replace(/[_^{}]/g, '');
-        
-        return content.length;
+        return estimateMathVisualUnits(label.slice(1, -1));
     }
     
     return label.length;
 }
 
-export function computeDiagram(specInput: string | DiagramSpec, idPrefix: string = ""): ComputedDiagram {
-    try {
-        const rawSpec: DiagramSpec = typeof specInput === 'string' ? JSON.parse(specInput) : specInput;
-        const spec = DiagramSpecSchema.parse({ ...rawSpec, version: rawSpec.version || 1 });
+export type ComputeDiagramOptions = ParseDiagramSpecOptions;
 
-        if (!spec.nodes || spec.nodes.length === 0) {
-            return { nodes: [], arrows: [], masks: [], viewBox: "0 0 100 100", error: null };
+function failedDiagram(
+    diagnostics: ArrowgramDiagnostic[],
+): ComputedDiagram {
+    return {
+        nodes: [],
+        arrows: [],
+        masks: [],
+        nodeLabels: [],
+        bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
+        viewBox: "0 0 100 100",
+        error: firstErrorMessage(diagnostics),
+        diagnostics,
+    };
+}
+
+function computeCanonicalDiagram(
+    spec: CanonicalDiagramSpec,
+    inheritedDiagnostics: ArrowgramDiagnostic[],
+): ArrowgramResult<ComputedDiagram> {
+    const diagnostics = [...inheritedDiagnostics];
+    try {
+        const nodeLabels: ComputedNodeLabel[] = [];
+        for (let sourceIndex = 0; sourceIndex < spec.nodes.length; sourceIndex += 1) {
+            const node = spec.nodes[sourceIndex];
+            const label = createLabelLayout(node.label ?? '', {
+                path: ['nodes', sourceIndex, 'label'],
+                entityId: node.name,
+                sourceIndex,
+                isNode: true,
+            });
+            if (!label.ok) {
+                return { ok: false, diagnostics: [...diagnostics, ...label.diagnostics] };
+            }
+            nodeLabels.push({
+                nodeId: node.name,
+                sourceIndex,
+                color: node.color,
+                layout: label.value,
+            });
+        }
+
+        const arrowLabelLayouts: ComputedLabelLayout[] = [];
+        for (let sourceIndex = 0; sourceIndex < spec.arrows.length; sourceIndex += 1) {
+            const arrow = spec.arrows[sourceIndex];
+            const label = createLabelLayout(arrow.label ?? '', {
+                path: ['arrows', sourceIndex, 'label'],
+                entityId: arrow.name,
+                sourceIndex,
+            });
+            if (!label.ok) {
+                return { ok: false, diagnostics: [...diagnostics, ...label.diagnostics] };
+            }
+            arrowLabelLayouts.push(label.value);
+        }
+
+        const dependencyPlan = buildArrowDependencyPlan(spec);
+        if (!dependencyPlan.ok) {
+            return {
+                ok: false,
+                diagnostics: [...diagnostics, ...dependencyPlan.diagnostics],
+            };
+        }
+
+        if (spec.nodes.length === 0) {
+            return {
+                ok: true,
+                value: {
+                    nodes: [],
+                    arrows: [],
+                    masks: [],
+                    nodeLabels,
+                    bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
+                    viewBox: "0 0 100 100",
+                    error: null,
+                    diagnostics,
+                },
+                diagnostics,
+            };
         }
 
         const endpointInfo = new Map<string, EndpointInfo>(
@@ -137,75 +216,104 @@ export function computeDiagram(specInput: string | DiagramSpec, idPrefix: string
                 {
                     pos: new Point(node.left, node.top),
                     shape: new RoundedRectangle(new Point(node.left, node.top), new Dimensions(NODE_RADIUS * 2, NODE_RADIUS * 2), NODE_RADIUS),
-                    isNode: true,
-                    level: 0
                 }
             ])
         );
 
-        const arrowSpecs = (spec.arrows || []).map((a, i) => ({
-            ...a,
-            uniqueId: a.name || `_arrow_${i}`
-        }));
-
         const arrows: ComputedArrow[] = [];
         const allMasks: ComputedMask[] = [];
-        const unresolvedArrowSpecs = new Set(arrowSpecs);
-        let changedInIteration = true;
-        const maxIterations = arrowSpecs.length + 1;
-        let currentIteration = 0;
+        for (const sourceIndex of dependencyPlan.value.order) {
+            const arrowSpec = spec.arrows[sourceIndex];
+            const fromInfo = endpointInfo.get(arrowSpec.from)!;
+            const toInfo = endpointInfo.get(arrowSpec.to)!;
+            const computedKey = computedArrowKey(sourceIndex);
 
-        while (unresolvedArrowSpecs.size > 0 && changedInIteration) {
-            if (currentIteration++ > maxIterations) throw new Error("Dependency cycle detected");
+            if (
+                arrowSpec.from !== arrowSpec.to
+                && fromInfo.pos.eq(toInfo.pos)
+            ) {
+                const diagnostic = makeDiagnostic({
+                    code: 'geometry.coincident_endpoints',
+                    severity: 'error',
+                    phase: 'geometry',
+                    message: 'Distinct arrow endpoints occupy the same coordinates.',
+                    path: ['arrows', sourceIndex],
+                    entityId: arrowSpec.name,
+                    sourceIndex,
+                });
+                return { ok: false, diagnostics: [...diagnostics, diagnostic] };
+            }
 
-            changedInIteration = false;
-            const currentUnresolved = [...unresolvedArrowSpecs];
+            const sourceShape = new RoundedRectShape(fromInfo.pos, fromInfo.shape.size, fromInfo.shape.r);
+            const targetShape = new RoundedRectShape(toInfo.pos, toInfo.shape.size, toInfo.shape.r);
+            const style = mapSpecToStyle(arrowSpec, arrowSpec.from === arrowSpec.to);
+            const labelAlignment = arrowSpec.label_alignment
+                ? (CONSTANTS.LABEL_ALIGNMENT[arrowSpec.label_alignment.toUpperCase()] || CONSTANTS.LABEL_ALIGNMENT.CENTRE)
+                : CONSTANTS.LABEL_ALIGNMENT.CENTRE;
 
-            for (const arrowSpec of currentUnresolved) {
-                const fromInfo = endpointInfo.get(arrowSpec.from);
-                const toInfo = endpointInfo.get(arrowSpec.to);
+            const labelLayout = arrowLabelLayouts[sourceIndex];
+            const boxWidth = labelLayout.width;
+            const boxHeight = labelLayout.height;
+            const arrowObj = new Arrow(
+                sourceShape,
+                targetShape,
+                style,
+                {
+                    text: arrowSpec.label || "",
+                    color: arrowSpec.label_color,
+                    alignment: labelAlignment,
+                    size: new Dimensions(boxWidth, boxHeight),
+                    layout: labelLayout,
+                },
+                arrowSpec,
+                computedKey,
+                sourceIndex,
+                arrowSpec.name,
+            );
+            const computed = arrowObj.compute();
 
-                if (fromInfo && toInfo) {
-                    const uniqueId = arrowSpec.uniqueId;
+            if (!computed.ok) {
+                const diagnostic = makeDiagnostic({
+                    code: computed.error.code,
+                    severity: 'error',
+                    phase: 'geometry',
+                    message: computed.error.message,
+                    path: ['arrows', sourceIndex],
+                    entityId: arrowSpec.name,
+                    sourceIndex,
+                });
+                return {
+                    ok: false,
+                    diagnostics: [...diagnostics, diagnostic],
+                };
+            }
 
-                    // Create Arrow Object
-                    const sourceShape = new RoundedRectShape(fromInfo.pos, fromInfo.shape.size, fromInfo.shape.r);
-                    const targetShape = new RoundedRectShape(toInfo.pos, toInfo.shape.size, toInfo.shape.r);
+            const { arrow, masks, warnings } = computed;
+            warnings.forEach((warning) => {
+                diagnostics.push(makeDiagnostic({
+                    code: warning.code,
+                    severity: 'warning',
+                    phase: 'geometry',
+                    message: warning.message,
+                    path: ['arrows', sourceIndex, 'shorten'],
+                    entityId: arrowSpec.name,
+                    sourceIndex,
+                    details: warning.details,
+                }));
+            });
+            arrow.spec = arrowSpec;
+            arrows.push(arrow);
+            allMasks.push(...masks);
 
-                    const style = mapSpecToStyle(arrowSpec, arrowSpec.from === arrowSpec.to);
-
-                    const labelAlignment = arrowSpec.label_alignment ?
-                        (CONSTANTS.LABEL_ALIGNMENT[arrowSpec.label_alignment.toUpperCase()] || CONSTANTS.LABEL_ALIGNMENT.CENTRE)
-                        : CONSTANTS.LABEL_ALIGNMENT.CENTRE;
-
-                    // Heuristic for label size: ~12px per char + extra padding
-                    const labelLen = estimateLabelVisualLength(arrowSpec.label || "");
-                    const boxWidth = labelLen > 0 ? Math.max(30, labelLen * 10 + 20) : 0;
-                    const boxHeight = labelLen > 0 ? 24 : 0;
-
-                    const domId = idPrefix ? `${idPrefix}-${uniqueId}` : uniqueId;
-                    const arrowObj = new Arrow(sourceShape, targetShape, style, { text: arrowSpec.label || "", color: arrowSpec.label_color, alignment: labelAlignment, size: new Dimensions(boxWidth, boxHeight) } as any, domId);
-
-                    const computed = arrowObj.compute();
-
-                    if (computed) {
-                        const { arrow, masks } = computed;
-                        arrow.spec = arrowSpec;
-                        arrows.push(arrow);
-                        allMasks.push(...masks);
-
-                        // Register this arrow as endpoint
-                        endpointInfo.set(uniqueId, {
-                            pos: new Point(arrow.midpoint.x, arrow.midpoint.y),
-                            shape: new RoundedRectangle(new Point(arrow.midpoint.x, arrow.midpoint.y), new Dimensions(Math.max(30, boxWidth), Math.max(30, boxHeight)), 2),
-                            isNode: false,
-                            level: Math.max(fromInfo.level, toInfo.level) + 1
-                        });
-                    }
-
-                    unresolvedArrowSpecs.delete(arrowSpec);
-                    changedInIteration = true;
-                }
+            if (arrowSpec.name) {
+                endpointInfo.set(arrowSpec.name, {
+                    pos: new Point(arrow.midpoint.x, arrow.midpoint.y),
+                    shape: new RoundedRectangle(
+                        new Point(arrow.midpoint.x, arrow.midpoint.y),
+                        new Dimensions(Math.max(30, boxWidth), Math.max(30, boxHeight)),
+                        2,
+                    ),
+                });
             }
         }
 
@@ -222,19 +330,71 @@ export function computeDiagram(specInput: string | DiagramSpec, idPrefix: string
             updateBounds(n.left + NODE_RADIUS, n.top + NODE_RADIUS);
         });
 
-        arrows.forEach(a => {
-            updateBounds(a.midpoint.x, a.midpoint.y);
+        nodeLabels.forEach((nodeLabel, sourceIndex) => {
+            const node = spec.nodes[sourceIndex];
+            updateBounds(node.left - nodeLabel.layout.width / 2, node.top - nodeLabel.layout.height / 2);
+            updateBounds(node.left + nodeLabel.layout.width / 2, node.top + nodeLabel.layout.height / 2);
         });
 
+        arrows.forEach(a => {
+            updateBounds(a.bounds.minX, a.bounds.minY);
+            updateBounds(a.bounds.maxX, a.bounds.maxY);
+        });
+
+        const bounds = { minX, minY, maxX, maxY };
         const PADDING = 40;
         const viewBox = `${minX - PADDING} ${minY - PADDING} ${maxX - minX + 2 * PADDING} ${maxY - minY + 2 * PADDING}`;
 
-        return { nodes: spec.nodes, arrows, masks: allMasks, viewBox, error: null };
+        const value: ComputedDiagram = {
+            nodes: spec.nodes,
+            arrows,
+            masks: allMasks,
+            nodeLabels,
+            bounds,
+            viewBox,
+            error: null,
+            diagnostics,
+        };
+        return { ok: true, value, diagnostics };
 
-    } catch (e: any) {
-        console.error("Error computing diagram:", e);
-        return { nodes: [], arrows: [], masks: [], viewBox: "0 0 100 100", error: e.message };
+    } catch (error: unknown) {
+        const diagnostic = makeDiagnostic({
+            code: 'geometry.internal',
+            severity: 'error',
+            phase: 'geometry',
+            message: error instanceof Error ? error.message : 'Unexpected geometry failure.',
+            path: [],
+        });
+        return {
+            ok: false,
+            diagnostics: [...diagnostics, diagnostic],
+        };
     }
+}
+
+export function computeDiagramResult(
+    specInput: string | DiagramSpec,
+    idPrefix: string = "",
+    options: ComputeDiagramOptions = {},
+): ArrowgramResult<ComputedDiagram> {
+    const parsed = parseDiagramSpec(specInput, options);
+    if (!parsed.ok) return parsed;
+    void idPrefix;
+    return computeCanonicalDiagram(parsed.value, parsed.diagnostics);
+}
+
+/**
+ * Compatibility facade for v1 consumers.
+ *
+ * @deprecated Prefer `computeDiagramResult`, which forces callers to handle diagnostics.
+ */
+export function computeDiagram(
+    specInput: string | DiagramSpec,
+    idPrefix: string = "",
+    options: ComputeDiagramOptions = {},
+): ComputedDiagram {
+    const result = computeDiagramResult(specInput, idPrefix, options);
+    return result.ok ? result.value : failedDiagram(result.diagnostics);
 }
 
 // --- Helper Functions for Editor Operations ---
@@ -279,6 +439,22 @@ export function selectConnected(
     arrows: ArrowSpec[] = [],
     selectedIds: Set<string>
 ): Set<string> {
+    const adjacency = new Map<string, Set<string>>();
+    const connect = (left: string, right: string) => {
+        const leftEdges = adjacency.get(left) ?? new Set<string>();
+        const rightEdges = adjacency.get(right) ?? new Set<string>();
+        leftEdges.add(right);
+        rightEdges.add(left);
+        adjacency.set(left, leftEdges);
+        adjacency.set(right, rightEdges);
+    };
+
+    arrows.forEach((arrow, sourceIndex) => {
+        const arrowId = computedArrowKey(sourceIndex);
+        connect(arrowId, arrow.from);
+        connect(arrowId, arrow.to);
+    });
+
     const newSelection = new Set(selectedIds);
     const queue = [...selectedIds];
     const visited = new Set(selectedIds);
@@ -286,28 +462,13 @@ export function selectConnected(
     while (queue.length > 0) {
         const currentId = queue.pop()!;
 
-        arrows.forEach(a => {
-            const arrowId = a.name || (a as any).uniqueId;
-            if (!arrowId) return;
-
-            const isConnected = (a.from === currentId || a.to === currentId);
-            
-            if (isConnected) {
-                // Add the arrow itself
-                if (!visited.has(arrowId)) {
-                    visited.add(arrowId);
-                    newSelection.add(arrowId);
-                    queue.push(arrowId);
-                }
-                // Add the other endpoint
-                const otherEnd = a.from === currentId ? a.to : a.from;
-                if (!visited.has(otherEnd)) {
-                    visited.add(otherEnd);
-                    newSelection.add(otherEnd);
-                    queue.push(otherEnd);
-                }
+        for (const connected of adjacency.get(currentId) ?? []) {
+            if (!visited.has(connected)) {
+                visited.add(connected);
+                newSelection.add(connected);
+                queue.push(connected);
             }
-        });
+        }
     }
 
     return newSelection;
@@ -365,5 +526,3 @@ export function flipNodes(
         return { ...n, left: Math.round(x), top: Math.round(y) };
     });
 }
-
-

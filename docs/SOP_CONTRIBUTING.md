@@ -10,9 +10,10 @@ Arrowgram is a monorepo managed by NPM Workspaces.
 ### 1.2 The "Kernel" (`packages/arrowgram`)
 The heart of the system is the **Diagram Model**.
 -   **`src/core/diagramModel.ts`**: Takes a JSON spec and computes the geometry (lines, curves, control points).
--   **`src/core/ds.ts`**: Pure 2D vector math helpers (`Point`, `Vec2`). **All** geometric calculations must use these helpers.
+-   **`src/core/ds.ts`**: Pure 2D vector/path helpers (`Point`, `Dimensions`, `Path`).
+-   **`src/schema`**: Strict structural/semantic validation, diagnostics, identity, limits, and migration.
 -   **`src/core/arrow.ts`**: Contains the heavy lifting for arrow path generation and decoration logic.
--   **`src/ArrowGram.tsx`**: A "dumb" renderer. It takes the computed model and spits out SVG elements.
+-   **`src/ArrowGram.tsx` / `src/react`**: Accessible React SVG rendering with instance-scoped effects and KaTeX diagnostics.
 
 ### 1.3 State Management (`packages/web`)
 We use **Zustand** for state, with **Zundo** for undo/redo.
@@ -34,15 +35,16 @@ We use **Zustand** for state, with **Zundo** for undo/redo.
 
 ### 2.2 Releasing a New Version
 1.  **Validate core package**:
-    -   `npm test --workspace=packages/arrowgram -- --run`
-    -   `npm run build --workspace=packages/arrowgram`
-    -   `npm pack --dry-run --workspace=packages/arrowgram`
+    -   `npm run check --workspace=packages/arrowgram`
+    -   retain the exact `output/` tarball/SBOM/evidence from the approved candidate run
 2.  **Validate web package**:
     -   `npm test --workspace=packages/web`
     -   `npm run build:lib --workspace=packages/web`
     -   `npm run build:app --workspace=packages/web`
     -   `npm pack --dry-run --workspace=packages/web`
 3.  **Publish**:
+    -   Publishing is a separate, explicit authorization; passing checks alone never publishes.
+    -   Publish the exact reviewed tarball bytes, not a local rebuild.
     -   Sync the OSS mirror/public repo first.
     -   Publish `@hotdocx/arrowgram` from `packages/arrowgram`.
     -   Publish `@hotdocx/arrowgram-web` from `packages/web`.

@@ -1,4 +1,11 @@
-import { computeDiagram, ComputedArrow, DiagramSpec, ArrowSpec, NodeSpec } from '@hotdocx/arrowgram';
+import {
+  computeDiagramResult,
+  firstErrorMessage,
+  type ComputedArrow,
+  type DiagramSpec,
+  type ArrowSpec,
+  type NodeSpec,
+} from '@hotdocx/arrowgram';
 
 // --- Constants & Configuration ---
 
@@ -443,7 +450,11 @@ export function encodeArrowgram(spec: DiagramSpec) {
 
     // 2. Compute Diagram to get valid edges and lengths
     // This resolves dependencies and gives us arc lengths for shortening
-    const computed = computeDiagram(spec);
+    const computation = computeDiagramResult(spec);
+    if (!computation.ok) {
+      throw new Error(`Cannot encode invalid Arrowgram diagram: ${firstErrorMessage(computation.diagnostics)}`);
+    }
+    const computed = computation.value;
 
     // Register edge IDs based on computed arrows order
     let edgeIndexBase = vertices.length;

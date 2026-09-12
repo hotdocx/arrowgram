@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "nodes": [
+    { "name": "A", "left": 0, "top": 100, "label": "$A$" },
+    { "name": "B", "left": 300, "top": 100, "label": "$B$" }
+  ],
+  "arrows": [
+    { "name": "F", "from": "A", "to": "B", "label": "$F$", "curve": -40 },
+    { "name": "G", "from": "A", "to": "B", "label": "$G$", "curve": 40 },
+    { "name": "alpha", "from": "F", "to": "G", "label": "$\\alpha$", "style": { "level": 2 } }
+  ]
+}

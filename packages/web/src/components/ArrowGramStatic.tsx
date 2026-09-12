@@ -1,5 +1,5 @@
 import React, { useMemo, useId } from 'react';
-import { ArrowGramDiagram, computeDiagram } from '@hotdocx/arrowgram';
+import { ArrowGramDiagram, computeDiagramResult, firstErrorMessage } from '@hotdocx/arrowgram';
 import { Edit2 } from 'lucide-react';
 
 interface ArrowGramStaticProps {
@@ -14,12 +14,10 @@ export function ArrowGramStatic({ spec, id, className, onEdit }: ArrowGramStatic
     const finalId = id || generatedId.replace(/:/g, "");
 
     const { diagram, error } = useMemo(() => {
-        try {
-            const result = computeDiagram(spec, finalId);
-            return { diagram: result, error: null };
-        } catch (e: any) {
-            return { diagram: null, error: e.message || 'Unknown error' };
-        }
+        const result = computeDiagramResult(spec, finalId, { normalizeLegacy: true });
+        return result.ok
+            ? { diagram: result.value, error: null }
+            : { diagram: null, error: firstErrorMessage(result.diagnostics) };
     }, [spec, finalId]);
 
     if (error) {
@@ -40,7 +38,7 @@ export function ArrowGramStatic({ spec, id, className, onEdit }: ArrowGramStatic
                     className="w-full h-auto max-w-full"
                     style={{ minWidth: '200px', minHeight: '100px' }}
                 >
-                    <ArrowGramDiagram diagram={diagram} />
+                    <ArrowGramDiagram diagram={diagram} instanceId={finalId} />
                 </svg>
             </div>
 

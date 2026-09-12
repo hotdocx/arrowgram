@@ -1,5 +1,2 @@
-export * from './core/diagramModel';
-export * from './types';
-export * from './ArrowGram';
-export * from './react/ArrowGramDiagram';
-
+export * from './core-entry.js';
+export * from './react-entry.js';

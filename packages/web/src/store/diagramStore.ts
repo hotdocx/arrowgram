@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import { NodeSpec, ArrowSpec, DiagramSpec } from '@hotdocx/arrowgram';
+import { computedArrowKey, NodeSpec, ArrowSpec, DiagramSpec } from '@hotdocx/arrowgram';
 import { formatSpec } from '../utils/specFormatter';
 
 export type SelectionState = {
@@ -63,8 +63,9 @@ export const useDiagramStore = create<DiagramState>()(
                     const newNodes = (spec.nodes || []).filter(n => !selectedIds.has(n.name));
 
                     // Filter out deleted arrows AND arrows connected to deleted nodes
-                    const newArrows = (spec.arrows || []).filter(a => {
-                        if (a.name && selectedIds.has(a.name)) return false;
+                    const newArrows = (spec.arrows || []).filter((a, sourceIndex) => {
+                        const selectionId = computedArrowKey(sourceIndex);
+                        if (selectedIds.has(selectionId)) return false;
                         if (selectedIds.has(a.from) || selectedIds.has(a.to)) return false;
                         return true;
                     });

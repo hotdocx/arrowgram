@@ -1,6 +1,21 @@
-import { ComputedArrowPart, ComputedArrowPath, ComputedArrow, ComputedMask } from "../types";
-import { Point, Path, Enum, Dimensions } from "./ds";
+/*
+ * Arrow geometry/style/rendering algorithms adapted from varkor/quiver (MIT).
+ * See packages/arrowgram/THIRD_PARTY_NOTICES.md.
+ */
+
+import type {
+    ComputedArrowPart,
+    ComputedArrowPath,
+    ComputedArrow,
+    ComputedBounds,
+    ComputedLabelLayout,
+    ComputedMask,
+    ArrowSpec,
+} from "../types";
+import { Point, Path, Enum } from "./ds";
+import type { Dimensions } from "./ds";
 import { Bezier, Arc, CurvePoint, RoundedRectangle, EPSILON } from "./curve";
+import type { Curve } from "./curve";
 
 
 
@@ -79,22 +94,107 @@ export class ArrowStyle {
     colour = "black";
 }
 
+export interface ArrowComputationWarning {
+    code: 'geometry.shorten_clamped';
+    message: string;
+    details: {
+        requestedSource: number;
+        requestedTarget: number;
+        effectiveSource: number;
+        effectiveTarget: number;
+        availableLength: number;
+    };
+}
+
+export interface ArrowLabel {
+    text: string;
+    color?: string;
+    alignment: symbol;
+    size: Dimensions;
+    layout: ComputedLabelLayout;
+}
+
+interface ArrowComputationConstants {
+    curve: Curve;
+    start: CurvePoint;
+    end: CurvePoint;
+    stroke_width: number;
+    edge_width: number;
+    head_width: number;
+    head_height: number;
+    automaticShorten: { start: number; end: number };
+    effectiveShorten: { tail: number; head: number };
+    t_after_length: (length: number) => number;
+    dash_padding: { start: number; end: number };
+    visible: {
+        startLength: number;
+        endLength: number;
+        startT: number;
+        endT: number;
+    };
+    total_width_of_tails: number;
+    total_width_of_heads: number;
+}
+
+export interface ArrowComputationResult {
+    ok: true;
+    arrow: ComputedArrow;
+    masks: ComputedMask[];
+    warnings: ArrowComputationWarning[];
+}
+
+export interface ArrowComputationFailure {
+    ok: false;
+    error: {
+        code: 'geometry.endpoint_intersection_failed' | 'geometry.no_visible_span';
+        message: string;
+    };
+}
+
+export type ArrowComputeResult = ArrowComputationResult | ArrowComputationFailure;
+
+function expandBounds(bounds: ComputedBounds, padding: number): ComputedBounds {
+    return {
+        minX: bounds.minX - padding,
+        minY: bounds.minY - padding,
+        maxX: bounds.maxX + padding,
+        maxY: bounds.maxY + padding,
+    };
+}
+
+function unionBounds(left: ComputedBounds, right: ComputedBounds): ComputedBounds {
+    return {
+        minX: Math.min(left.minX, right.minX),
+        minY: Math.min(left.minY, right.minY),
+        maxX: Math.max(left.maxX, right.maxX),
+        maxY: Math.max(left.maxY, right.maxY),
+    };
+}
+
+function rotatedBoxBounds(
+    box: { x: number; y: number; width: number; height: number },
+    rotationDegrees: number,
+): ComputedBounds {
+    const centre = new Point(box.x + box.width / 2, box.y + box.height / 2);
+    const rotation = rotationDegrees * Math.PI / 180;
+    const corners = [
+        new Point(box.x, box.y),
+        new Point(box.x + box.width, box.y),
+        new Point(box.x + box.width, box.y + box.height),
+        new Point(box.x, box.y + box.height),
+    ].map((point) => point.sub(centre).rotate(rotation).add(centre));
+    return {
+        minX: Math.min(...corners.map((point) => point.x)),
+        minY: Math.min(...corners.map((point) => point.y)),
+        maxX: Math.max(...corners.map((point) => point.x)),
+        maxY: Math.max(...corners.map((point) => point.y)),
+    };
+}
+
 export interface Shape {
     origin: Point;
     size: Dimensions;
     radius: number;
-}
-
-export class EndpointShape implements Shape {
-    origin: Point;
-    size: Dimensions;
-    radius: number;
-
-    constructor(origin: Point) {
-        this.origin = origin;
-        this.size = new Dimensions(0, 0);
-        this.radius = 0;
-    }
 }
 
 export class RoundedRectShape implements Shape {
@@ -113,15 +213,30 @@ export class Arrow {
     source: Shape;
     target: Shape;
     style: ArrowStyle;
-    label: { text: string; color?: string; alignment: symbol; size: Dimensions } | null;
-    id: string;
+    label: ArrowLabel | null;
+    spec: ArrowSpec;
+    computedKey: string;
+    sourceIndex: number;
+    logicalId?: string;
 
-    constructor(source: Shape, target: Shape, style: ArrowStyle = new ArrowStyle(), label = null, id = "arrow") {
+    constructor(
+        source: Shape,
+        target: Shape,
+        style: ArrowStyle = new ArrowStyle(),
+        label: ArrowLabel | null = null,
+        spec: ArrowSpec = { from: '', to: '' },
+        computedKey = "arrow",
+        sourceIndex = 0,
+        logicalId?: string,
+    ) {
         this.source = source;
         this.target = target;
         this.style = style;
         this.label = label;
-        this.id = id;
+        this.spec = spec;
+        this.computedKey = computedKey;
+        this.sourceIndex = sourceIndex;
+        this.logicalId = logicalId;
     }
 
     origin() {
@@ -188,46 +303,65 @@ export class Arrow {
         return new Arc(origin, chord, chord <= inner_dis, r, angle);
     }
 
-    find_endpoints(): [CurvePoint, CurvePoint] {
-        const origin = this.origin();
-
+    find_endpoints(curve: Curve = this.curve()): [CurvePoint, CurvePoint] {
         const find_endpoint = (endpoint_shape: Shape, endpoint_origin: Point, prefer_min: boolean) => {
-            const curve = this.curve();
-
-            if (endpoint_shape instanceof EndpointShape || endpoint_shape.size.is_zero()) {
+            if (endpoint_shape.size.is_zero()) {
                 const t = prefer_min ? 0 : 1;
                 return new CurvePoint(
-                    endpoint_origin.sub(origin.source).rotate(-curve.angle),
+                    endpoint_origin.sub(curve.origin).rotate(-curve.angle),
                     t,
                     curve.tangent(t),
                 );
             }
 
-            const intersections = curve.intersections_with_rounded_rectangle(
-                new RoundedRectangle(
-                    endpoint_origin,
-                    endpoint_shape.size,
-                    endpoint_shape.radius,
-                ),
-                false,
+            const rectangle = new RoundedRectangle(
+                endpoint_origin,
+                endpoint_shape.size,
+                endpoint_shape.radius,
             );
-            if (intersections.length === 0) {
-                throw new Error("No intersections found.");
+            const endpointT = prefer_min ? 0 : 1;
+            if (!rectangle.contains(curve.point(endpointT))) {
+                throw new Error('The shifted curve does not begin inside its endpoint shape.');
             }
-            intersections.sort((a, b) => a.t - b.t);
 
-            if (this.style.shape === CONSTANTS.ARROW_SHAPE.BEZIER) {
-                // Check re-entry logic if needed
+            const direction = prefer_min ? 1 : -1;
+            let insideT = endpointT;
+            let outsideT: number | undefined;
+            for (let expansion = 0; expansion <= 10; expansion += 1) {
+                const candidate = Math.max(
+                    0,
+                    Math.min(1, endpointT + direction * (2 ** expansion) / 1024),
+                );
+                if (!rectangle.contains(curve.point(candidate))) {
+                    outsideT = candidate;
+                    break;
+                }
+                insideT = candidate;
+                if (candidate === 0 || candidate === 1) break;
             }
-            return intersections[prefer_min ? 0 : intersections.length - 1];
+
+            if (outsideT === undefined) {
+                throw new Error('The curve is entirely contained by its endpoint shape.');
+            }
+            let outside = outsideT;
+
+            for (let iteration = 0; iteration < 24; iteration += 1) {
+                const midpoint: number = (insideT + outside) / 2;
+                if (rectangle.contains(curve.point(midpoint))) insideT = midpoint;
+                else outside = midpoint;
+            }
+
+            const t = (insideT + outside) / 2;
+            const point = curve.point(t).sub(curve.origin).rotate(-curve.angle);
+            return new CurvePoint(point, t, curve.tangent(t));
         }
 
-        const start = find_endpoint(this.source, origin.source, true);
-        const end = find_endpoint(this.target, origin.target, false);
+        const start = find_endpoint(this.source, this.source.origin, true);
+        const end = find_endpoint(this.target, this.target.origin, false);
         return [start, end];
     }
 
-    compute(): { arrow: ComputedArrow, masks: ComputedMask[] } | null {
+    compute(): ArrowComputeResult {
         const stroke_width = this.style.level * CONSTANTS.STROKE_WIDTH
             + (this.style.level - 1) * CONSTANTS.LINE_SPACING;
         const edge_width = this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.SQUIGGLY ?
@@ -240,32 +374,30 @@ export class Arrow {
             (CONSTANTS.LINE_SPACING + CONSTANTS.STROKE_WIDTH) + (this.style.level - 1) * 2;
         const head_height = edge_width + (CONSTANTS.LINE_SPACING + CONSTANTS.STROKE_WIDTH) * 2;
 
-        const length = this.length();
-        
-        const tempCurve = this.curve(Point.zero(), 0);
-        const t_after_length = tempCurve.t_after_length(true);
-        const height = 2 * Math.abs(tempCurve.height);
-
         const angle = this.angle();
 
         const shiftVector = new Point(0, this.style.shift).rotate(angle);
 
         const globalCurve = this.curve(this.origin().source.add(shiftVector), angle);
+        const t_after_length = globalCurve.t_after_length(true);
         const arcLength = globalCurve.arc_length(1);
-
-        const interactionPathObj = new Path();
-        interactionPathObj.move_to(globalCurve.origin);
-        globalCurve.render(interactionPathObj);
-        const interactionPath = interactionPathObj.toString();
 
         let start: CurvePoint, end: CurvePoint;
         try {
-            [start, end] = this.find_endpoints();
-        } catch (_) {
-            return null; // Invalid arrow
+            [start, end] = this.find_endpoints(globalCurve);
+        } catch (error) {
+            return {
+                ok: false,
+                error: {
+                    code: 'geometry.endpoint_intersection_failed',
+                    message: error instanceof Error
+                        ? error.message
+                        : 'Unable to intersect the arrow curve with its endpoint shapes.',
+                },
+            };
         }
 
-        const shorten = {
+        const automaticShorten = {
             start: this.style.tails.length > 0 && this.style.tails[0].startsWith("hook")
                 ? head_width : 0,
             end: this.style.heads.length > 0 && this.style.heads[0].startsWith("hook")
@@ -289,11 +421,82 @@ export class Arrow {
             end: adjust_dash_padding(this.style.heads, end, false),
         };
 
-        const constants = {
-            curve: globalCurve, start, end, length, height, stroke_width, edge_width, head_width,
-            head_height, shorten, t_after_length, dash_padding, offset: Point.zero(), 
-            total_width_of_tails: 0, total_width_of_heads: 0
+        const baseStartLength = globalCurve.arc_length(start.t)
+            + automaticShorten.start
+            - dash_padding.start;
+        const baseEndLength = globalCurve.arc_length(end.t)
+            - automaticShorten.end
+            + dash_padding.end;
+        if (baseEndLength < baseStartLength - EPSILON) {
+            return {
+                ok: false,
+                error: {
+                    code: 'geometry.no_visible_span',
+                    message: 'Endpoint shapes overlap without a positive visible arrow span.',
+                },
+            };
+        }
+
+        const availableLength = Math.max(0, baseEndLength - baseStartLength);
+        const requestedSource = this.style.shorten.tail;
+        const requestedTarget = this.style.shorten.head;
+        const requestedTotal = requestedSource + requestedTarget;
+        const scale = requestedTotal > availableLength && requestedTotal > 0
+            ? availableLength / requestedTotal
+            : 1;
+        const effectiveShorten = {
+            tail: requestedSource * scale,
+            head: requestedTarget * scale,
         };
+        const warnings: ArrowComputationWarning[] = [];
+        if (scale < 1) {
+            warnings.push({
+                code: 'geometry.shorten_clamped',
+                message: `Arrow shortening was clamped to the available path length of ${availableLength.toFixed(3)} pixels.`,
+                details: {
+                    requestedSource,
+                    requestedTarget,
+                    effectiveSource: effectiveShorten.tail,
+                    effectiveTarget: effectiveShorten.head,
+                    availableLength,
+                },
+            });
+        }
+        const visibleStartLength = baseStartLength + effectiveShorten.tail;
+        const visibleEndLength = baseEndLength - effectiveShorten.head;
+
+        const constants: ArrowComputationConstants = {
+            curve: globalCurve,
+            start,
+            end,
+            stroke_width,
+            edge_width,
+            head_width,
+            head_height,
+            automaticShorten,
+            effectiveShorten,
+            t_after_length,
+            dash_padding,
+            visible: {
+                startLength: visibleStartLength,
+                endLength: visibleEndLength,
+                startT: t_after_length(visibleStartLength),
+                endT: t_after_length(visibleEndLength),
+            },
+            total_width_of_tails: 0,
+            total_width_of_heads: 0,
+        };
+
+        const interactionPathObj = new Path();
+        interactionPathObj.move_to(globalCurve.point(constants.visible.startT));
+        if (constants.visible.endT > constants.visible.startT + EPSILON) {
+            globalCurve.render_partial(
+                interactionPathObj,
+                constants.visible.startT,
+                constants.visible.endT,
+            );
+        }
+        const interactionPath = interactionPathObj.toString();
 
 
 
@@ -317,7 +520,7 @@ export class Arrow {
         // Draw Heads/Tails logic
         const headsParts: ComputedArrowPart[] = [];
         const tailsParts: ComputedArrowPart[] = [];
-        const maskPaths: any[] = [];
+        const maskPaths: ComputedMask['paths'] = [];
 
         // Decorations (Proarrows, Bullets) - MOVED HERE
         if (this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.PROARROW ||
@@ -325,8 +528,8 @@ export class Arrow {
             this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.BULLET_SOLID ||
             this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.BULLET_HOLLOW) {
             
-            const arclen_to_start = globalCurve.arc_length(start.t) + (this.style.shorten.tail + shorten.start) - dash_padding.start;
-            const arclen_to_end = globalCurve.arc_length(end.t) - (this.style.shorten.head + shorten.end) + dash_padding.end;
+            const arclen_to_start = constants.visible.startLength;
+            const arclen_to_end = constants.visible.endLength;
             
             const start_t = Math.max(start.t, t_after_length(arclen_to_start));
             const end_t = Math.min(end.t, t_after_length(arclen_to_end));
@@ -419,14 +622,28 @@ export class Arrow {
 
         const paths: ComputedArrowPath[] = [];
         const computedMasks: ComputedMask[] = [];
+        const visualPadding = Math.max(
+            stroke_width / 2,
+            head_width + CONSTANTS.MASK_PADDING,
+            head_height,
+            CONSTANTS.CORNER_LINE_LENGTH,
+            edge_width / 2 + CONSTANTS.SQUIGGLY_TRIANGLE_HEIGHT,
+        );
+        let bounds = expandBounds(globalCurve.bounds(start.t, end.t), visualPadding);
+        if (bbox.width > 0 && bbox.height > 0) {
+            bounds = unionBounds(bounds, rotatedBoxBounds(bbox, rotation));
+        }
 
         // Create mask if level > 1 OR we have a label to mask out
         if (this.style.level > 1 || (this.label?.text && this.label.text.trim() !== "")) {
-            const maskId = `${this.id}-mask`;
+            const maskId = `${this.computedKey}-mask`;
+            const maskBounds = expandBounds(bounds, CONSTANTS.MASK_PADDING);
+            const maskWidth = maskBounds.maxX - maskBounds.minX;
+            const maskHeight = maskBounds.maxY - maskBounds.minY;
             
             // Base rect (white = visible)
             maskPaths.push({
-                d: "M -10000 -10000 h 20000 v 20000 h -20000 z",
+                d: `M ${maskBounds.minX} ${maskBounds.minY} h ${maskWidth} v ${maskHeight} h -${maskWidth} z`,
                 fill: "white",
                 stroke: "none",
                 strokeWidth: 0
@@ -467,6 +684,7 @@ export class Arrow {
 
             computedMasks.push({
                 id: maskId,
+                bounds: maskBounds,
                 paths: maskPaths
             });
 
@@ -476,7 +694,7 @@ export class Arrow {
                 stroke: this.style.colour,
                 strokeWidth: stroke_width,
                 strokeDasharray: dash_array || undefined,
-                mask: `url(#${maskId})`
+                maskId,
             });
         } else {
             paths.push({
@@ -495,19 +713,32 @@ export class Arrow {
         // Transform endpoints to absolute coordinates
         const absStart = start.rotate(angle).add(globalCurve.origin);
         const absEnd = end.rotate(angle).add(globalCurve.origin);
+        const visibleStart = globalCurve.point(constants.visible.startT);
+        const visibleEnd = globalCurve.point(constants.visible.endT);
 
 
 
         return {
+            ok: true,
             arrow: {
-                key: this.id,
-                spec: {} as any, 
+                key: this.computedKey,
+                sourceIndex: this.sourceIndex,
+                logicalId: this.logicalId,
+                spec: this.spec,
                 paths,
                 heads: headsParts,
                 tail: tailsParts,
                 label: {
                     text: this.label?.text,
                     color: this.label?.color,
+                    layout: this.label?.layout ?? {
+                        source: '',
+                        segments: [],
+                        accessibleText: '',
+                        width: 0,
+                        height: 0,
+                        hasMath: false,
+                    },
                     props: {
                         x: labelPos.x,
                         y: labelPos.y,
@@ -516,28 +747,30 @@ export class Arrow {
                         fontSize: 16
                     },
                     bbox,
-                    rotation
+                    rotation,
+                    rotationDegrees: rotation,
                 },
                 midpoint: { x: anchorPoint.x, y: anchorPoint.y },
                 sourcePoint: { x: absStart.x, y: absStart.y },
                 targetPoint: { x: absEnd.x, y: absEnd.y },
+                visibleSourcePoint: { x: visibleStart.x, y: visibleStart.y },
+                visibleTargetPoint: { x: visibleEnd.x, y: visibleEnd.y },
+                bounds,
                 arcLength,
                 interactionPath
             },
-            masks: computedMasks
+            masks: computedMasks,
+            warnings,
         };
     }
 
-    edge_path(constants: any) {
+    edge_path(constants: ArrowComputationConstants) {
         const {
-            curve, start, end, shorten, dash_padding, t_after_length,
+            curve, t_after_length, visible,
             total_width_of_tails, total_width_of_heads
         } = constants;
-        let arclen_to_start = curve.arc_length(start.t) + (this.style.shorten.tail + shorten.start)
-            - dash_padding.start;
-        let arclen_to_end = curve.arc_length(end.t) - (this.style.shorten.head + shorten.end)
-            + dash_padding.end;
-        let arclen = curve.arc_length(1);
+        const arclen_to_start = visible.startLength;
+        const arclen_to_end = visible.endLength;
 
         const path = new Path();
 
@@ -547,8 +780,10 @@ export class Arrow {
             this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.BULLET_SOLID ||
             this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.BULLET_HOLLOW) {
 
-            path.move_to(curve.origin);
-            curve.render(path);
+            path.move_to(curve.point(visible.startT));
+            if (visible.endT > visible.startT + EPSILON) {
+                curve.render_partial(path, visible.startT, visible.endT);
+            }
         } else if (this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.ADJUNCTION) {
             // Adjunction symbol: -| (rotated)
             const centre = curve.point(0.5);
@@ -577,8 +812,14 @@ export class Arrow {
 
         } else if (this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.SQUIGGLY) {
             const HALF_WAVELENGTH = CONSTANTS.SQUIGGLY_TRIANGLE_HEIGHT * 2;
-            const arclen_to_squiggle_start = arclen_to_start + total_width_of_tails + CONSTANTS.SQUIGGLY_PADDING;
-            const arclen_to_squiggle_end = arclen_to_end - (total_width_of_heads + CONSTANTS.SQUIGGLY_PADDING);
+            const arclen_to_squiggle_start = Math.min(
+                arclen_to_end,
+                arclen_to_start + total_width_of_tails + CONSTANTS.SQUIGGLY_PADDING,
+            );
+            const arclen_to_squiggle_end = Math.max(
+                arclen_to_squiggle_start,
+                arclen_to_end - (total_width_of_heads + CONSTANTS.SQUIGGLY_PADDING),
+            );
 
             const squiggle_start_point = curve.point(t_after_length(arclen_to_squiggle_start));
             const start_point = curve.point(t_after_length(arclen_to_start));
@@ -592,8 +833,7 @@ export class Arrow {
                 sign = -1,
                 m = 1;
                 l + m * HALF_WAVELENGTH / 2 < arclen_to_squiggle_end;
-                // @ts-ignore
-                sign = [sign, -sign][m], m = 1 - m
+                sign = m === 0 ? sign : -sign, m = 1 - m
             ) {
                 l += HALF_WAVELENGTH / 2;
                 const t = t_after_length(l);
@@ -606,48 +846,25 @@ export class Arrow {
 
             path.line_to(end_point);
 
-            // Adjust arclen for dashes if needed (squiggly lines are drawn manually so dashes are tricky)
-            // But usually squiggly lines aren't dashed in standard usage, though Quiver supports it.
-            // For now, we update arclen vars to skip standard dash logic or adjust it.
-            // Quiver re-calculates arclen_to_start = 0 etc because the path is now absolute segments.
-            arclen_to_start = 0;
-            // The path is drawn from start to end, so length is the full path length.
-            // Simplified: we won't support dashing squiggly lines perfectly yet.
         }
 
-        // Dashes
         let dash_array = null;
         if (this.style.body_style === CONSTANTS.ARROW_BODY_STYLE.ADJUNCTION) {
-             // No dashes for adjunction
+            // No dashes for adjunction.
         } else if (this.style.dash_style !== CONSTANTS.ARROW_DASH_STYLE.SOLID) {
-            let arclen_line = arclen_to_end - arclen_to_start;
-            let dashes: number[] = [];
-
-            if (this.style.dash_style === CONSTANTS.ARROW_DASH_STYLE.DASHED) dashes = [6, 6];
-            else if (this.style.dash_style === CONSTANTS.ARROW_DASH_STYLE.DOTTED) dashes = [2, 4];
-
-            // Construct dash array to hide start/end
-            // `0 ${arclen_to_start} ${dashes...} ${arclen - arclen_to_end}`
-            // We need to repeat dashes to fill arclen_line
-            const dash_gap_len = dashes.reduce((a, b) => a + b, 0);
-            const count = Math.floor(arclen_line / dash_gap_len);
-            const repeatDashes = Array(count).fill(dashes).flat();
-            // Remainder
-            const remainder = arclen_line - count * dash_gap_len;
-            if (remainder > 0) repeatDashes.push(remainder);
-
-            dash_array = `0 ${arclen_to_start} ${repeatDashes.join(" ")} ${arclen - arclen_to_end}`;
-        } else {
-            // Solid line but trimmed
-            dash_array = `0 ${arclen_to_start} ${arclen_to_end - arclen_to_start} ${arclen - arclen_to_end}`;
+            const visibleLength = arclen_to_end - arclen_to_start;
+            if (visibleLength <= EPSILON) dash_array = "0 1";
+            else if (this.style.dash_style === CONSTANTS.ARROW_DASH_STYLE.DASHED) dash_array = "6 6";
+            else if (this.style.dash_style === CONSTANTS.ARROW_DASH_STYLE.DOTTED) dash_array = "2 4";
         }
 
         return { path, dash_array };
     }
 
-    redraw_heads(constants: any, heads: string[], endpoint: CurvePoint, is_start: boolean, is_mask: boolean = false) {
+    redraw_heads(constants: ArrowComputationConstants, heads: string[], endpoint: CurvePoint, is_start: boolean, is_mask: boolean = false) {
         const {
-            curve, head_width, head_height, t_after_length, shorten, dash_padding, stroke_width
+            curve, head_width, head_height, t_after_length, automaticShorten,
+            effectiveShorten, dash_padding, stroke_width
         } = constants;
 
         if (heads.length === 0) return { pathD: null, total_width: 0 };
@@ -658,8 +875,8 @@ export class Arrow {
 
         const arclen_to_endpoint = curve.arc_length(endpoint.t)
             + (is_start ?
-                shorten.start + this.style.shorten.tail :
-                shorten.end + this.style.shorten.head
+                automaticShorten.start + effectiveShorten.tail :
+                automaticShorten.end + effectiveShorten.head
             ) * start_sign;
 
         const path = new Path();
@@ -780,7 +997,7 @@ export class Arrow {
         return { pathD: path.toString(), total_width };
     }
 
-    determine_label_position(constants: any) {
+    determine_label_position(constants: ArrowComputationConstants) {
         const { start, end } = constants;
 
         // But we need to use global curve if we want global point

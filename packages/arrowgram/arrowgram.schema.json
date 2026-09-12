@@ -3,29 +3,45 @@
   "type": "object",
   "properties": {
     "version": {
-      "type": "integer",
-      "minimum": -9007199254740991,
-      "maximum": 9007199254740991
+      "default": 1,
+      "type": "number",
+      "const": 1
     },
     "nodes": {
+      "maxItems": 1000,
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "^__arrowgram_internal__"
+            }
           },
           "label": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 16384
           },
           "color": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "[uU][rR][lL]\\s*\\("
+            }
           },
           "left": {
-            "type": "number"
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
           },
           "top": {
-            "type": "number"
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
           }
         },
         "required": [
@@ -37,39 +53,75 @@
       }
     },
     "arrows": {
+      "default": [],
+      "maxItems": 4000,
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "from": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "^__arrowgram_internal__"
+            }
           },
           "to": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "^__arrowgram_internal__"
+            }
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "^__arrowgram_internal__"
+            }
           },
           "label": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 16384
           },
           "color": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "[uU][rR][lL]\\s*\\("
+            }
           },
           "label_color": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "not": {
+              "pattern": "[uU][rR][lL]\\s*\\("
+            }
           },
           "curve": {
-            "type": "number"
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
           },
           "shift": {
-            "type": "number"
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
           },
           "radius": {
-            "type": "number"
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
           },
           "angle": {
-            "type": "number"
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
           },
           "label_alignment": {
             "type": "string",
@@ -83,10 +135,14 @@
             "type": "object",
             "properties": {
               "source": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
               },
               "target": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000
               }
             },
             "additionalProperties": false
@@ -173,8 +229,8 @@
               },
               "level": {
                 "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991
+                "minimum": 1,
+                "maximum": 3
               }
             },
             "additionalProperties": false
@@ -192,6 +248,10 @@
     "nodes"
   ],
   "additionalProperties": false,
-  "title": "Arrowgram Specification",
-  "description": "Schema for describing commutative diagrams in Arrowgram."
+  "$id": "https://raw.githubusercontent.com/hotdocx/arrowgram/main/packages/arrowgram/arrowgram.schema.json",
+  "title": "Arrowgram Format v1",
+  "description": "Structural schema for Arrowgram format v1 commutative diagrams.",
+  "$comment": "Graph identity, endpoint, cycle, dependency-depth, and loop semantics require @hotdocx/arrowgram parseDiagramSpec/validateDiagramSpec after structural JSON Schema validation.",
+  "x-arrowgram-format-version": 1,
+  "x-arrowgram-semantic-validator": "@hotdocx/arrowgram.parseDiagramSpec"
 }

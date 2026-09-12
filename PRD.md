@@ -26,7 +26,7 @@
 The project is a monorepo with two primary packages:
 
 ### 3.1. `@arrowgram/core` (formerly `packages/arrowgram`)
-*   **Status:** Implemented & Tested.
+*   **Status:** vNext `2.0.0-rc.0` implemented, locally acceptance-tested, and published to npm under both `latest` and `next`; unqualified installs and `^2.0.0-0` resolve the RC.
 *   **Purpose:** The "brain" and "renderer". A standalone library for definitions and rendering.
 *   **Tech:** TypeScript, Zod, Vitest.
 *   **Responsibilities:**
@@ -121,7 +121,7 @@ The project is a monorepo with two primary packages:
 
 ## 6. Implementation Roadmap
 
-1.  **Foundation:** Refactor `core` for strict typing and headless capabilities. [COMPLETE]
+1.  **Foundation:** Refactor `core` for strict typing and headless capabilities. [V2 RC COMPLETE; RELEASE PENDING]
 2.  **UX Polish:** Implement the "Projects" dashboard and Keyboard Shortcuts. [IN PROGRESS]
 3.  **AI Refinement:** Implement "Merging" logic for incremental AI updates. [IN PROGRESS]
 4.  **DevOps:** CI/CD for NPM publishing and Docker containerization. [PARTIAL - CI Active]

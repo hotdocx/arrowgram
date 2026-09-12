@@ -6,7 +6,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createTwoFilesPatch } from "diff";
 import showdown from "showdown";
-import { ArrowGramDiagram, computeDiagram, DiagramSpecSchema } from "@hotdocx/arrowgram";
+import {
+  ArrowGramDiagram,
+  computeDiagramResult,
+  diagramTextSummary,
+  firstErrorMessage,
+} from "@hotdocx/arrowgram";
 import katex from "katex";
 
 export type ArrowgramProjectType = "diagram" | "paper";
@@ -476,27 +481,25 @@ function renderInlineMath(html: string) {
 }
 
 function renderDiagramSvg(specText: string, id: string) {
-  try {
-    const diagram = computeDiagram(specText, id);
-    if (diagram.error) {
-      return `<div class="arrowgram-error">Diagram Error: ${escapeHtml(diagram.error)}</div>`;
-    }
-    return renderToStaticMarkup(
-      React.createElement(
-        "svg",
+  const result = computeDiagramResult(specText, id, { normalizeLegacy: true });
+  if (!result.ok) {
+    return `<div class="arrowgram-error">Diagram Error: ${escapeHtml(firstErrorMessage(result.diagnostics))}</div>`;
+  }
+  const diagram = result.value;
+  return renderToStaticMarkup(
+    React.createElement(
+      "svg",
         {
           id,
           className: "arrowgram-svg",
           viewBox: diagram.viewBox,
           role: "img",
+          "aria-label": diagramTextSummary(diagram),
           style: { fontFamily: "sans-serif", overflow: "visible" },
         },
-        React.createElement(ArrowGramDiagram, { diagram })
-      )
-    );
-  } catch (error) {
-    return `<div class="arrowgram-error">Diagram Error: ${escapeHtml(error instanceof Error ? error.message : String(error))}</div>`;
-  }
+        React.createElement(ArrowGramDiagram, { diagram, instanceId: id, announce: false })
+    )
+  );
 }
 
 function renderMarkdown(markdown: string) {
@@ -646,14 +649,26 @@ export async function validateWorkspace(root: string): Promise<BridgeDiagnostic[
     const filePath = resolveWorkspacePath(root, project.source);
     const text = await readTextIfExists(filePath);
     if (project.type === "diagram") {
-      try {
-        DiagramSpecSchema.parse(JSON.parse(text));
-      } catch (error) {
+      const result = computeDiagramResult(text, '', { normalizeLegacy: true });
+      if (!result.ok || result.diagnostics.length > 0) {
+        for (const diagnostic of result.diagnostics) {
+          const jsonPath = diagnostic.path.length > 0
+            ? ` (${diagnostic.path.join(".")})`
+            : "";
+          diagnostics.push({
+            projectId: project.id,
+            path: project.source,
+            severity: diagnostic.severity,
+            message: `${diagnostic.message}${jsonPath}`,
+          });
+        }
+      }
+      if (!result.ok && result.diagnostics.length === 0) {
         diagnostics.push({
           projectId: project.id,
           path: project.source,
           severity: "error",
-          message: error instanceof Error ? error.message : "Invalid diagram JSON.",
+          message: "Invalid diagram JSON.",
         });
       }
     }

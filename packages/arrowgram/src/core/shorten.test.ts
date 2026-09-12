@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { computeDiagram } from './diagramModel';
-import { DiagramSpec } from '../types';
+import type { DiagramSpec } from '../types';
 
 describe('Arrow Shortening', () => {
-    it('should apply shorten properties to arrow style via strokeDasharray', () => {
+    it('renders only the visible shortened subcurve', () => {
         const spec: DiagramSpec = {
             nodes: [
                 { name: 'A', left: 0, top: 0 },
@@ -21,33 +21,18 @@ describe('Arrow Shortening', () => {
         const result = computeDiagram(spec);
         const arrow = result.arrows[0];
         
-        // Ensure there is a path
         expect(arrow.paths.length).toBeGreaterThan(0);
         const path = arrow.paths[0];
-        
-        // Expected dasharray format: "0 start_gap visible_len end_gap"
-        // Node radius is 25.
-        // Start gap = 25 (node) + 10 (shorten) = 35.
-        // End gap (last param) = 25 (node) + 20 (shorten) = 45.
-        // Visible len = 100 (total) - 35 - 45 = 20.
-        // Dasharray: "0 35 20 45"
-        
-        const dashArray = path.strokeDasharray;
-        expect(dashArray).toBeDefined();
-        
-        const parts = dashArray!.split(' ').map(parseFloat);
-        expect(parts.length).toBeGreaterThanOrEqual(4);
-        
-        const startGap = parts[1];
-        const visibleLen = parts[2];
-        const endGap = parts[3];
-        
-        expect(startGap).toBeCloseTo(35, 0);
-        expect(endGap).toBeCloseTo(45, 0);
-        expect(visibleLen).toBeCloseTo(20, 0);
+        expect(result.error).toBeNull();
+        expect(result.diagnostics).toEqual([]);
+        expect(arrow.visibleSourcePoint.x).toBeCloseTo(35, 3);
+        expect(arrow.visibleTargetPoint.x).toBeCloseTo(55, 3);
+        expect(arrow.visibleTargetPoint.x - arrow.visibleSourcePoint.x).toBeCloseTo(20, 3);
+        expect(path.d).toMatch(/^M 35(?:\.\d+)? 0\nq /);
+        expect(path.strokeDasharray).toBeUndefined();
     });
 
-    it('should handle partial shorten properties via strokeDasharray', () => {
+    it('handles one-sided shortening with the same subcurve contract', () => {
         const spec: DiagramSpec = {
             nodes: [
                 { name: 'A', left: 0, top: 0 },
@@ -65,18 +50,11 @@ describe('Arrow Shortening', () => {
         const result = computeDiagram(spec);
         const arrow = result.arrows[0];
         
-        const path = arrow.paths[0];
-        const dashArray = path.strokeDasharray;
-        expect(dashArray).toBeDefined();
-        
-        const parts = dashArray!.split(' ').map(parseFloat);
-        
-        // Start gap = 25 + 15 = 40
-        // End gap = 25 + 0 = 25
-        // Visible = 100 - 40 - 25 = 35
-        
-        expect(parts[1]).toBeCloseTo(40, 0);
-        expect(parts[3]).toBeCloseTo(25, 0);
-        expect(parts[2]).toBeCloseTo(35, 0);
+        expect(result.error).toBeNull();
+        expect(result.diagnostics).toEqual([]);
+        expect(arrow.visibleSourcePoint.x).toBeCloseTo(40, 3);
+        expect(arrow.visibleTargetPoint.x).toBeCloseTo(75, 3);
+        expect(arrow.visibleTargetPoint.x - arrow.visibleSourcePoint.x).toBeCloseTo(35, 3);
+        expect(arrow.paths[0].strokeDasharray).toBeUndefined();
     });
 });

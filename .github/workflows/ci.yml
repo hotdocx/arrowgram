@@ -2,111 +2,221 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NPM_VERSION: 11.6.2
+  NODE_VERSION: 22
 
 jobs:
-  build-and-test:
+  policy:
+    name: Policy and lockfile
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci --ignore-scripts
+      - name: Verify clean tracked inputs
+        run: |
+          git diff --check
+          test ! -e packages/arrowgram/tsconfig.tsbuildinfo
+          test ! -e packages/web/dist-pages
+      - name: Verify workspace manifests
+        run: npm query .workspace --json >/dev/null
 
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        # `packages/lastrevision` requires Node >= 22.x
-        node-version: '22'
-        cache: 'npm'
+  core:
+    name: Core (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20.19.0, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci
+      - name: Run complete core gate
+        env:
+          ARROWGRAM_PACKAGE_OUTPUT_DIR: output/arrowgram-ci-node-${{ matrix.node }}
+        run: npm run check --workspace=packages/arrowgram
+      - name: Upload exact package evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arrowgram-core-node-${{ matrix.node }}
+          path: |
+            output/arrowgram-ci-node-${{ matrix.node }}
+            packages/arrowgram/coverage
+          if-no-files-found: ignore
+          retention-days: 14
 
-    - name: Install Dependencies
-      run: npm ci
+  web-static:
+    name: Web unit and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci
+      - run: npm run build --workspace=packages/arrowgram
+      - run: npm test --workspace=packages/web
+      - run: npm run build --workspace=packages/web
+      - run: npm pack --dry-run --workspace=packages/web
 
-    - name: Detect LastRevision workspace
-      id: has_lastrevision
-      shell: bash
-      run: |
-        set -euo pipefail
-        if [ ! -f packages/lastrevision/package.json ]; then
-          echo "present=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        if npm pkg get name --workspace=packages/lastrevision >/dev/null 2>&1; then
-          echo "present=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "present=false" >> "$GITHUB_OUTPUT"
-        fi
+  web-e2e:
+    name: Web browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci
+      - run: npm run build --workspace=packages/arrowgram
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e --workspace=packages/web
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-playwright-failure
+          path: |
+            packages/web/playwright-report
+            packages/web/test-results
+          if-no-files-found: ignore
+          retention-days: 14
 
-    - name: Ensure No Nested Git Repos
-      run: |
-        if [ "${{ steps.has_lastrevision.outputs.present }}" = "true" ]; then
-          test ! -d packages/lastrevision/.git
-        fi
+  agent:
+    name: Agent unit and packed install
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci
+      - run: npm run build --workspace=packages/arrowgram
+      - run: npm run build:lib --workspace=packages/web
+      - run: npm run build --workspace=packages/agent
+      - run: npm test --workspace=packages/agent
+      - run: npm pack --dry-run --workspace=packages/agent
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:packed --workspace=packages/agent
 
-    - name: Build Core Library
-      run: npm run build --workspace=packages/arrowgram
+  agent-e2e:
+    name: Agent browser bridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci
+      - run: npm run build --workspace=packages/arrowgram
+      - run: npm run build:lib --workspace=packages/web
+      - run: npm run build --workspace=packages/agent
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e --workspace=packages/agent
+      - name: Upload bridge failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-playwright-failure
+          path: |
+            packages/agent/playwright-report
+            packages/agent/test-results
+          if-no-files-found: ignore
+          retention-days: 14
 
-    - name: Verify Generated Core Schema Is Committed
-      run: git diff --exit-code -- packages/arrowgram/arrowgram.schema.json
+  paged:
+    name: Paged validation and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --global npm@${NPM_VERSION}
+      - run: npm ci
+      - run: npm run build --workspace=packages/arrowgram
+      - run: npm run validate:paper --workspace=packages/paged
+      - run: npm run build --workspace=packages/paged
 
-    - name: Run Core Tests
-      run: npm test --workspace=packages/arrowgram -- --run
-
-    - name: Pack Core Library
-      run: npm pack --dry-run --workspace=packages/arrowgram
-
-    - name: Run Web Unit Tests
-      run: npm test --workspace=packages/web
-
-    - name: Install Playwright Chromium
-      run: npx playwright install --with-deps chromium
-
-    - name: Run Web E2E Tests
-      run: npm run test:e2e --workspace=packages/web
-
-    - name: Build Web Package + App
-      run: npm run build --workspace=packages/web
-
-    - name: Pack Web Package
-      run: npm pack --dry-run --workspace=packages/web
-
-    - name: Build Agent Package
-      run: npm run build --workspace=packages/agent
-
-    - name: Run Agent Tests
-      run: npm test --workspace=packages/agent
-
-    - name: Run Agent Bridge E2E Tests
-      run: npm run test:e2e --workspace=packages/agent
-
-    - name: Pack Agent Package
-      run: npm pack --dry-run --workspace=packages/agent
-
-    - name: Verify Packed Agent Install
-      run: npm run test:packed --workspace=packages/agent
-
-    - name: Build Paged Viewer
-      run: npm run build --workspace=packages/paged
-
-    - name: Build LastRevision (SPA mode)
-      if: steps.has_lastrevision.outputs.present == 'true'
-      env:
-        NODE_OPTIONS: --max-old-space-size=6144
-        DATABASE_URL: postgresql://postgres:example@localhost:5432/postgres
-        BETTER_AUTH_SECRET: dev-ci-secret
-        STRIPE_SECRET_KEY: sk_test_dev
-        STRIPE_WEBHOOK_SECRET: whsec_dev
-        GOOGLE_CLIENT_ID: dev
-        GOOGLE_CLIENT_SECRET: dev
-        GCS_BUCKET: dev-bucket
-        VITE_API_BASE_URL: http://localhost:3000
-        VITE_BETTER_AUTH_URL: http://localhost:3000
-        VITE_STRIPE_BASIC_PRICE_ID: price_dev
-        VITE_STRIPE_PRO_PRICE_ID: price_dev
-        VITE_STRIPE_PUBLISHABLE_KEY: pk_test_dev
-      run: npm run build --workspace=packages/lastrevision
-
-    - name: Verify LastRevision SPA Artifact
-      if: steps.has_lastrevision.outputs.present == 'true'
-      run: npm run verify:spa --workspace=packages/lastrevision
+  lastrevision:
+    name: LastRevision build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Detect private workspace
+        id: private
+        shell: bash
+        run: |
+          if test -f packages/lastrevision/package.json; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.private.outputs.present == 'true'
+        run: npm install --global npm@${NPM_VERSION}
+      - if: steps.private.outputs.present == 'true'
+        run: npm ci
+      - if: steps.private.outputs.present == 'true'
+        run: npm run build --workspace=packages/arrowgram
+      - name: Build LastRevision
+        if: steps.private.outputs.present == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          DATABASE_URL: postgresql://postgres:example@localhost:5432/postgres
+          BETTER_AUTH_SECRET: dev-ci-secret
+          STRIPE_SECRET_KEY: sk_test_dev
+          STRIPE_WEBHOOK_SECRET: whsec_dev
+          GOOGLE_CLIENT_ID: dev
+          GOOGLE_CLIENT_SECRET: dev
+          GCS_BUCKET: dev-bucket
+          VITE_API_BASE_URL: http://localhost:3000
+          VITE_BETTER_AUTH_URL: http://localhost:3000
+          VITE_STRIPE_BASIC_PRICE_ID: price_dev
+          VITE_STRIPE_PRO_PRICE_ID: price_dev
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_dev
+        run: npm run build --workspace=packages/lastrevision
+      - if: steps.private.outputs.present == 'true'
+        run: npm run verify:spa --workspace=packages/lastrevision

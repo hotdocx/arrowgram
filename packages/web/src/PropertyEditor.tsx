@@ -5,7 +5,7 @@ import { Select } from './components/ui/Select';
 import { Label } from './components/ui/Label';
 import { Button } from './components/ui/Button';
 import { MousePointer2, Trash2 } from 'lucide-react';
-import { DiagramSpec, NodeSpec, ArrowSpec, normalizeAngle } from '@hotdocx/arrowgram';
+import { ArrowSpec, computedArrowKey, DiagramSpec, NodeSpec, normalizeAngle } from '@hotdocx/arrowgram';
 import { SelectionState, useDiagramStore } from './store/diagramStore';
 
 interface NodeEditorProps {
@@ -56,16 +56,14 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }: ArrowEditorProps) {
         }
 
         const newArrows = arrows.map((a, index) => {
-            const key = a.name || `_arrow_${index}`;
-            return key === arrow.key ? { ...a, [name]: val } : a;
+            return computedArrowKey(index) === arrow.key ? { ...a, [name]: val } : a;
         });
         onSpecChange(formatSpec({ nodes, arrows: newArrows }));
     };
 
     const handleShortenChange = (prop: 'source' | 'target', value: number) => {
         const newArrows = arrows.map((a, index) => {
-            const key = a.name || `_arrow_${index}`;
-            if (key === arrow.key) {
+            if (computedArrowKey(index) === arrow.key) {
                 const currentShorten = a.shorten || {};
                 return { ...a, shorten: { ...currentShorten, [prop]: value } };
             }
@@ -76,8 +74,7 @@ function ArrowEditor({ arrow, nodes, arrows, onSpecChange }: ArrowEditorProps) {
 
     const handleStyleChange = (part: string, name: string, value: any) => {
         const newArrows = arrows.map((a, index) => {
-            const key = a.name || `_arrow_${index}`;
-            if (key === arrow.key) {
+            if (computedArrowKey(index) === arrow.key) {
                 const newStyle: any = { ...a.style };
                 if (part === 'level') {
                     newStyle.level = value;
@@ -265,8 +262,7 @@ export function PropertyEditor({ selection, spec: specString, onSpecChange }: Pr
         }
 
         const foundArrow = arrows.find((a, index) => {
-            const uniqueId = a.name || `_arrow_${index}`;
-            return uniqueId === key;
+            return computedArrowKey(index) === key;
         });
 
         if (foundArrow) {

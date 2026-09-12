@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "nodes": [
+    { "name": "A", "left": 0, "top": 0, "typo": true }
+  ]
+}

@@ -21,10 +21,8 @@ describe('estimateLabelVisualLength', () => {
     // $\xrightarrow$ -> 1
     expect(estimateLabelVisualLength('$\\xrightarrow$')).toBe(1);
     
-    // $\alpha \to \beta$ -> alpha(1) + space(1) + to(1) + space(1) + beta(1) = 5
-    // Actually spaces are preserved? 
-    // content = "alpha to beta" -> "C C C" -> length 5.
-    expect(estimateLabelVisualLength('$\\alpha \\to \\beta$')).toBe(5);
+    // $\alpha \to \beta$ -> three math atoms plus two half-width spaces = 4.
+    expect(estimateLabelVisualLength('$\\alpha \\to \\beta$')).toBe(4);
   });
 
   it('should fallback to length if not fully enclosed in $', () => {

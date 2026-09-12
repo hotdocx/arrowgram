@@ -70,7 +70,7 @@ This is a monorepo managed by NPM Workspaces.
 ## Getting Started
 
 ### Prerequisites
--   Node.js (v20+)
+-   Node.js (v22+ for the monorepo; the core runtime supports Node 20.19+)
 -   NPM (v10+)
 -   (Optional) Google Gemini API Key for AI features.
 
@@ -115,7 +115,7 @@ See `docs/sop/LASTREVISION_LOCAL_DEV.md` for bearer token auth, local validation
 
 The Arrowgram Codex plugin source lives in `plugins/arrowgram`; it packages the `arrowgram` skill plus a helper script that runs the local `arrowgram-agent` CLI when available and otherwise falls back to `npx -y @hotdocx/arrowgram-agent`.
 
-The public `getpaidx` plugin lives in `plugins/getpaidx` and connects Codex to the hosted GetPaidX OAuth MCP endpoint for cloud posts and Arrowgram workspaces. Both plugins are listed by `.agents/plugins/marketplace.json` and are exported to the OSS mirror. Install the public marketplace with `codex plugin marketplace add hotdocx/arrowgram --sparse .agents/plugins --sparse plugins`, then install the desired plugin from the `hotdocx` marketplace.
+The public `getpaidx` plugin lives in `plugins/getpaidx` and connects Codex to the canonical hosted GetPaidX OAuth MCP endpoint for cloud posts, public-GitHub repository workspaces, and Arrowgram workspaces. The optional `getpaidx-lastrevision` plugin exposes the same shared backend/tool catalog through `https://lastrevision.pro/api/mcp`, with a distinct MCP server ID and an independent origin-bound OAuth grant. Same-origin WebMCP on GetPaidX and LastRevision pages remains a separate browser surface. All three plugins are listed by `.agents/plugins/marketplace.json` and exported to the OSS mirror. Install the public marketplace with `codex plugin marketplace add hotdocx/arrowgram --sparse .agents/plugins --sparse plugins`, then normally choose either `getpaidx@hotdocx` or `getpaidx-lastrevision@hotdocx` to avoid duplicate tool names.
 
 **Deploy the SaaS backend to the GetPaidX Azure environment (private repo only):**
 
@@ -128,11 +128,14 @@ This creates/updates the ArrowGram `lastrevision-app` Azure Container App, uses 
 **Run Tests:**
 
 ```bash
-# Core Library Tests (Geometry, Schema)
-npm test --workspace=packages/arrowgram
+# Fast deterministic monorepo gate
+npm run check:fast
 
-# Web App Tests (Components, Logic)
-npm test --workspace=packages/web
+# Complete package/build gate (no remote mutation)
+npm run check
+
+# Browser suites
+npm run check:e2e
 ```
 
 **Build All Packages:**
@@ -143,17 +146,22 @@ npm run build
 
 ## Private -> Public Release Flow
 
+The commands below are operational tooling, not release authorization. Run them only after explicit publication approval and from a clean reviewed `main`.
+
 When working in the private super-repo:
 
 1. Push private source of truth:
    - `git push origin main`
-2. Export allowlisted OSS subset and sync public repo:
+2. Dry-run the allowlisted OSS export, exact public-repository identity, and proposed diff:
    - `scripts/sync_public_oss.sh`
-3. Deploy OSS site to public `gh-pages`:
+3. After review, publish public `main` with the helper's normal fast-forward path:
+   - `scripts/sync_public_oss.sh --apply`
+4. Deploy the OSS site to `gh-pages` only if the web/paged build changed:
    - `scripts/deploy_arrowgram_pages.sh`
 
 Safety:
 - `scripts/export_oss.sh` is allowlist-based and excludes `packages/lastrevision/**`.
+- `scripts/sync_public_oss.sh` defaults to dry-run, verifies the exact public GitHub repository, rejects dirty/private/symlink/env/concurrent state, and never force-pushes.
 - Never push private code directly to `https://github.com/hotdocx/arrowgram`.
 - See `docs/sop/OSS_MIRRORING.md` for the full SOP.
 
@@ -162,6 +170,12 @@ Safety:
 Start with [AGENTS.md](./AGENTS.md) (repo context map + workflows), then read:
 
 - [JSON API Specification](./docs/ARROWGRAM_SPEC.md) (DiagramSpec schema)
+- [vNext Public API](./docs/ARROWGRAM_VNEXT_API.md) (entry points, results, diagnostics, migration)
+- [vNext Compatibility Matrix](./docs/ARROWGRAM_VNEXT_COMPATIBILITY.md) (runtime/package cohort)
+- [Current Core Package](./reports/CURRENT_ARROWGRAM_CORE_PACKAGE_2026-08-30.md) (verified architecture, contract, validation, maintenance priorities)
+- [vNext Release-Candidate Evidence](./reports/ARROWGRAM_VNEXT_RELEASE_CANDIDATE_2026-08-30.md) (exact reviewed artifact and clean-checkout results)
+- [vNext npm Publication Evidence](./reports/ARROWGRAM_VNEXT_NPM_PUBLICATION_2026-09-01.md) (`latest`/`next` tags and registry byte verification)
+- [Core Review And Completed Plan](./reports/PLAN_ARROWGRAM_CORE_PACKAGE_REVIEW_2026-08-30.md)
 - [Current Arrowgram Editor And Packages](./reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md) (editor/package status snapshot)
 - [Current LastRevision SaaS Product](./reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md) (private SaaS status snapshot)
 - [Current Operations, Testing, And Deployment](./reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md) (validation, mirroring, deployment)

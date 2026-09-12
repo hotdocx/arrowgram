@@ -51,10 +51,32 @@ test("paper bridge synchronizes file, source, visual, diff, and snapshot edits",
     await expect(page.getByRole("heading", { name: "Edit Diagram" })).toBeVisible();
     expect(lifecycleErrors).toEqual([]);
     await page.locator('[data-type="node"][data-id="A"]').last().click({ force: true });
-    await page.locator('input[name="label"]').last().fill("A visual");
+    await expect(page.getByRole("heading", { name: "node A" })).toBeVisible();
+    const visualLabel = page.locator('input[name="label"]').last();
+    await visualLabel.fill("A visual");
+    await expect(visualLabel).toHaveValue("A visual");
+    await page.locator('g[data-type="arrow"][data-source-index="0"]').click({ force: true });
+    await expect(page.getByRole("heading", { name: "arrow f" })).toBeVisible();
+    const arrowLabel = page.locator('input[name="label"]').last();
+    await arrowLabel.fill("f visual");
+    await expect(arrowLabel).toHaveValue("f visual");
+    const visualUpdate = page.waitForRequest((request) => {
+      if (request.method() !== "PUT" || !/\/__arrowgram\/projects\/paper-main$/.test(request.url())) {
+        return false;
+      }
+      const body = request.postDataJSON() as { paper?: { markdown?: string } };
+      return Boolean(
+        body.paper?.markdown?.includes('"label": "A visual"')
+        && body.paper.markdown.includes('"label": "f visual"')
+      );
+    });
     await page.getByRole("button", { name: "Apply Changes" }).click();
+    await visualUpdate;
     await expect.poll(() => fs.readFile(path.join(workspace.root, "paper.md"), "utf8")).toContain(
       '"label": "A visual"'
+    );
+    await expect.poll(() => fs.readFile(path.join(workspace.root, "paper.md"), "utf8")).toContain(
+      '"label": "f visual"'
     );
 
     await page.getByRole("button", { name: "Slides" }).click();

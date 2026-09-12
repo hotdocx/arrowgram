@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   ArrowGramDiagram,
-  computeDiagram,
+  computeDiagramResult,
+  firstErrorMessage,
   NodeSpec,
   ArrowSpec,
   ComputedDiagram,
@@ -19,6 +20,12 @@ import { useDiagramStore } from './store/diagramStore';
 const GRID_SIZE = 40;
 const NODE_RADIUS = 25;
 const HANDLE_RADIUS = 6;
+
+function arrowSpecsInSourceOrder(arrows: ComputedArrow[]): ArrowSpec[] {
+  return [...arrows]
+    .sort((left, right) => left.sourceIndex - right.sourceIndex)
+    .map((arrow) => arrow.spec);
+}
 
 interface EditorInteractionState {
   mode: 'idle' | 'panning' | 'moving' | 'connecting' | 'reattaching';
@@ -241,7 +248,7 @@ function useEditorInteraction(
       });
 
       // We map computed arrows back to specs for saving
-      const arrowSpecs = arrows.map(a => a.spec);
+      const arrowSpecs = arrowSpecsInSourceOrder(arrows);
       onSpecChange(formatSpec({ nodes: newNodes, arrows: arrowSpecs }));
 
       // Update interaction state is not needed for delta calc since we read from `nodes` state which updates.
@@ -297,7 +304,7 @@ function useEditorInteraction(
             radius: isLoop ? 40 : undefined,
             angle: isLoop ? -90 : undefined
           };
-          const arrowSpecs = arrows.map(a => a.spec);
+          const arrowSpecs = arrowSpecsInSourceOrder(arrows);
           onSpecChange(formatSpec({ nodes, arrows: [...arrowSpecs, newArrow] }));
         } else if (!targetName) {
           // Dropped on canvas - create new node and connect
@@ -317,7 +324,7 @@ function useEditorInteraction(
             label: ''
           };
 
-          const arrowSpecs = arrows.map(a => a.spec);
+          const arrowSpecs = arrowSpecsInSourceOrder(arrows);
           onSpecChange(formatSpec({ nodes: [...nodes, newNode], arrows: [...arrowSpecs, newArrow] }));
           setSelection(new Set([newNodeName]));
         }
@@ -341,11 +348,12 @@ function useEditorInteraction(
           finalTargetName = newNodeName;
 
           // We'll update spec with both new node and updated arrow below
-          const arrowSpecs = arrows.map(a => {
-            if ((a.spec.name || a.key) === interaction.source) {
-              return { ...a.spec, [interaction.endType!]: finalTargetName };
+          const sourceArrow = arrows.find((arrow) => arrow.key === interaction.source);
+          const arrowSpecs = arrowSpecsInSourceOrder(arrows).map((arrow, sourceIndex) => {
+            if (sourceIndex === sourceArrow?.sourceIndex) {
+              return { ...arrow, [interaction.endType!]: finalTargetName };
             }
-            return a.spec;
+            return arrow;
           });
 
           onSpecChange(formatSpec({ nodes: [...nodes, newNode], arrows: arrowSpecs }));
@@ -353,11 +361,12 @@ function useEditorInteraction(
           // Quiver behavior: Selects the new node.
         } else {
           // Reattach to existing node
-          const arrowSpecs = arrows.map(a => {
-            if ((a.spec.name || a.key) === interaction.source) {
-              return { ...a.spec, [interaction.endType!]: finalTargetName };
+          const sourceArrow = arrows.find((arrow) => arrow.key === interaction.source);
+          const arrowSpecs = arrowSpecsInSourceOrder(arrows).map((arrow, sourceIndex) => {
+            if (sourceIndex === sourceArrow?.sourceIndex) {
+              return { ...arrow, [interaction.endType!]: finalTargetName };
             }
-            return a.spec;
+            return arrow;
           });
           onSpecChange(formatSpec({ nodes, arrows: arrowSpecs }));
         }
@@ -373,7 +382,7 @@ function useEditorInteraction(
     const allNames = new Set([...nodes.map(n => n.name), ...arrows.map(a => a.spec.name).filter(Boolean) as string[]]);
     const name = generateName('N', allNames);
     const newNode: NodeSpec = { name, label: name, left: snap(point.x), top: snap(point.y) };
-    const arrowSpecs = arrows.map(a => a.spec);
+    const arrowSpecs = arrowSpecsInSourceOrder(arrows);
     onSpecChange(formatSpec({ nodes: [...nodes, newNode], arrows: arrowSpecs }));
     setSelection(new Set([name]));
   };
@@ -402,22 +411,37 @@ export function ArrowGramEditor() {
 
   const onSpecChange = useCallback((newSpec: string) => setSpec(newSpec), [setSpec]);
 
-	  const { nodes, arrows, diagram } = useMemo(() => {
-	    try {
-	      const result = computeDiagram(specString);
-	      return { nodes: result.nodes, arrows: result.arrows, diagram: result };
-	    } catch {
-	      return {
-	        nodes: [],
-	        arrows: [],
-	        diagram: { arrows: [], nodes: [], masks: [], viewBox: "0 0 100 100", error: null },
-	      };
-	    }
-	  }, [specString]);
+  const { nodes, arrows, diagram } = useMemo(() => {
+    const result = computeDiagramResult(specString, '', { normalizeLegacy: true });
+    if (result.ok) {
+      return {
+        nodes: result.value.nodes,
+        arrows: result.value.arrows,
+        diagram: result.value,
+      };
+    }
+
+    const error = firstErrorMessage(result.diagnostics);
+    return {
+      nodes: [],
+      arrows: [],
+      diagram: {
+        arrows: [],
+        nodes: [],
+        masks: [],
+        nodeLabels: [],
+        bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 },
+        viewBox: "0 0 100 100",
+        error,
+        diagnostics: result.diagnostics,
+      },
+    };
+  }, [specString]);
 
   const { interaction, handlers } = useEditorInteraction(svgRef, viewBox, setViewBox, nodes, arrows, onSpecChange, diagram);
 
   const cursor = interaction.mode === 'panning' ? 'grabbing' : interaction.mode === 'connecting' || interaction.mode === 'reattaching' ? 'crosshair' : 'default';
+  const diagramWarning = diagram.diagnostics.find((diagnostic) => diagnostic.severity === 'warning');
 
   const getSourcePos = () => {
     if (!interaction.source) return null;
@@ -494,26 +518,31 @@ export function ArrowGramEditor() {
     if (selectedIds.size === 0) return;
 
     if (action === 'selectConnected') {
-      const connected = selectConnected(arrows.map(a => a.spec), selectedIds);
+      const connected = selectConnected(arrowSpecsInSourceOrder(arrows), selectedIds);
       setSelection(connected);
       return;
     }
 
     let newNodes = nodes;
-    let newArrowSpecs = arrows.map(a => a.spec);
+    let newArrowSpecs = arrowSpecsInSourceOrder(arrows);
+    const selectedSourceIndices = new Set(
+      arrows
+        .filter((arrow) => selectedIds.has(arrow.key))
+        .map((arrow) => arrow.sourceIndex),
+    );
     let changed = false;
 
     if (action === 'reverse') {
-      newArrowSpecs = newArrowSpecs.map(a => {
-        if (selectedIds.has(a.name || '') || (a as any).uniqueId && selectedIds.has((a as any).uniqueId)) {
+      newArrowSpecs = newArrowSpecs.map((a, sourceIndex) => {
+        if (selectedSourceIndices.has(sourceIndex)) {
           changed = true;
           return reverseArrow(a);
         }
         return a;
       });
     } else if (action === 'flip') {
-      newArrowSpecs = newArrowSpecs.map(a => {
-        if (selectedIds.has(a.name || '') || (a as any).uniqueId && selectedIds.has((a as any).uniqueId)) {
+      newArrowSpecs = newArrowSpecs.map((a, sourceIndex) => {
+        if (selectedSourceIndices.has(sourceIndex)) {
           changed = true;
           return flipArrow(a);
         }
@@ -566,6 +595,23 @@ export function ArrowGramEditor() {
           <div className="w-px bg-gray-200 mx-1"></div>
           <button onClick={() => handleOp('selectConnected')} className="p-1.5 hover:bg-gray-100 rounded text-gray-700 text-xs font-medium" title="Select Connected (Shift+A)">Conn</button>
         </div>
+
+        {diagram.error && (
+          <div
+            role="alert"
+            className="absolute top-16 left-4 right-4 z-20 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 shadow-sm"
+          >
+            Diagram error: {diagram.error}
+          </div>
+        )}
+        {!diagram.error && diagramWarning && (
+          <div
+            role="status"
+            className="absolute top-16 left-4 right-4 z-20 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 shadow-sm"
+          >
+            Diagram warning: {diagramWarning.message}
+          </div>
+        )}
 
         <svg
           id="arrowgram-canvas"
@@ -656,7 +702,13 @@ export function ArrowGramEditor() {
             const isSource = interaction.mode === 'connecting' && interaction.source === arrow.spec.name;
 
             return (
-              <g key={arrow.key} data-type="arrow" data-id={arrow.key} style={{ cursor: 'pointer' }}>
+              <g
+                key={arrow.key}
+                data-type="arrow"
+                data-id={arrow.key}
+                data-source-index={arrow.sourceIndex}
+                style={{ cursor: 'pointer' }}
+              >
                 {/* Thick selection/source/target halo */}
                 {(isSelected || isSource || isHoveredTarget) && (
                   arrow.interactionPath ? (
@@ -764,12 +816,12 @@ export function ArrowGramEditor() {
               angle: isLoop ? -90 : undefined
             };
 
-            const result = computeDiagram({
+            const computed = computeDiagramResult({
               nodes: tempNodes,
               arrows: [tempSpec]
             });
-
-            const arrow = result.arrows[0];
+            if (!computed.ok) return null;
+            const arrow = computed.value.arrows[0];
             if (!arrow) return null;
 
             return (

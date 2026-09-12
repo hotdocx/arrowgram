@@ -92,6 +92,39 @@ test("diagram workspaces preserve invalid JSON and report diagnostics", async (t
   assert.equal(diagnostics[0]?.severity, "error");
 });
 
+test("diagram workspaces report legacy normalization without rejecting the file", async (t) => {
+  const root = await tempWorkspace();
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+
+  await createDefaultWorkspace(root, "diagram");
+  const diagramPath = path.join(root, "diagram.json");
+  const diagram = JSON.parse(await fs.readFile(diagramPath, "utf8"));
+  diagram.arrows[0].uniqueId = "f";
+  await fs.writeFile(diagramPath, `${JSON.stringify(diagram, null, 2)}\n`, "utf8");
+
+  const diagnostics = await validateWorkspace(root);
+  assert.equal(diagnostics.length, 1);
+  assert.equal(diagnostics[0]?.path, "diagram.json");
+  assert.equal(diagnostics[0]?.severity, "warning");
+  assert.match(diagnostics[0]?.message ?? "", /uniqueId/);
+});
+
+test("diagram workspaces report label and geometry diagnostics", async (t) => {
+  const root = await tempWorkspace();
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+
+  await createDefaultWorkspace(root, "diagram");
+  const diagramPath = path.join(root, "diagram.json");
+  const diagram = JSON.parse(await fs.readFile(diagramPath, "utf8"));
+  diagram.nodes[0].label = "unterminated $A";
+  await fs.writeFile(diagramPath, `${JSON.stringify(diagram, null, 2)}\n`, "utf8");
+
+  const diagnostics = await validateWorkspace(root);
+  assert.equal(diagnostics.length, 1);
+  assert.equal(diagnostics[0]?.severity, "error");
+  assert.match(diagnostics[0]?.message ?? "", /unterminated/);
+});
+
 test("static build emits rendered HTML and SVG for embedded diagrams", async (t) => {
   const root = await tempWorkspace();
   t.after(() => fs.rm(root, { recursive: true, force: true }));

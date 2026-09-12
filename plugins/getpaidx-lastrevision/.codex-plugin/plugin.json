@@ -1,0 +1,43 @@
+{
+  "name": "getpaidx-lastrevision",
+  "version": "0.2.0+codex.20260912000355",
+  "description": "LastRevision-branded access to hosted GetPaidX MCP workflows for posts, public GitHub repository workspaces, peer review, Live Sessions, and commerce.",
+  "author": {
+    "name": "LastRevision.pro",
+    "url": "https://lastrevision.pro"
+  },
+  "homepage": "https://lastrevision.pro",
+  "repository": "https://github.com/hotdocx/arrowgram",
+  "license": "MIT",
+  "keywords": [
+    "getpaidx",
+    "lastrevision",
+    "codex",
+    "mcp",
+    "workspace"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "GetPaidX \u2014 LastRevision.pro",
+    "shortDescription": "Manage posts and workspaces via LastRevision",
+    "longDescription": "This LastRevision-branded GetPaidX plugin exposes the same hosted tools and shared GetPaidX backend as the canonical plugin, while using LastRevision.pro as its independent OAuth resource and authorization origin.",
+    "developerName": "LastRevision.pro",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://lastrevision.pro",
+    "privacyPolicyURL": "https://lastrevision.pro/marketing/terms",
+    "termsOfServiceURL": "https://lastrevision.pro/marketing/terms",
+    "defaultPrompt": [
+      "Create a GetPaidX post and shallow-clone a public GitHub repository into a LambdaPi workspace.",
+      "Set up a GetPaidX peer-review workflow through LastRevision.pro.",
+      "Schedule a GetPaidX Live Session."
+    ],
+    "brandColor": "#4338CA",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  },
+  "mcpServers": "./.mcp.json"
+}

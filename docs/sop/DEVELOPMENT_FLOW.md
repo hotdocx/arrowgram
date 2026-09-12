@@ -52,11 +52,20 @@ See `docs/sop/LASTREVISION_LOCAL_DEV.md` for bearer-token auth and local validat
 5.  **Protect OSS Boundaries:** Never move private `packages/lastrevision` code, secrets, env files, or generated runtime state into allowlisted OSS paths.
 
 ### 3.3. Building
-To ensure everything compiles correctly:
+To ensure all workspaces compile correctly:
 ```bash
 npm run build
 ```
-This builds both workspaces.
+This builds every declared workspace. For deterministic checks that do not merely compile:
+
+```bash
+npm run check:fast
+npm run check
+npm run check:e2e
+```
+
+`check:fast` runs local static/unit/validation checks. `check` adds exact core package
+verification and OSS package builds. `check:e2e` owns the web and agent browser suites.
 
 ## 4. Testing & Validation
 
@@ -65,7 +74,7 @@ This builds both workspaces.
 *   **Purpose:** Unit tests for geometry, math, and schema validation.
 *   **Command:**
     ```bash
-    npm test --workspace=packages/arrowgram
+    npm run check:fast --workspace=packages/arrowgram
     ```
 
 ### 4.2. Web Application (`packages/web`)

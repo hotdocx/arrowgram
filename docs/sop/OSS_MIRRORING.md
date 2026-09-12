@@ -20,28 +20,25 @@ For the current deployment and validation overview, see `reports/CURRENT_OPERATI
 - Make OSS releases repeatable and scriptable.
 - Keep developer workflow “one repo locally”.
 
-## Export workflow (manual, fast)
+## Export workflow (manual inspection)
 
 1. Ensure the working tree is clean:
    - `git status --porcelain`
 2. Export allowlisted paths:
    - `scripts/export_oss.sh /tmp/arrowgram-oss-export`
-3. In the export dir, push to the public repo:
-   - `git init`
-   - `git remote add public <public-repo-url>`
-   - `git add .`
-   - `git commit -m "sync: export from private super-repo"`
-   - `git push -f public main`
+3. Validate the exported tree and regenerated public-only lockfile before publication. Prefer the guarded sync command below for the actual commit/push; do not directly force-push public `main`.
 
 ## Recommended workflow (scripted)
 
 From the private super-repo working tree:
 
-1. Push private source of truth:
+1. Require a clean local `main`, confirm `origin` is private `hotdocx/arrowgram-super` and `public` is public `hotdocx/arrowgram`, then push private source normally:
    - `git push origin main`
-2. Sync allowlisted OSS export to public `main`:
+2. Generate the exact allowlisted export, validate the public repository identity, and inspect the proposed public diff without mutation:
    - `scripts/sync_public_oss.sh`
-3. Deploy OSS artifacts to public `gh-pages`:
+3. After reviewing the printed private source/public base pair and diff, publish with a normal fast-forward push:
+   - `scripts/sync_public_oss.sh --apply`
+4. Deploy OSS artifacts to public `gh-pages` only when the web/paged build changed:
    - `scripts/deploy_arrowgram_pages.sh`
 
 ## Tags
@@ -66,6 +63,7 @@ The export script uses an explicit allowlist. If a new OSS workspace is added, u
 - Never allowlist `packages/lastrevision/**`.
 - Never allowlist `.env*` or build outputs (e.g. `.output`, `dist`, `node_modules`).
 - Never export generated metadata artifacts that can capture private-repo paths or diagnostics (for example `*.tsbuildinfo`).
+- Public `main` updates must be ordinary fast-forward commits. A concurrent update is a stop/review condition, not a reason to force-push.
 - Consider running a quick grep in the export dir for common secret prefixes before pushing.
 - Since `.github/` is allowlisted, keep GitHub Actions workflows compatible with both:
   - the private super-repo (has `packages/lastrevision`)

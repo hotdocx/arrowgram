@@ -1,3 +1,8 @@
+/*
+ * Geometry/path helpers adapted from varkor/quiver (MIT).
+ * See packages/arrowgram/THIRD_PARTY_NOTICES.md.
+ */
+
 export class Enum {
   [key: string]: symbol;
 
@@ -109,10 +114,7 @@ export class Point {
   }
 }
 
-export class Position extends Point {}
-export class Offset extends Point {}
-
-export class Dimensions extends Position {
+export class Dimensions extends Point {
   get width() {
     return this.x;
   }
@@ -123,10 +125,6 @@ export class Dimensions extends Position {
 
 export function rad_to_deg(rad: number) {
   return (rad * 180) / Math.PI;
-}
-
-export function deg_to_rad(deg: number) {
-  return (deg * Math.PI) / 180;
 }
 
 export class Path {
@@ -151,13 +149,7 @@ export class Path {
   }
 
   line_to(p: Point) {
-    if (p.x === 0) {
-      this.commands.push(`V ${p.y}`);
-    } else if (p.y === 0) {
-      this.commands.push(`H ${p.x}`);
-    } else {
-      this.commands.push(`L ${p.x} ${p.y}`);
-    }
+    this.commands.push(`L ${p.x} ${p.y}`);
     return this;
   }
 
@@ -187,170 +179,6 @@ export class Path {
   }
 }
 
-export function clamp(min: number, x: number, max: number) {
-  return Math.max(min, Math.min(x, max));
-}
-
-export function arrays_equal(array1: any[], array2: any[]) {
-  if (array1.length !== array2.length) {
-    return false;
-  }
-  for (let i = 0; i < array1.length; ++i) {
-    if (array1[i] !== array2[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
 export function mod(x: number, y: number) {
   return ((x % y) + y) % y;
-}
-
-export class Encodable {
-    eq(_other: any): boolean {
-        console.error("`eq` must be implemented for each subclass.");
-        return false;
-    }
-}
-
-export class Colour extends Encodable {
-    h: number;
-    s: number;
-    l: number;
-    a: number;
-    name: string | null;
-
-    constructor(h: number, s: number, l: number, a = 1, name = Colour.colour_name([h, s, l, a])) {
-        super();
-        this.h = h;
-        this.s = s;
-        this.l = l;
-        this.a = a;
-        this.name = name;
-    }
-
-    static black() {
-        return new Colour(0, 0, 0);
-    }
-
-    static colour_name(hsla: [number, number, number, number]): string | null {
-        const [h, s, l, a] = hsla;
-        if (a === 0) {
-            return "transparent";
-        }
-        if (a === 1 && l === 0) {
-            return "black";
-        }
-        if (a === 1 && l === 100) {
-            return "white";
-        }
-
-        const key = `${h}, ${s}, ${l}, ${a}`;
-        switch (key) {
-            case "0, 100, 50, 1": return "red";
-            case "30, 100, 50, 1": return "orange";
-            case "60, 100, 50, 1": return "yellow";
-            case "120, 100, 50, 1": return "green";
-            case "180, 100, 50, 1": return "aqua";
-            case "240, 100, 50, 1": return "blue";
-            case "270, 100, 50, 1": return "purple";
-            case "300, 100, 50, 1": return "magenta";
-            case "0, 60, 60, 1": return "red chalk";
-            case "30, 60, 60, 1": return "orange chalk";
-            case "60, 60, 60, 1": return "yellow chalk";
-            case "120, 60, 60, 1": return "green chalk";
-            case "180, 60, 60, 1": return "aqua chalk";
-            case "240, 60, 60, 1": return "blue chalk";
-            case "270, 60, 60, 1": return "purple chalk";
-            case "300, 60, 60, 1": return "magenta chalk";
-        }
-        return null;
-    }
-
-    hsla(): [number, number, number, number] {
-        return [this.h, this.s, this.l, this.a];
-    }
-
-    rgba(): [number, number, number, number] {
-        const [h, s, l] = [this.h, this.s / 100, this.l / 100];
-        const a = s * Math.min(l, 1 - l);
-        const f = (n: number) => {
-            const k = (n + h / 30) % 12;
-            return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-        }
-        return [f(0) * 255, f(8) * 255, f(4) * 255, this.a].map((x) => Math.round(x)) as [number, number, number, number];
-    }
-
-    static from_rgba(r: number, g: number, b: number, a = 1) {
-        // Algorithm source: https://en.wikipedia.org/wiki/HSL_and_HSV#Formal_derivation
-        const [r_, g_, b_] = [r, g, b].map((x) => x / 255);
-        const max = Math.max(r_, g_, b_);
-        const min = Math.min(r_, g_, b_);
-        const range = max - min;
-        let h = 0; 
-        if (range !== 0) {
-            switch (max) {
-                case r_:
-                    h = ((g_ - b_) / range) % 6;
-                    break;
-                case g_:
-                    h = ((b_ - r_) / range) + 2;
-                    break;
-                case b_:
-                    h = ((r_ - g_) / range) + 4;
-                    break;
-            }
-        }
-        const l = (max + min) / 2;
-        const s = l === 0 || l === 1 ? 0 : range / (1 - Math.abs(2 * l - 1));
-
-        return new Colour(...([h * 60, s * 100, l * 100].map((x) => Math.round(x)) as [number, number, number]), a);
-    }
-
-    toJSON() {
-        if (this.a === 1) {
-            return [this.h, this.s, this.l];
-        } else {
-            return this.hsla();
-        }
-    }
-
-    toString() {
-        return `${this.h},${this.s},${this.l},${this.a}`;
-    }
-
-    css() {
-        return `hsla(${this.h}, ${this.s}%, ${this.l}%, ${this.a})`;
-    }
-
-    latex(latex_colours: Map<string, Colour>, parenthesise = false) {
-        let latex_name = null;
-        const name = Colour.colour_name(this.hsla());
-        if (name && ["black", "red", "green", "blue", "white"].includes(name)) {
-            latex_name = name;
-        } else {
-            for (const [name, colour] of latex_colours) {
-                if (colour.eq(this)) {
-                    latex_name = name;
-                    break;
-                }
-            }
-        }
-        if (latex_name !== null) {
-            return parenthesise ? `{${latex_name}}` : latex_name;
-        }
-
-        const [r, g, b] = this.rgba();
-        return `{rgb,255:red,${r};green,${g};blue,${b}}`;
-    }
-
-    eq(other: Colour) {
-        return this.h === other.h && this.s === other.s && this.l === other.l && this.a === other.a
-            || this.l === 0 && other.l === 0 || this.l === 100 && other.l === 100;
-    }
-
-    is_not_black() {
-        return this.l > 0;
-    }
 }

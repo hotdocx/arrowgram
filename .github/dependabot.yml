@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 8
+    groups:
+      core-tooling:
+        patterns:
+          - eslint*
+          - typescript
+          - typescript-eslint
+          - vite
+          - vite-plugin-dts
+          - vitest
+          - "@vitest/*"
+      rendering:
+        patterns:
+          - katex
+          - react
+          - react-dom
+          - "@types/react*"
+      validation:
+        patterns:
+          - ajv
+          - fast-check
+          - zod
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 4

@@ -1,7 +1,7 @@
 {
   "name": "getpaidx",
-  "version": "0.2.0+codex.20260809122605",
-  "description": "Hosted GetPaidX MCP workflows for posts, conference peer review, Live Sessions, commerce, and cloud workspaces.",
+  "version": "0.2.0+codex.20260912000355",
+  "description": "Hosted GetPaidX MCP workflows for posts, public GitHub repository workspaces, peer review, Live Sessions, and commerce.",
   "author": {
     "name": "GetPaidX.com",
     "url": "https://getpaidx.com"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "GetPaidX",
-    "shortDescription": "Manage posts, peer review, live sessions, and workspaces",
-    "longDescription": "GetPaidX lets Codex securely manage cloud posts, conference peer-review lifecycles, Live Sessions and fixed-price Live Offers, and Arrowgram workspaces through the hosted OAuth-protected MCP server.",
+    "shortDescription": "Manage posts and workspaces",
+    "longDescription": "GetPaidX lets Codex securely create posts, select cloud runtimes, shallow-clone public GitHub repositories, run and preview workspaces, manage conference peer review, and operate Live Sessions and commerce through the hosted OAuth-protected MCP server.",
     "developerName": "GetPaidX.com",
     "category": "Business & Operations",
     "capabilities": [
@@ -31,12 +31,9 @@
     "privacyPolicyURL": "https://getpaidx.com/marketing/terms",
     "termsOfServiceURL": "https://getpaidx.com/marketing/terms",
     "defaultPrompt": [
-      "Create a GetPaidX Arrowgram workspace.",
-      "Set up and run a GetPaidX conference peer-review workflow.",
-      "Schedule and run a GetPaidX Live Session.",
-      "Prepare a fixed-price offer for a live selling session.",
-      "Inspect my active GetPaidX workspaces.",
-      "Build and publish my Arrowgram workspace."
+      "Create a GetPaidX post and shallow-clone a public GitHub repository into a LambdaPi workspace.",
+      "Set up a GetPaidX peer-review workflow.",
+      "Schedule a GetPaidX Live Session."
     ],
     "brandColor": "#0F766E",
     "composerIcon": "./assets/logo.svg",

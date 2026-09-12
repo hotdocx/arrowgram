@@ -27,6 +27,18 @@
         "authentication": "ON_USE"
       },
       "category": "Developer"
+    },
+    {
+      "name": "getpaidx-lastrevision",
+      "source": {
+        "source": "local",
+        "path": "./plugins/getpaidx-lastrevision"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer"
     }
   ]
 }

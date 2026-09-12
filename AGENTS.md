@@ -16,6 +16,9 @@ This repository is a **Monorepo** managed by NPM Workspaces containing:
 *   **Dev (SaaS):** `npm run dev -w packages/lastrevision`
 *   **Dev Stripe (SaaS):** `npm run stripe:listen -w packages/lastrevision`
 *   **Test (Core):** `npm test -w packages/arrowgram` (Vitest)
+*   **Check (Core RC):** `npm run check -w packages/arrowgram`
+*   **Check (Monorepo Fast):** `npm run check:fast`
+*   **Check (Monorepo Packages):** `npm run check`
 *   **Test (Web):** `npm test -w packages/web` (Jest)
 *   **E2E (Web):** `npm run test:e2e -w packages/web` (Playwright)
 *   **Validate (SaaS Local):** `scripts/validate_lastrevision_local.sh`
@@ -31,6 +34,8 @@ Refer to these files for detailed specific knowledge.
 *   **@PRD.md**: Executive summary, competitive analysis (vs Quiver), and high-level product architecture.
 *   **@docs/FUNCTIONAL_SPEC.md**: Detailed feature breakdown for nodes, arrows, styling, and editor interaction.
 *   **@docs/ARROWGRAM_SPEC.md**: **CRITICAL**. The authoritative JSON schema definition (`DiagramSpec`). Read this before generating any diagrams.
+*   **@docs/ARROWGRAM_VNEXT_API.md**: vNext entry points, result/diagnostic contract, and legacy migration.
+*   **@docs/ARROWGRAM_VNEXT_COMPATIBILITY.md**: Candidate runtime and cross-package compatibility matrix.
 *   **@AGENTS.md**: Specific instructions for AI agents (layout logic, conventions).
 
 ### Standard Operating Procedures (SOPs)
@@ -43,6 +48,10 @@ Refer to these files for detailed specific knowledge.
 *   **@docs/sop/OSS_MIRRORING.md**: How this private super-repo mirrors the OSS subset to `hotdocx/arrowgram`.
 
 ### Reports & Design Documents
+*   **@reports/CURRENT_ARROWGRAM_CORE_PACKAGE_2026-08-30.md**: Current core v2 contract, architecture, package entries, validation loop, release state, and next maintenance priorities.
+*   **@reports/ARROWGRAM_VNEXT_RELEASE_CANDIDATE_2026-08-30.md**: Exact reviewed tarball identity and clean-checkout acceptance evidence.
+*   **@reports/ARROWGRAM_VNEXT_NPM_PUBLICATION_2026-09-01.md**: npm `latest`/`next` publication identity, registry byte verification, range resolution, and effect boundary.
+*   **@reports/PLAN_ARROWGRAM_CORE_PACKAGE_REVIEW_2026-08-30.md**: Completed core review and Phase 0–5 implementation ledger.
 *   **@reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md**: Current OSS editor/package status, paper/reveal/print pipelines, agent bridge, and validation map.
 *   **@reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md**: Current private SaaS product status: auth, storage, AI proxy, gallery/publications, reference IDs, and training/community surfaces.
 *   **@reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md**: Current local workflow, testing, OSS mirroring, Azure deployment, and legacy Cloud Run rollback context.
@@ -131,7 +140,8 @@ This is a **private super-repo**. Code in `packages/lastrevision` is **PRIVATE**
 ## 6. Current Roadmap & Tasks
 
 Use the consolidated current-state reports before starting new work:
-*   **Editor/package work:** see **@reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md**.
+*   **Core package work:** see **@reports/CURRENT_ARROWGRAM_CORE_PACKAGE_2026-08-30.md** and its linked release evidence.
+*   **Editor/package work outside core:** see **@reports/CURRENT_ARROWGRAM_EDITOR_AND_PACKAGES_2026-07-08.md**.
 *   **Agent-friendly editor work:** see **@reports/PLAN_AGENT_FRIENDLY_ARROWGRAM_EDITOR_2026-07-07.md** for the active detailed implementation plan.
 *   **SaaS product work:** see **@reports/CURRENT_LASTREVISION_SAAS_PRODUCT_2026-07-08.md**.
 *   **Testing/deploy/DevOps work:** see **@reports/CURRENT_OPERATIONS_TESTING_DEPLOYMENT_2026-07-08.md**.

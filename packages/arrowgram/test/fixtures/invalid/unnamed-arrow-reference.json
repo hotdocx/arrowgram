@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "nodes": [
+    { "name": "A", "left": 0, "top": 0 },
+    { "name": "B", "left": 160, "top": 0 }
+  ],
+  "arrows": [
+    { "from": "A", "to": "B" },
+    { "from": "_arrow_0", "to": "A" }
+  ]
+}

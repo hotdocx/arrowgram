@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "getpaidx-lastrevision-cloud": {
+      "url": "https://lastrevision.pro/api/mcp",
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 300,
+      "default_tools_approval_mode": "auto"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "nodes": [
+    { "name": "A", "left": 0, "top": 0 },
+    { "name": "B", "left": 60, "top": 0 }
+  ],
+  "arrows": [
+    {
+      "from": "A",
+      "to": "B",
+      "shorten": { "source": 30, "target": 30 },
+      "style": { "body": { "name": "dashed" } }
+    }
+  ]
+}

@@ -1,4 +1,11 @@
-import { Point, mod, Path, Dimensions } from "./ds";
+/*
+ * Curve and intersection algorithms adapted from varkor/quiver (MIT).
+ * See packages/arrowgram/THIRD_PARTY_NOTICES.md.
+ */
+
+import type { ComputedBounds } from "../types";
+import { Point, mod } from "./ds";
+import type { Path, Dimensions } from "./ds";
 
 export const EPSILON = 10 ** -6;
 const INV_EPSILON = 1 / EPSILON;
@@ -7,28 +14,44 @@ function round_to_epsilon(x: number) {
     return Math.round(x * INV_EPSILON) / INV_EPSILON;
 }
 
+function boundsFromPoints(points: Point[]): ComputedBounds {
+    return {
+        minX: Math.min(...points.map((point) => point.x)),
+        minY: Math.min(...points.map((point) => point.y)),
+        maxX: Math.max(...points.map((point) => point.x)),
+        maxY: Math.max(...points.map((point) => point.y)),
+    };
+}
+
 export abstract class Curve {
     abstract origin: Point;
     abstract angle: number;
 
     static point_inside_polygon(point: Point, points: Point[]) {
-        const displ = (edge: Point[], p: Point) => {
-            const base = edge[0];
-            const end = edge[1].sub(base);
-            const pt = p.sub(base);
-            return end.x * pt.y - end.y * pt.x;
-        };
+        if (points.length < 3) return false;
+        let inside = false;
 
-        const wn = points.map((_, i) => {
-            if ((points[i].y <= point.y) !== (points[(i + 1) % 4].y <= point.y)) {
-                const d = displ([points[i], points[(i + 1) % 4]], point);
-                if (d > 0.0) return 1;
-                if (d < 0.0) return -1;
+        for (let current = 0, previous = points.length - 1; current < points.length; previous = current, current += 1) {
+            const start = points[previous];
+            const end = points[current];
+            const edge = end.sub(start);
+            const relative = point.sub(start);
+            const cross = edge.x * relative.y - edge.y * relative.x;
+            const withinBounds = point.x >= Math.min(start.x, end.x) - EPSILON
+                && point.x <= Math.max(start.x, end.x) + EPSILON
+                && point.y >= Math.min(start.y, end.y) - EPSILON
+                && point.y <= Math.max(start.y, end.y) + EPSILON;
+            if (Math.abs(cross) <= EPSILON && withinBounds) return true;
+
+            const crossesRay = (start.y > point.y) !== (end.y > point.y);
+            if (crossesRay) {
+                const intersectionX = start.x
+                    + (point.y - start.y) * (end.x - start.x) / (end.y - start.y);
+                if (point.x < intersectionX) inside = !inside;
             }
-            return 0;
-        }).reduce<number>((a, b) => a + b, 0);
+        }
 
-        return wn !== 0;
+        return inside;
     }
 
     static add_intersection(intersections: Set<Point>, p: Point) {
@@ -60,6 +83,8 @@ export abstract class Curve {
     abstract get width(): number;
     abstract intersections_with_rounded_rectangle(rect: RoundedRectangle, permit_containment: boolean): CurvePoint[];
     abstract render(path: Path): Path;
+    abstract render_partial(path: Path, start: number, end: number): Path;
+    abstract bounds(start?: number, end?: number): ComputedBounds;
 }
 
 export class Bezier extends Curve {
@@ -69,6 +94,11 @@ export class Bezier extends Curve {
     angle: number;
     end: Point;
     control: Point;
+    private metricCache?: {
+        points: [number, Point][];
+        cumulative: number[];
+        length: number;
+    };
 
     constructor(origin: Point, w: number, h: number, angle: number) {
         super();
@@ -89,6 +119,9 @@ export class Bezier extends Curve {
     }
 
     delineate(t: number) {
+        if (t === 1 && this.metricCache) {
+            return { points: this.metricCache.points, length: this.metricCache.length };
+        }
         const EPSILON = 0.25;
         const points: [number, Point][] = [[0, this.point(0)], [t, this.point(t)]];
         let previous_length;
@@ -108,33 +141,57 @@ export class Bezier extends Curve {
             return true;
         })());
 
+        if (t === 1) {
+            const cumulative = [0];
+            for (let index = 0; index < points.length - 1; index += 1) {
+                cumulative.push(
+                    cumulative[index] + points[index + 1][1].sub(points[index][1]).length(),
+                );
+            }
+            this.metricCache = { points, cumulative, length };
+        }
         return { points, length };
     }
 
+    private metrics() {
+        if (!this.metricCache) this.delineate(1);
+        return this.metricCache!;
+    }
+
     arc_length(t: number) {
-        const { length } = this.delineate(t);
+        const { points, cumulative, length } = this.metrics();
+        if (t <= 0) return 0;
+        if (t >= 1) return length;
+
+        for (let index = 0; index < points.length - 1; index += 1) {
+            if (points[index + 1][0] >= t) {
+                const span = points[index + 1][0] - points[index][0];
+                const fraction = span > 0 ? (t - points[index][0]) / span : 0;
+                return cumulative[index]
+                    + (cumulative[index + 1] - cumulative[index]) * fraction;
+            }
+        }
         return length;
     }
 
     t_after_length(clamp = false) {
-        const { points } = this.delineate(1);
+        const { points, cumulative, length: totalLength } = this.metrics();
         return (length: number) => {
             if (length === 0) return 0;
             if (length < 0) {
                 if (clamp) return 0;
                 throw new Error("Length was less than 0.");
             }
-            let distance = 0;
             for (let i = 0; i < points.length - 1; ++i) {
-                const segment_length = points[i + 1][1].sub(points[i][1]).length();
-                if (distance + segment_length >= length) {
+                const segment_length = cumulative[i + 1] - cumulative[i];
+                if (cumulative[i + 1] >= length) {
+                    if (segment_length <= EPSILON) return points[i + 1][0];
                     return points[i][0]
-                        + (points[i + 1][0] - points[i][0]) * (length - distance) / segment_length;
+                        + (points[i + 1][0] - points[i][0]) * (length - cumulative[i]) / segment_length;
                 }
-                distance += segment_length;
             }
             if (clamp) return 1;
-            throw new Error("Length was greater than the arc length.");
+            throw new Error(`Length ${length} was greater than arc length ${totalLength}.`);
         };
     }
 
@@ -225,15 +282,40 @@ export class Bezier extends Curve {
         }
 
         return Array.from(intersections).map((p) => {
-            return new CurvePoint(p.scale(this.w, h), p.x, Math.atan2((2 - 4 * p.x) * h, this.w));
+            return new CurvePoint(
+                p.scale(this.w, h),
+                p.x,
+                Math.atan2((2 - 4 * p.x) * this.h, this.w),
+            );
         });
     }
 
     render(path: Path) {
-        return path.curve_by(
-            new Point(this.w / 2, this.h).rotate(this.angle),
-            new Point(this.w, 0).rotate(this.angle)
-        );
+        return this.render_partial(path, 0, 1);
+    }
+
+    render_partial(path: Path, start: number, end: number) {
+        const startPoint = this.point(start);
+        const endPoint = this.point(end);
+        const derivativeHalf = this.control.sub(this.origin).mul(1 - start)
+            .add(this.end.sub(this.control).mul(start));
+        const control = startPoint.add(derivativeHalf.mul(end - start));
+        return path.curve_by(control.sub(startPoint), endPoint.sub(startPoint));
+    }
+
+    bounds(start = 0, end = 1) {
+        const lower = Math.min(start, end);
+        const upper = Math.max(start, end);
+        const candidates = new Set([lower, upper]);
+        const addExtremum = (startValue: number, controlValue: number, endValue: number) => {
+            const denominator = startValue - 2 * controlValue + endValue;
+            if (Math.abs(denominator) <= EPSILON) return;
+            const t = (startValue - controlValue) / denominator;
+            if (t > lower && t < upper) candidates.add(t);
+        };
+        addExtremum(this.origin.x, this.control.x, this.end.x);
+        addExtremum(this.origin.y, this.control.y, this.end.y);
+        return boundsFromPoints([...candidates].map((t) => this.point(t)));
     }
 }
 
@@ -276,6 +358,22 @@ export class RoundedRectangle {
         this.r = radius;
     }
 
+    contains(point: Point, epsilon = EPSILON) {
+        const halfWidth = this.size.width / 2;
+        const halfHeight = this.size.height / 2;
+        const radius = Math.max(0, Math.min(this.r, halfWidth, halfHeight));
+        const x = Math.abs(point.x - this.centre.x);
+        const y = Math.abs(point.y - this.centre.y);
+
+        if (x > halfWidth + epsilon || y > halfHeight + epsilon) return false;
+        if (x <= halfWidth - radius + epsilon || y <= halfHeight - radius + epsilon) return true;
+
+        return Math.hypot(
+            x - (halfWidth - radius),
+            y - (halfHeight - radius),
+        ) <= radius + epsilon;
+    }
+
     points(max_segment_length = 5) {
         const points: Point[] = [];
         const n = this.r !== 0 ? Math.PI / Math.atan(max_segment_length / (2 * this.r)) : 0;
@@ -306,7 +404,7 @@ export class RoundedRectangle {
         angle_offset = add_corner_points(1, 1, angle_offset);
         angle_offset = add_corner_points(-1, 1, angle_offset);
         angle_offset = add_corner_points(-1, -1, angle_offset);
-        angle_offset = add_corner_points(1, -1, angle_offset);
+        add_corner_points(1, -1, angle_offset);
 
         for (let i = points.length - 2; i >= 0; --i) {
             if (Math.abs(points[i].x - points[i + 1].x) <= EPSILON
@@ -317,28 +415,6 @@ export class RoundedRectangle {
         }
 
         return points;
-    }
-}
-
-export class CubicBezier {
-    p0: Point;
-    p1: Point;
-    p2: Point;
-    p3: Point;
-
-    constructor(p0: Point, p1: Point, p2: Point, p3: Point) {
-        this.p0 = p0;
-        this.p1 = p1;
-        this.p2 = p2;
-        this.p3 = p3;
-    }
-
-    point(t: number) {
-        const p = this.p0.mul((1 - t) ** 3)
-            .add(this.p1.mul(3 * (1 - t) ** 2 * t))
-            .add(this.p2.mul(3 * (1 - t) * t ** 2))
-            .add(this.p3.mul(t ** 3));
-        return new CurvePoint(p, t, 0); // Angle is not calculated
     }
 }
 
@@ -485,15 +561,38 @@ export class Arc extends Curve {
     }
 
     render(path: Path) {
+        return this.render_partial(path, 0, 1);
+    }
+
+    render_partial(path: Path, start: number, end: number) {
         if (!this.major && Math.abs(this.sagitta) <= 1.0) {
-            return path.line_by(new Point(this.chord, 0).rotate(this.angle));
+            return path.line_by(this.point(end).sub(this.point(start)));
         }
+        const sweep = Math.abs(end - start) * this.sweep_angle;
         return path.arc_by(
             Point.diag(Math.abs(this.radius)),
             0,
-            this.major,
+            sweep > Math.PI,
             this.radius >= 0,
-            new Point(this.chord, 0).rotate(this.angle),
+            this.point(end).sub(this.point(start)),
         );
+    }
+
+    bounds(start = 0, end = 1) {
+        const lower = Math.min(start, end);
+        const upper = Math.max(start, end);
+        if (!this.major && Math.abs(this.sagitta) <= 1.0) {
+            return boundsFromPoints([this.point(lower), this.point(upper)]);
+        }
+
+        const candidates = new Set([lower, upper]);
+        const signedSweep = this.sweep_angle * this.clockwise;
+        for (const criticalAngle of [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]) {
+            for (let turn = -2; turn <= 2; turn += 1) {
+                const t = (criticalAngle + turn * 2 * Math.PI - this.start_angle) / signedSweep;
+                if (t > lower && t < upper) candidates.add(t);
+            }
+        }
+        return boundsFromPoints([...candidates].map((t) => this.point(t)));
     }
 }

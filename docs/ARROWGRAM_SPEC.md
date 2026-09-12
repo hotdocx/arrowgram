@@ -1,10 +1,15 @@
 # Arrowgram JSON API Specification
 
-**Version:** 1.1.0
-**Source of Truth:** `packages/arrowgram/src/types.ts`
+**Arrowgram format version:** 1
+
+**Document revision:** 2026-08-30
+
+**Source of truth:** `packages/arrowgram/src/types.ts` plus semantic validation in `packages/arrowgram/src/schema/`
 
 ## 1. Overview
-The Arrowgram diagram is defined by a JSON object matching the `DiagramSpec` interface. This specification is strict; additional properties outside of this spec may be ignored or cause validation errors.
+An Arrowgram diagram is a JSON object matching `DiagramSpec`. Canonical validation is strict: unknown properties are rejected at every object boundary. Runtime validation also enforces identity, endpoint, dependency-cycle, depth, and loop invariants that ordinary JSON Schema cannot express.
+
+The published `packages/arrowgram/arrowgram.schema.json` is the structural Draft 2020-12 contract. Call `parseDiagramSpec` or `validateDiagramSpec` after structural validation to enforce the complete semantic contract.
 
 ### ⚠️ Critical Note on String Escaping
 Because the diagram is defined in JSON, all backslashes must be escaped. This is especially important for LaTeX commands in labels.
@@ -15,11 +20,13 @@ Because the diagram is defined in JSON, all backslashes must be escaped. This is
 
 ```typescript
 interface DiagramSpec {
-  version?: number;         // Schema version (default: 1)
+  version?: 1;              // Format version; omitted input canonicalizes to 1
   nodes: NodeSpec[];        // List of nodes (vertices)
   arrows?: ArrowSpec[];     // List of arrows (edges)
 }
 ```
+
+Canonical output always contains `version: 1` and an `arrows` array. Explicit versions other than `1` are rejected.
 
 ## 3. Nodes (`NodeSpec`)
 
@@ -27,13 +34,15 @@ Nodes represent the objects in the category (sets, spaces, etc.).
 
 ```typescript
 interface NodeSpec {
-  name: string;             // Unique identifier (used in ArrowSpec.from/to)
-  label?: string;           // LaTeX label to display (e.g., "$A$", "$X \\otimes Y$"). MUST be wrapped in $.
+  name: string;             // Non-empty unique endpoint ID (maximum 256 code points)
+  label?: string;           // Plain text or inline LaTeX such as "$A$"
   color?: string;           // Hex color code (e.g. "#FF0000" or "red"). Default: "black".
   left: number;             // X coordinate (pixels)
   top: number;              // Y coordinate (pixels)
 }
 ```
+
+Node names must be unique and may not collide with a named arrow. Logical IDs beginning with `__arrowgram_internal__` are reserved for computed renderer identity. Coordinates are finite pixels in the inclusive range `-1_000_000..1_000_000`.
 
 ## 4. Arrows (`ArrowSpec`)
 
@@ -42,12 +51,12 @@ Arrows represent morphisms or relationships.
 ```typescript
 interface ArrowSpec {
   // Connectivity
-  from: string;             // 'name' of the source Node or Arrow
-  to: string;               // 'name' of the target Node or Arrow
-  name?: string;            // Unique identifier for this arrow (optional, required if target of another arrow)
+  from: string;             // Non-empty ID of the source Node or explicitly named Arrow
+  to: string;               // Non-empty ID of the target Node or explicitly named Arrow
+  name?: string;            // Unique endpoint ID; required if another arrow references this arrow
   
   // Content
-  label?: string;           // LaTeX label (e.g., "$f$", "$\\pi$"). MUST be wrapped in $.
+  label?: string;           // Plain text or inline LaTeX (e.g., "$f$", "$\\pi$")
   label_alignment?: "over" | "left" | "right"; // Default: "over" (on top of line) or "left" depending on context.
   color?: string;           // Color of the arrow stroke (e.g. "#FF0000").
   label_color?: string;     // Color of the label text.
@@ -59,7 +68,7 @@ interface ArrowSpec {
   shift?: number;           // Parallel offset (pixels). Useful for double arrows ($f, g: A \\to B$). 
   radius?: number;          // Radius for loops.
   angle?: number;           // Exit angle for loops (degrees).
-  shorten?: {               // Shorten the arrow at ends (pixels).
+  shorten?: {               // Nonnegative shortening at each end (pixels).
       source?: number;      // Gap at source.
       target?: number;      // Gap at target.
   };
@@ -68,6 +77,10 @@ interface ArrowSpec {
   style?: ArrowStyleSpec;
 }
 ```
+
+Named arrows share the node endpoint namespace, so duplicate names and node/arrow collisions are invalid. Renderer-only IDs such as legacy `_arrow_0` values or the reserved internal namespace are not portable endpoints. All endpoints must resolve and the named-arrow dependency graph must be acyclic with depth at most 128.
+
+Arrow bodies are rendered from the post-node, post-shortening visible source point to the visible target point. If requested source plus target shortening exceeds the available path, Arrowgram proportionally clamps both values and returns a `geometry.shorten_clamped` warning containing requested/effective lengths.
 
 ### 4.1. Arrow Styling (`ArrowStyleSpec`)
 
@@ -82,7 +95,7 @@ interface ArrowStyleSpec {
   // "corner_inverse": Renders a pushout corner symbol (⌜).
 
   // Line Style
-  level?: number;           // 1 = single, 2 = double (=>), 3 = triple
+  level?: 1 | 2 | 3;       // 1 = single, 2 = double (=>), 3 = triple
   
   // Components
   body?: {
@@ -118,7 +131,7 @@ interface ArrowStyleSpec {
 ### 4.2. Higher-Order Arrows (2-cells)
 Arrows can connect to other arrows (e.g., for natural transformations $\alpha: F \Rightarrow G$).
 
-1.  **Naming:** The target arrow *must* have a defined `name`.
+1.  **Naming:** An arrow used as an endpoint *must* have an explicit unique `name`.
 2.  **referencing:** The 2-cell arrow uses that `name` in its `from` or `to` fields.
 3.  **Endpoint:** The connection point is the midpoint of the target arrow.
 
@@ -133,16 +146,73 @@ Arrows can connect to other arrows (e.g., for natural transformations $\alpha: F
 }
 ```
 
-## 5. Coordinate System
+## 5. Coordinate System And Limits
 *   **Origin:** (0, 0) is the Top-Left corner.
 *   **Units:** Pixels.
 *   **Grid:** The editor defaults to a 40px grid, but coordinates can be arbitrary.
 
-## 6. Examples
+Canonical package limits are deliberately larger than ordinary editor diagrams:
+
+| Value | Limit |
+|---|---:|
+| Nodes | 1,000 |
+| Arrows | 4,000 |
+| Logical ID | 256 Unicode code points |
+| Label | 16,384 Unicode code points |
+| Coordinate magnitude | 1,000,000 px |
+| Curve, shift, radius, or shortening magnitude | 1,000,000 px |
+| Angle magnitude before normalization | 1,000,000 degrees |
+| Higher-order dependency depth | 128 |
+
+All numeric values must be finite. Self-loops default to radius 40 when radius is omitted; an explicitly zero loop radius is invalid. Negative loop radii remain supported for direction reversal. URL/resource-bearing SVG paint values are rejected in color fields.
+
+### 5.1. Label grammar
+
+- Plain text needs no delimiter: `"label": "Object A"`.
+- Unescaped `$...$` creates an inline KaTeX segment: `"label": "Object $A$"`.
+- A label may alternate text and math segments: `"label": "map $f$ at $x$"`.
+- `\$` represents a literal dollar in text and remains escaped for KaTeX inside math.
+- Unterminated or empty math spans fail computation with `label.unterminated_math` or `label.empty_math` at the exact node/arrow label path.
+- A KaTeX parse failure remains visible as labelled fallback text in the React renderer, sets `data-arrowgram-label-error="true"`, and is available through the renderer diagnostic callback.
+
+Computed label layout is shared by bounds, masks, and React markup. `label_alignment: "over"` rotates both the label and its mask in explicit SVG degrees.
+
+## 6. Validation, Diagnostics, And Legacy Input
+
+Use the discriminated vNext APIs for new integrations:
+
+```typescript
+const parsed = parseDiagramSpec(input);
+if (!parsed.ok) {
+  console.error(parsed.diagnostics);
+  return;
+}
+
+const computed = computeDiagramResult(parsed.value);
+if (!computed.ok) {
+  console.error(computed.diagnostics);
+  return;
+}
+```
+
+Diagnostics have stable `code`, `severity`, `phase`, `path`, and optional entity/source metadata. JSON syntax, structural schema, semantic graph, geometry, label, and rendering failures are distinguishable.
+
+The React API exposes caller-supplied title/description, decorative mode, a deterministic textual node/edge summary, instance-scoped mask IDs, accessible KaTeX MathML, and an optional label-render diagnostic callback.
+
+Some older Arrowgram editor documents contain renderer-only `uniqueId` fields. Canonical parsing rejects them. Recovery must be explicit:
+
+```typescript
+const parsed = parseDiagramSpec(input, { normalizeLegacy: true });
+// parsed.diagnostics contains one legacy.unique_id_removed warning per change.
+```
+
+The normalizer removes only catalogued legacy residue, never unrelated unknown fields, and never mutates the supplied value.
+
+## 7. Examples
 
 **Disclaimer:** These examples must be kept in sync with the JSON schema defined in `packages/arrowgram/src/types.ts`. If the schema changes, these examples must be updated.
 
-### 6.1. Pullback Square (Corner)
+### 7.1. Pullback Square (Corner)
 
 A standard commutative square with a limit (pullback) structure. Note the `corner` mode.
 
@@ -165,7 +235,7 @@ A standard commutative square with a limit (pullback) structure. Note the `corne
 }
 ```
 
-### 6.2. Adjunction ($F \dashv G$)
+### 7.2. Adjunction ($F \dashv G$)
 
 Demonstrates the use of `curve` for bending arrows and `style.mode: "adjunction"` for the turnstile symbol.
 
@@ -183,7 +253,7 @@ Demonstrates the use of `curve` for bending arrows and `style.mode: "adjunction"
 }
 ```
 
-### 6.3. Isomorphism ($A \cong B$)
+### 7.3. Isomorphism ($A \cong B$)
 
 Using styled arrows to denote isomorphism.
 
@@ -209,7 +279,7 @@ Using styled arrows to denote isomorphism.
 }
 ```
 
-### 6.4. Natural Transformation (2-cell)
+### 7.4. Natural Transformation (2-cell)
 
 Connecting arrows to arrows. Note that `F` and `G` are given names so `alpha` can connect them.
 
@@ -227,7 +297,7 @@ Connecting arrows to arrows. Note that `F` and `G` are given names so `alpha` ca
 }
 ```
 
-### 6.5. Maps To ($x \mapsto y$)
+### 7.5. Maps To ($x \mapsto y$)
 
 Using tail styling to create a "maps to" arrow.
 
@@ -249,7 +319,7 @@ Using tail styling to create a "maps to" arrow.
 }
 ```
 
-### 6.6. Node to Arrow Connection
+### 7.6. Node to Arrow Connection
 
 An arrow starting from a node and ending on another arrow.
 
@@ -267,7 +337,7 @@ An arrow starting from a node and ending on another arrow.
 }
 ```
 
-### 6.7. Shortening and Label Alignment
+### 7.7. Shortening and Label Alignment
 
 Using `shorten` to create gaps and `label_alignment` to place text.
 

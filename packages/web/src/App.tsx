@@ -13,7 +13,7 @@ import { useToast } from "./context/ToastContext";
 import { PanelRight, ChevronLeft, Save, Paperclip, Upload, GitCompare, Camera } from "lucide-react";
 import { Dashboard } from "./components/Dashboard";
 import PrintPreview from "./PrintPreview";
-import { computeDiagram } from "@hotdocx/arrowgram";
+import { computeDiagramResult, firstErrorMessage } from "@hotdocx/arrowgram";
 // @ts-ignore
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { useProjectRepository } from "./context/ProjectRepositoryContext";
@@ -230,6 +230,8 @@ export default function App() {
     }
     return JSON.stringify({ id: project.id, title: diagramName, content: diagramSpec });
   }, []);
+  const currentBridgeProjectKeyRef = useRef("");
+  currentBridgeProjectKeyRef.current = bridgeProjectKey(activeProject, spec, filename);
 
   const refreshBridgeStatus = useCallback(async () => {
     if (!isFileBridge || !repo.getStatus) return;
@@ -243,8 +245,13 @@ export default function App() {
   const refreshActiveProjectFromRepo = useCallback(async () => {
     const projectId = activeProjectId ?? activeProject?.id;
     if (!projectId) return;
+    const requestedLocalKey = currentBridgeProjectKeyRef.current;
+    // File-system notifications can echo our own debounced write. Never let an
+    // echo (or a slower read it started) replace newer browser state.
+    if (requestedLocalKey && requestedLocalKey !== lastBridgePersistedKeyRef.current) return;
     try {
       const project = await repo.get(projectId);
+      if (currentBridgeProjectKeyRef.current !== requestedLocalKey) return;
       setActiveProject(project);
       if (project.type === "diagram") {
         useDiagramStore.getState().setFilename(project.title);
@@ -276,8 +283,12 @@ export default function App() {
     // Determine viewBox
     let viewBoxToUse = svgElement.getAttribute('viewBox') || "0 0 1000 600";
     if (options.fitView) {
-      const computed = computeDiagram(spec);
-      if (computed.viewBox) viewBoxToUse = computed.viewBox;
+      const computation = computeDiagramResult(spec, '', { normalizeLegacy: true });
+      if (!computation.ok) {
+        addToast(`Cannot export invalid diagram: ${firstErrorMessage(computation.diagnostics)}`, "error");
+        return;
+      }
+      viewBoxToUse = computation.value.viewBox;
     }
 
     try {
@@ -488,12 +499,16 @@ export default function App() {
           : repo.update({ id: activeProject.id, title: filename, content: spec });
       void update
         .then((updated) => {
-          setActiveProject(updated);
+          if (currentBridgeProjectKeyRef.current === key) {
+            setActiveProject(updated);
+          }
           void refreshBridgeStatus();
         })
         .catch((error) => {
           console.error(error);
-          lastBridgePersistedKeyRef.current = "";
+          if (lastBridgePersistedKeyRef.current === key) {
+            lastBridgePersistedKeyRef.current = "";
+          }
           addRepoErrorToast(error, "Failed to sync project files.");
         });
     }, 700);
