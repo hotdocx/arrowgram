@@ -371,7 +371,17 @@ export async function startDevServer(options: DevServerOptions) {
     for (const client of clients.values()) client.res.end();
     clients.clear();
     await vite.close();
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+      // Browser keep-alive connections can otherwise keep shutdown pending
+      // after Vite and SSE clients have closed. This bridge owns the server,
+      // so force-closing its remaining HTTP connections is the correct stop
+      // semantic and keeps CLI/test cleanup bounded.
+      server.closeAllConnections();
+    });
   };
 
   return { close, url };
