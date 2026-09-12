@@ -24,8 +24,8 @@ For the current deployment and validation overview, see `reports/CURRENT_OPERATI
 
 1. Ensure the working tree is clean:
    - `git status --porcelain`
-2. Export allowlisted paths:
-   - `scripts/export_oss.sh /tmp/arrowgram-oss-export`
+2. Export allowlisted paths to a new directory (the helper refuses to replace an existing path):
+   - `scripts/export_oss.sh /tmp/arrowgram-oss-export-<unique-id>`
 3. Validate the exported tree and regenerated public-only lockfile before publication. Prefer the guarded sync command below for the actual commit/push; do not directly force-push public `main`.
 
 ## Recommended workflow (scripted)
@@ -63,6 +63,7 @@ The export script uses an explicit allowlist. If a new OSS workspace is added, u
 
 - Never allowlist `packages/lastrevision/**`.
 - Never allowlist `.env*` or build outputs (e.g. `.output`, `dist`, `node_modules`).
+- Never copy the private super-repo lockfile into an export. The export helper always regenerates it from the four OSS workspaces and rejects any `packages/lastrevision` lock metadata.
 - Never export generated metadata artifacts that can capture private-repo paths or diagnostics (for example `*.tsbuildinfo`).
 - Public `main` updates must be ordinary fast-forward commits. A concurrent update is a stop/review condition, not a reason to force-push.
 - Public `gh-pages` updates follow the same rule. The deploy helper builds the exact public `main`, defaults to dry-run, requires successful CI on apply, and rejects changed `main` or `gh-pages` heads before its normal push.

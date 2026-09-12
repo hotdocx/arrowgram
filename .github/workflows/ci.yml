@@ -35,6 +35,9 @@ jobs:
           git diff --check
           test ! -e packages/arrowgram/tsconfig.tsbuildinfo
           test ! -e packages/web/dist-pages
+          if test ! -d packages/lastrevision; then
+            ! grep -q 'packages/lastrevision' package-lock.json
+          fi
       - name: Verify workspace manifests
         run: npm query .workspace --json >/dev/null
 

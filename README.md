@@ -161,7 +161,7 @@ When working in the private super-repo:
    - `scripts/deploy_arrowgram_pages.sh --apply`
 
 Safety:
-- `scripts/export_oss.sh` is allowlist-based and excludes `packages/lastrevision/**`.
+- `scripts/export_oss.sh` accepts only a new output path, is allowlist-based, always regenerates a public-only lockfile, and rejects private workspace metadata, environment files, and symlinks.
 - `scripts/sync_public_oss.sh` defaults to dry-run, verifies the exact public GitHub repository, rejects dirty/private/symlink/env/concurrent state, and never force-pushes.
 - `scripts/deploy_arrowgram_pages.sh` builds the exact public `main` checkout, defaults to dry-run, requires its CI to be green on apply, rejects stale/concurrent state, and never force-pushes.
 - Never push private code directly to `https://github.com/hotdocx/arrowgram`.
