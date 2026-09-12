@@ -44,8 +44,11 @@ function percentile(sorted, fraction) {
 
 function runCase(side, runs, medianBudgetMs, productTargetMs) {
   const spec = createGrid(side);
-  const warmup = computeDiagram(spec);
-  if (warmup.error) throw new Error(warmup.error);
+  const warmupRuns = 5;
+  for (let iteration = 0; iteration < warmupRuns; iteration += 1) {
+    const warmup = computeDiagram(spec);
+    if (warmup.error) throw new Error(warmup.error);
+  }
 
   const timings = [];
   for (let iteration = 0; iteration < runs; iteration += 1) {
@@ -59,6 +62,7 @@ function runCase(side, runs, medianBudgetMs, productTargetMs) {
   const result = {
     nodes: spec.nodes.length,
     arrows: spec.arrows.length,
+    warmupRuns,
     runs,
     minMs: Number(timings[0].toFixed(2)),
     medianMs: Number(percentile(timings, 0.5).toFixed(2)),
@@ -75,7 +79,7 @@ const report = {
   measuredAt: new Date().toISOString(),
   runtime: process.version,
   platform: `${process.platform}-${process.arch}`,
-  note: 'Median budgets are CI regression guards. The 100/180 product target is a stricter 16.7 ms reference-environment objective.',
+  note: 'Each case uses five untimed warmups before its measured median. Budgets are CI regression guards; the 100/180 product target is a stricter 16.7 ms reference-environment objective.',
   cases: [
     runCase(5, 20, 10),
     runCase(10, 10, 25, 16.7),

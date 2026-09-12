@@ -100,7 +100,7 @@
         }
     },
     "dependencies": {
-        "zod": "^4.5.4"
+        "zod": "4.5.4"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -112,6 +112,7 @@
         "ajv": "^8.20.0",
         "eslint": "^10.9.1",
         "eslint-plugin-react-hooks": "^7.1.1",
+        "esbuild": "0.25.5",
         "fast-check": "^4.9.0",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.68.0",
