@@ -11,6 +11,7 @@ const packageDirs = [
   path.join(repoRoot, "packages/web"),
   path.join(repoRoot, "packages/agent"),
 ];
+const packedReactVersion = "19.2.4";
 
 function run(command, args, cwd, options = {}) {
   return execFileSync(command, args, {
@@ -44,7 +45,18 @@ try {
 
   await writeFile(
     path.join(consumerDir, "package.json"),
-    JSON.stringify({ name: "arrowgram-packed-install-smoke", private: true }, null, 2),
+    JSON.stringify({
+      name: "arrowgram-packed-install-smoke",
+      private: true,
+      dependencies: {
+        react: packedReactVersion,
+        "react-dom": packedReactVersion,
+      },
+      overrides: {
+        react: packedReactVersion,
+        "react-dom": packedReactVersion,
+      },
+    }, null, 2),
   );
   run(
     "npm",
@@ -78,6 +90,32 @@ try {
     throw new Error(
       `Installed React versions differ: react ${installedReact.version}, react-dom ${installedReactDom.version}`,
     );
+  }
+  if (installedReact.version !== packedReactVersion) {
+    throw new Error(
+      `Installed React fixture resolved to ${installedReact.version}; expected ${packedReactVersion}`,
+    );
+  }
+  const installedTree = JSON.parse(
+    run("npm", ["ls", "react", "react-dom", "--all", "--json"], consumerDir, { capture: true }),
+  );
+  const nestedVersions = new Map([
+    ["react", new Set()],
+    ["react-dom", new Set()],
+  ]);
+  const collectNestedVersions = (node) => {
+    for (const [name, dependency] of Object.entries(node?.dependencies ?? {})) {
+      if (nestedVersions.has(name) && typeof dependency?.version === "string") {
+        nestedVersions.get(name).add(dependency.version);
+      }
+      collectNestedVersions(dependency);
+    }
+  };
+  collectNestedVersions(installedTree);
+  for (const [name, versions] of nestedVersions) {
+    if (versions.size !== 1 || !versions.has(packedReactVersion)) {
+      throw new Error(`Packed fixture ${name} versions differ: ${[...versions].sort().join(", ")}`);
+    }
   }
 
   const agentBin = path.join(consumerDir, "node_modules/.bin/arrowgram-agent");

@@ -206,6 +206,11 @@ export async function startDevServer(options: DevServerOptions) {
         { find: /^react$/, replacement: requireFromHere.resolve("react") },
         { find: /^react-dom$/, replacement: requireFromHere.resolve("react-dom") },
         { find: /^react-dom\/client$/, replacement: requireFromHere.resolve("react-dom/client") },
+        { find: /^react-dom\/server$/, replacement: requireFromHere.resolve("react-dom/server") },
+        {
+          find: /^react-dom\/server\.browser$/,
+          replacement: requireFromHere.resolve("react-dom/server.browser"),
+        },
         { find: /^react\/jsx-runtime$/, replacement: requireFromHere.resolve("react/jsx-runtime") },
         { find: /^react\/jsx-dev-runtime$/, replacement: requireFromHere.resolve("react/jsx-dev-runtime") },
         { find: "@hotdocx/arrowgram-web/embed", replacement: arrowgramWebDistPath("embed.js") },

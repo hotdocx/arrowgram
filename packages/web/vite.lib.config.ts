@@ -13,7 +13,10 @@ const external = [
   ...Object.keys(pkg.dependencies ?? {}),
   ...Object.keys(pkg.peerDependencies ?? {}),
   "react/jsx-runtime",
+  "react/jsx-dev-runtime",
   "react-dom/client",
+  "react-dom/server",
+  "react-dom/server.browser",
 ];
 
 export default defineConfig({
