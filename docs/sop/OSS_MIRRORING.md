@@ -66,7 +66,7 @@ The export script uses an explicit allowlist. If a new OSS workspace is added, u
 - Never copy the private super-repo lockfile into an export. The export helper always regenerates it from the four OSS workspaces and rejects any `packages/lastrevision` lock metadata.
 - Never export generated metadata artifacts that can capture private-repo paths or diagnostics (for example `*.tsbuildinfo`).
 - Public `main` updates must be ordinary fast-forward commits. A concurrent update is a stop/review condition, not a reason to force-push.
-- Public `gh-pages` updates follow the same rule. The deploy helper builds the exact public `main`, defaults to dry-run, requires successful CI on apply, and rejects changed `main` or `gh-pages` heads before its normal push.
+- Public `gh-pages` updates follow the same rule. The deploy helper compares the deployed `Source-Commit` with exact public `main`, skips when core/web/Paged and root build inputs are unchanged, otherwise builds that checkout, defaults to dry-run, requires successful CI on apply, and rejects changed `main` or `gh-pages` heads before its normal push.
 - Consider running a quick grep in the export dir for common secret prefixes before pushing.
 - Since `.github/` is allowlisted, keep GitHub Actions workflows compatible with both:
   - the private super-repo (has `packages/lastrevision`)
