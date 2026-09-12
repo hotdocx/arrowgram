@@ -55,6 +55,7 @@ We use **Zustand** for state, with **Zundo** for undo/redo.
         - `git push origin main`
         - `scripts/sync_public_oss.sh`
         - `scripts/deploy_arrowgram_pages.sh`
+        - `scripts/deploy_arrowgram_pages.sh --apply`
         - `git tag -a oss-npm-v1.0.0 -m "First public npm release"`
         - `git push origin oss-npm-v1.0.0`
     -   For the **public repo**, create the same tag name on the **public mirror's `main` commit**, not by pushing the private tag object directly to `public`.

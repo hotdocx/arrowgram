@@ -156,12 +156,14 @@ When working in the private super-repo:
    - `scripts/sync_public_oss.sh`
 3. After review, publish public `main` with the helper's normal fast-forward path:
    - `scripts/sync_public_oss.sh --apply`
-4. Deploy the OSS site to `gh-pages` only if the web/paged build changed:
+4. If the web/paged build changed and public CI is green, dry-run the Pages build/diff and then publish it:
    - `scripts/deploy_arrowgram_pages.sh`
+   - `scripts/deploy_arrowgram_pages.sh --apply`
 
 Safety:
 - `scripts/export_oss.sh` is allowlist-based and excludes `packages/lastrevision/**`.
 - `scripts/sync_public_oss.sh` defaults to dry-run, verifies the exact public GitHub repository, rejects dirty/private/symlink/env/concurrent state, and never force-pushes.
+- `scripts/deploy_arrowgram_pages.sh` builds the exact public `main` checkout, defaults to dry-run, requires its CI to be green on apply, rejects stale/concurrent state, and never force-pushes.
 - Never push private code directly to `https://github.com/hotdocx/arrowgram`.
 - See `docs/sop/OSS_MIRRORING.md` for the full SOP.
 

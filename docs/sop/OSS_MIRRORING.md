@@ -38,8 +38,9 @@ From the private super-repo working tree:
    - `scripts/sync_public_oss.sh`
 3. After reviewing the printed private source/public base pair and diff, publish with a normal fast-forward push:
    - `scripts/sync_public_oss.sh --apply`
-4. Deploy OSS artifacts to public `gh-pages` only when the web/paged build changed:
+4. When the web/paged build changed, wait for public CI to pass, inspect the Pages build/diff, and then publish the reviewed source/base pair:
    - `scripts/deploy_arrowgram_pages.sh`
+   - `scripts/deploy_arrowgram_pages.sh --apply`
 
 ## Tags
 
@@ -64,6 +65,7 @@ The export script uses an explicit allowlist. If a new OSS workspace is added, u
 - Never allowlist `.env*` or build outputs (e.g. `.output`, `dist`, `node_modules`).
 - Never export generated metadata artifacts that can capture private-repo paths or diagnostics (for example `*.tsbuildinfo`).
 - Public `main` updates must be ordinary fast-forward commits. A concurrent update is a stop/review condition, not a reason to force-push.
+- Public `gh-pages` updates follow the same rule. The deploy helper builds the exact public `main`, defaults to dry-run, requires successful CI on apply, and rejects changed `main` or `gh-pages` heads before its normal push.
 - Consider running a quick grep in the export dir for common secret prefixes before pushing.
 - Since `.github/` is allowlisted, keep GitHub Actions workflows compatible with both:
   - the private super-repo (has `packages/lastrevision`)
