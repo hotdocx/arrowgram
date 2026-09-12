@@ -81,7 +81,7 @@
         "reveal.js": "^5.2.1",
         "save-svg-as-png": "^1.4.17",
         "showdown": "^2.1.0",
-        "vega": "^6.1.2",
+        "vega": "^6.4.0",
         "vega-lite": "^6.2.0",
         "zundo": "^2.3.0",
         "zustand": "^5.0.9",
