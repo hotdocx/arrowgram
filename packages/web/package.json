@@ -64,7 +64,7 @@
         "react-dom": "^18.2.0 || ^19.0.0"
     },
     "dependencies": {
-        "@ai-sdk/google": "^3.0.16",
+        "@ai-sdk/google": "^4.0.69",
         "@ai-sdk/react": "^3.0.61",
         "@hotdocx/arrowgram": "^2.0.0-0",
         "ai": "^6.0.59",
