@@ -1,6 +1,6 @@
 ---
 name: getpaidx-lastrevision
-description: Use the LastRevision.pro OAuth origin for hosted GetPaidX MCP tools that manage posts, public GitHub repository workspaces, conference peer review, Live Sessions, commerce, and Arrowgram workspaces.
+description: Use the LastRevision.pro OAuth origin for hosted GetPaidX MCP tools that browse professional Discover cards and manage posts, public GitHub repository workspaces, conference peer review, Live Sessions, commerce, and Arrowgram workspaces.
 ---
 
 # GetPaidX — LastRevision.pro
@@ -16,6 +16,8 @@ The LastRevision and GetPaidX hosts share the GetPaidX API implementation and ac
 ## Tool strategy
 
 Prefer curated tools for known workflows. Use catalog workflow/endpoint discovery before the raw `getpaidx_api_call`; the raw caller may call only catalog-approved routes, and mutations require explicit confirmation.
+
+For conversational Discover, call `getpaidx_discover_next` for one minimized card and apply only user-supplied filters. Wait for an explicit decision before calling `getpaidx_discover_decide`. `PASS` and `SAVED` are private. For `INTERESTED`, first show or obtain the exact reply title and body, require explicit confirmation, then send those exact fields with `confirmInterest: true`. Report the moderation receipt; interest is an idempotent normal reply, not checkout or workspace access. Fetch another card only when the user asks or explicitly requests a repeated browsing loop.
 
 For a public GitHub repository workspace:
 

@@ -1,11 +1,11 @@
 ---
 name: getpaidx
-description: Use hosted GetPaidX MCP tools to manage cloud posts, public GitHub repository workspaces, conference peer review, Live Sessions, commerce, and Arrowgram workspaces after OAuth login.
+description: Use hosted GetPaidX MCP tools to browse professional Discover cards and manage cloud posts, public GitHub repository workspaces, conference peer review, Live Sessions, commerce, and Arrowgram workspaces after OAuth login.
 ---
 
 # GetPaidX
 
-Use this skill when the user asks Codex to automate GetPaidX posts, public GitHub repository workspaces, conference peer-review workflows, Live Sessions, fixed-price Live Offers, cloud workspaces, user assets/share email, artifact publishing, or Arrowgram/template workspaces.
+Use this skill when the user asks Codex to browse or respond to GetPaidX Discover cards, or to automate GetPaidX posts, public GitHub repository workspaces, conference peer-review workflows, Live Sessions, fixed-price Live Offers, cloud workspaces, user assets/share email, artifact publishing, or Arrowgram/template workspaces.
 
 ## Authentication
 
@@ -23,6 +23,16 @@ Current hosted consent includes `places:read` for place search/resolve and `orga
 ## Tool Strategy
 
 Prefer curated tools for known workflows. Use `getpaidx_catalog_search`, `getpaidx_catalog_get_endpoint`, and `getpaidx_catalog_get_workflow` before the raw `getpaidx_api_call` escape hatch.
+
+For conversational Discover:
+
+1. Call `getpaidx_discover_next` for one minimized professional card. Apply only filters the user supplied or approved; do not invent durable preferences.
+2. Summarize the returned card from its structured fields. If inline UI is unavailable, provide its details/cover links as ordinary clickable fallbacks.
+3. Wait for an explicit decision. Sentiment or a positive remark alone is not a PASS, SAVED, or INTERESTED instruction.
+4. Use `getpaidx_discover_decide` with `PASS` or `SAVED` only when requested; both remain private and undoable in Discover.
+5. Before `INTERESTED`, show or obtain the exact reply title and body and get explicit confirmation. Then send those exact fields with `confirmInterest: true`. Never invent and silently send the message.
+6. Report the authoritative receipt, including moderation state. Interest creates one idempotent normal reply; it does not buy a priced post or grant workspace access.
+7. Fetch another card only when the user asks for the next card or explicitly requests a repeated browse loop. Do not reset or erase prior decisions to keep a loop running.
 
 The curated public-GitHub repository workspace flow is:
 

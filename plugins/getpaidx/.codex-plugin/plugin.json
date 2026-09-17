@@ -1,7 +1,7 @@
 {
   "name": "getpaidx",
-  "version": "0.2.0+codex.20260912000355",
-  "description": "Hosted GetPaidX MCP workflows for posts, public GitHub repository workspaces, peer review, Live Sessions, and commerce.",
+  "version": "0.2.0+codex.20260917202138",
+  "description": "Hosted GetPaidX MCP workflows for Discover cards, posts, public GitHub repository workspaces, peer review, Live Sessions, and commerce.",
   "author": {
     "name": "GetPaidX.com",
     "url": "https://getpaidx.com"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "GetPaidX",
     "shortDescription": "Manage posts and workspaces",
-    "longDescription": "GetPaidX lets Codex securely create posts, select cloud runtimes, shallow-clone public GitHub repositories, run and preview workspaces, manage conference peer review, and operate Live Sessions and commerce through the hosted OAuth-protected MCP server.",
+    "longDescription": "GetPaidX lets Codex browse and respond to professional Discover cards, securely create posts, select cloud runtimes, shallow-clone public GitHub repositories, run and preview workspaces, manage conference peer review, and operate Live Sessions and commerce through the hosted OAuth-protected MCP server.",
     "developerName": "GetPaidX.com",
     "category": "Business & Operations",
     "capabilities": [
@@ -33,7 +33,7 @@
     "defaultPrompt": [
       "Create a GetPaidX post and shallow-clone a public GitHub repository into a LambdaPi workspace.",
       "Set up a GetPaidX peer-review workflow.",
-      "Schedule a GetPaidX Live Session."
+      "Show me the next GetPaidX Discover card and wait for my decision."
     ],
     "brandColor": "#0F766E",
     "composerIcon": "./assets/logo.svg",
