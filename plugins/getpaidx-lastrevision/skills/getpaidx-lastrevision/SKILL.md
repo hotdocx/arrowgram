@@ -25,9 +25,26 @@ For a public GitHub repository workspace:
 2. Create a DRAFT post. Markdown bodies currently accept up to 20,000 characters.
 3. Configure runtime, live-server command, collaborator access, purchase gates, and billing defaults with the workspace-config tool. Discover only the current user's eligible organization billing accounts; organization membership does not itself grant workspace or peer-review access.
 4. Start an EDIT workspace, then use the repository-clone tool with a canonical public `https://github.com/{owner}/{repo}` URL. The checkout is bounded and depth one, replaces the current project, and does not initialize submodules.
-5. Save a snapshot. For terminal work, inspect `run_workspace_automation` and queue a bounded prompt plus stable idempotency key; never seek a controller credential or raw shell API.
+5. Save a snapshot. For immediate terminal work, follow the immediate-task workflow below when available; never seek controller credentials or raw shell APIs.
 6. Hand off the returned token-free preview URL. Close only the intended session when finished.
 7. Independently enable conference peer review if requested. Conference roles never silently become workspace roles.
+
+For instructed work that should run now, inspect `run_workspace_codex_task`
+and use `getpaidx_run_workspace_codex_task` in the selected read-write session.
+Retain its idempotency key and poll `getpaidx_get_workspace_execution` until
+terminal. Reconcile uncertain starts using the same key/input. Cancellation
+uses the shared execution tool and does not undo changes already made. This
+retains the intended unattended workspace Codex profile. Scheduled/event-driven
+work still uses `run_workspace_automation` and its queued API.
+
+For authored Node/TypeScript computation, inspect `run_workspace_program`,
+obtain the manifest revision, then use `getpaidx_run_workspace_program` without
+a model turn. Generic project files use expected hashes; retained execution
+files provide captured source, parameters and artifacts for replay. These are
+separate from Arrowgram's source allowlist. The skills-only `emdash-cloud`
+companion supplies mathematical guidance through this same connection, with
+no local Node server or another OAuth client. Check live capabilities: older
+hosted versions may not expose these source-version tools.
 
 For broader operations, use the matching catalog workflows for conference review, Live Sessions, Live Offers, user assets/share email, CRM templates, or Arrowgram file/build/publish operations. Respect double-blind identity redaction, sellable-post price authority, RTC credential boundaries, source-file allowlists, and workspace secret bindings.
 

@@ -40,13 +40,33 @@ The curated public-GitHub repository workspace flow is:
 2. Create an ordinary `DRAFT` with `getpaidx_create_post`. A repository README extract can be used as Markdown body text, up to the tool's current 20,000-character limit.
 3. Configure the owned post with `getpaidx_update_workspace_config`. Runtime commands belong in `runtimeConfig`; explicit collaborators use `editUserIds`, `editUserEmails`, or audience tags. Use `getpaidx_list_workspace_billing_options` before choosing an eligible organization billing account. Organization membership does not itself grant workspace or peer-review access.
 4. Start an `EDIT` workspace with `getpaidx_start_workspace`, then pass its session ID and a canonical public `https://github.com/{owner}/{repo}` URL to `getpaidx_clone_github_repository`. The operation replaces the existing project with a bounded depth-one checkout, does not initialize submodules, and may queue a configured live-runtime restart after the checkout commits.
-5. Save with `getpaidx_save_workspace_snapshot`. For repository-specific terminal work, inspect catalog workflow `run_workspace_automation` and queue a bounded Codex prompt rather than seeking controller credentials or a raw shell endpoint.
+5. Save with `getpaidx_save_workspace_snapshot`. For immediate repository work, follow the immediate Codex-task workflow below when available. Scheduled work retains the automation workflow.
 6. Use the returned token-free `previewUrl` for an authenticated browser handoff when the configured live server is ready. Close only the created session with `getpaidx_close_workspace` when finished.
 7. If requested, independently enable conference review on the same post with `getpaidx_bootstrap_peer_review_conference`. Conference roles do not silently change the explicit workspace collaborator or billing configuration.
 
 Repository cloning is V1 public-GitHub-only and destructive to the current workspace project. Do not manufacture alternate clone hosts, embedded credentials, submodule steps, symbolic-link exceptions, or raw controller/session tokens. The canonical plugin MCP endpoint stays `getpaidx.com`; same-origin WebMCP on signed-in `getpaidx.com` and `lastrevision.pro` pages is a separate browser surface and uses independent host cookies.
 
-For a task that must run inside an owned post workspace, inspect catalog workflow `run_workspace_automation`. Use the catalog-approved raw caller to POST a bounded Codex prompt plus stable idempotency key to `/api/workspace/automations/runs`, then GET `/api/workspace/automations/runs/{runId}` until terminal. The prompt may request terminal commands inside the workspace; never look for a raw controller-shell endpoint, send controller credentials, or pass plaintext secret overrides.
+For instructed work that should run now in a selected read-write workspace,
+inspect the live catalog for `run_workspace_codex_task` and use
+`getpaidx_run_workspace_codex_task`. Retain its idempotency key and inspect the
+returned ID with `getpaidx_get_workspace_execution` until terminal. An accepted
+response is not completion; `synchronized: false` calls for reconciliation,
+not a new task. Cancellation uses `getpaidx_cancel_workspace_execution` and
+may leave changes already made. This retains the workspace's intended
+unattended Codex profile. Do not seek controller credentials or plaintext
+secret overrides. Older hosted connections may lack this capability; report
+that accurately. Scheduled/event-triggered tasks still use
+`run_workspace_automation` and its queued run API.
+
+For an authored calculation, use `getpaidx_inspect_workspace_program`, then
+`getpaidx_run_workspace_program` with its exact revision, task and parameters.
+This runs a captured Node/TypeScript program without a model turn. Generic
+project-file read/write tools use expected hashes; retained execution-file
+reads expose source, artifacts and metadata for replay. These tools are
+separate from the Arrowgram source allowlist. The skills-only `emdash-cloud`
+companion supplies mathematical guidance and uses this same authenticated
+connection; it requires no local Node server or additional OAuth client.
+Check the live catalog before claiming these source-version tools are deployed.
 
 For the `getpaidx_crm_workspace` template, ask the workspace run to use the installed `npm run crm -- ...` commands and its independent project `data/` state. Workspace image generation uses `npm run crm -- art generate`, which calls OpenAI's built-in Responses `image_generation` tool through the authenticated GetPaidX proxy and writes under the active `CODEX_HOME`; do not assume the controller Codex CLI directly exposes `image_gen`, start a nested Codex process, or ask for an API key.
 
