@@ -82,7 +82,7 @@
         "save-svg-as-png": "^1.4.17",
         "showdown": "^2.1.0",
         "vega": "^6.1.2",
-        "vega-lite": "^6.2.0",
+        "vega-lite": "^6.4.3",
         "zundo": "^2.3.0",
         "zustand": "^5.0.9",
         "zod": "^4.5.4"
