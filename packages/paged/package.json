@@ -15,7 +15,7 @@
     "@hotdocx/arrowgram": "*",
     "katex": "^0.16.9",
     "lucide-react": "^0.475.0",
-    "mermaid": "^10.9.0",
+    "mermaid": "^11.17.2",
     "pagedjs": "^0.4.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
