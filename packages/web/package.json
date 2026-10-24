@@ -60,8 +60,8 @@
         "access": "public"
     },
     "peerDependencies": {
-        "react": "^18.2.0 || ^19.0.0",
-        "react-dom": "^18.2.0 || ^19.0.0"
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1"
     },
     "dependencies": {
         "@ai-sdk/google": "^3.0.16",
@@ -74,7 +74,7 @@
         "file-saver": "^2.0.5",
         "html-to-image": "^1.11.13",
         "idb-keyval": "^6.2.2",
-        "katex": "^0.16.22",
+        "katex": "^0.19.0",
         "lucide-react": "^0.562.0",
         "mermaid": "^11.8.0",
         "pagedjs": "^0.4.3",
@@ -83,9 +83,9 @@
         "showdown": "^2.1.0",
         "vega": "^6.1.2",
         "vega-lite": "^6.2.0",
+        "zod": "^4.5.4",
         "zundo": "^2.3.0",
-        "zustand": "^5.0.9",
-        "zod": "^4.5.4"
+        "zustand": "^5.0.9"
     },
     "devDependencies": {
         "@playwright/test": "^1.57.0",

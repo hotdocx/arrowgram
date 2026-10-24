@@ -13,12 +13,12 @@
   },
   "dependencies": {
     "@hotdocx/arrowgram": "*",
-    "katex": "^0.16.9",
+    "katex": "^0.19.0",
     "lucide-react": "^0.475.0",
     "mermaid": "^10.9.0",
     "pagedjs": "^0.4.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "showdown": "^2.1.0",
     "vega": "^5.28.0",
     "vega-lite": "^5.17.0"
